@@ -75,8 +75,8 @@ impl<Message, R: Renderer, E: Event, S> Widget<Message, R, E, S> for Checkbox<R>
     fn layout(
         &self,
         _ctx: &mut UiCtx<Message>,
-        state_tree: &mut StateNode,
-        styler: &S,
+        _state_tree: &mut StateNode,
+        _styler: &S,
         limits: &crate::layout::Limits,
     ) -> crate::layout::LayoutNode {
         Layout::sized(limits, self.size, self.size, |_| Size::zero())
@@ -85,9 +85,9 @@ impl<Message, R: Renderer, E: Event, S> Widget<Message, R, E, S> for Checkbox<R>
     fn draw(
         &self,
         _ctx: &mut UiCtx<Message>,
-        state_tree: &mut StateNode,
+        _state_tree: &mut StateNode,
         renderer: &mut R,
-        styler: &S,
+        _styler: &S,
         layout: crate::layout::Layout,
     ) {
         let bounds = layout.bounds();

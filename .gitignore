@@ -1,1 +1,3 @@
 target/
+icons-input.c
+src/icons/*.old.rs

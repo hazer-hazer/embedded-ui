@@ -70,7 +70,9 @@ where
         limits: &crate::layout::Limits,
     ) -> crate::layout::LayoutNode {
         Layout::container(limits, self.size.width, self.size.height, |limits| {
-            self.options[self.chosen].layout(ctx, state, styler, limits)
+            // Reserve some space for arrows on the sides
+            let shrink_by_arrows = limits.max().height * 2;
+            self.options[self.chosen].layout(ctx, state, styler, &limits.shrink(shrink_by_arrows))
         })
     }
 
