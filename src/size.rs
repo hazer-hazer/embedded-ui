@@ -83,6 +83,10 @@ impl Size<u32> {
     pub fn as_fixed_length(self) -> Size<Length> {
         Size::new(Length::Fixed(self.width), Length::Fixed(self.height))
     }
+
+    pub fn max_square(self) -> u32 {
+        self.width.min(self.height)
+    }
 }
 
 impl From<u32> for Size {

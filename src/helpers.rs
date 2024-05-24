@@ -5,6 +5,7 @@ use crate::{
         button::{Button, ButtonStyler},
         checkbox::Checkbox,
         divider::Divider,
+        select::Select,
     },
     render::Renderer,
     text::Text,
@@ -48,4 +49,10 @@ pub use row;
 
 pub fn checkbox<R: Renderer>() -> Checkbox<R> {
     Checkbox::new()
+}
+
+pub fn select<'a, Message: Clone, R: Renderer, E: Event, S: ButtonStyler<R::Color>>(
+    options: impl IntoIterator<Item = impl Into<El<'a, Message, R, E, S>>>,
+) -> Select<'a, Message, R, E, S> {
+    Select::new(options.into_iter().map(Into::into).collect())
 }

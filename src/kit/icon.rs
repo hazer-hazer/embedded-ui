@@ -4,11 +4,37 @@ use embedded_graphics::iterator::raw::RawDataSlice;
 use embedded_graphics::pixelcolor::raw::{BigEndian, RawData, RawU1};
 
 use crate::el::El;
-use crate::icons::{IconKind, IconPicker, IntoIcon};
+use crate::icons::icons5::Icons5;
+use crate::icons::{IconData, IconKind, IconSet};
+use crate::layout::{LayoutNode, Limits};
 use crate::size::Length;
 use crate::{
     color::UiColor, event::Event, layout::Layout, render::Renderer, size::Size, widget::Widget,
 };
+
+pub struct IconPicker;
+
+impl IconPicker {
+    pub fn by_size(&self, size: u32, kind: IconKind) -> Option<IconData> {
+        match size {
+            5.. => Icons5.pick(kind),
+            _ => None,
+        }
+    }
+
+    pub fn flex_size(&self, length: Length, limits: &Limits) -> u32 {
+        let fit_square = limits.resolve_square(length);
+        match fit_square {
+            5.. => 5,
+            _ => 0,
+        }
+    }
+
+    pub fn flex(&self, length: Length, limits: &Limits, kind: IconKind) -> Option<IconData> {
+        let size = self.flex_size(length, limits);
+        self.by_size(size, kind)
+    }
+}
 
 #[derive(Clone, Copy)]
 pub struct Icon<R>
@@ -29,7 +55,7 @@ where
         // assert_eq!((size * size).div_ceil(8) as usize, data.len());
 
         Self {
-            size: Length::Shrink,
+            size: Length::Fill,
             kind,
             color: R::Color::default_foreground(),
             background: R::Color::default_background(),
@@ -90,11 +116,9 @@ where
         _styler: &S,
         limits: &crate::layout::Limits,
     ) -> crate::layout::LayoutNode {
-        let size = Size::new_equal(self.size);
+        let size = Size::new_equal(IconPicker.flex_size(self.size, limits));
 
-        Layout::sized(limits, size.width, size.height, |limits| {
-            limits.resolve_size(size.width, size.height, Size::zero())
-        })
+        LayoutNode::new(limits.resolve_size(size.width, size.height, size))
     }
 
     fn draw(
@@ -106,25 +130,23 @@ where
         layout: crate::layout::Layout,
     ) {
         let bounds = layout.bounds();
-        let icon = IconPicker.by_size(bounds.size, self.kind);
+        let icon = IconPicker.by_size(bounds.size.max_square(), self.kind);
 
         // TODO: Warn that icon cannot be drawn because no fitted options found
 
         if let Some(icon) = icon {
             let size = icon.size;
             let bits_iter = RawDataSlice::<RawU1, BigEndian>::new(&icon.data).into_iter();
-            // let skip_bits = 8usize.saturating_sub(self.size.width as usize);
 
-            // let image =
-            //     bits_iter.map(|b| if b.into_inner() == 1 { "#" } else { "_" }).collect::<String>();
+            let data_width = size.max(8);
 
             for (index, bit) in bits_iter.enumerate() {
-                if index % 8 >= size as usize {
+                if index % data_width as usize >= size as usize {
                     continue;
                 }
 
-                let y = index / size as usize;
-                let x = index % size as usize;
+                let y = index / data_width as usize;
+                let x = index % data_width as usize;
 
                 let point = Point::new(x as i32, y as i32) + bounds.position;
 

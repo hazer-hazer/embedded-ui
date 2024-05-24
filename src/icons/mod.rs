@@ -168,22 +168,12 @@ impl<'a> IconData<'a> {
     }
 }
 
-pub struct IconPicker;
-
-impl IconPicker {
-    pub fn by_size(&self, size: Size, kind: IconKind) -> Option<IconData<'_>> {
-        match (size.width, size.height) {
-            _ => Icons5.pick(kind),
-        }
-    }
-}
-
-pub trait IntoIcon<R: Renderer> {
-    fn into_icon<'a>(self) -> IconData<'a>;
-}
+// pub trait IntoIcon<R: Renderer> {
+//     fn into_icon<'a>(self) -> IconData<'a>;
+// }
 
 pub trait InternalIconSet<R: Renderer> {
-    fn internal(icon: InternalIcon) -> impl IntoIcon<R>;
+    fn internal<'a>(icon: InternalIcon) -> IconData<'a>;
 }
 
 pub trait IconSet {

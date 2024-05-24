@@ -7,7 +7,7 @@ use embedded_ui::{
     col,
     el::ElId,
     event::CommonEvent,
-    helpers::{button, checkbox, h_div, text},
+    helpers::{button, checkbox, h_div, select, text},
     icons::IconKind,
     render::Renderer,
     row,
@@ -87,13 +87,13 @@ fn main() {
     // I don't certainly know why, but display must be drawn at least once before event fetching. Otherwise SDL2 will panic :(
     window.update(&display);
 
-    // let header_line = h_div().padding(0);
+    let header_line = h_div().padding(0);
 
     let col = row![
-        // col![text("OSC1"), header_line, button("TYPE"), button("SYNC"), button("EDIT")],
-        // col![text("OSC2"), header_line, button("TYPE"), button("SYNC"), button("EDIT")],
+        col![text("OSC1"), header_line, button("TYPE"), button("SYNC"), button("EDIT")],
+        col![text("OSC2"), header_line, button("TYPE"), button("SYNC"), button("EDIT")],
         // col![text("OSC3"), header_line, button("TYPE"), button("SYNC"), button("EDIT")],
-        col![IconKind::Circle]
+        col![select(["1", "2", "3"])],
     ];
 
     let mut ui = UI::new(col, display.bounds().size).no_controls().monochrome();

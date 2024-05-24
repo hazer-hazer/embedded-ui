@@ -369,6 +369,14 @@ impl Limits {
         self.max
     }
 
+    pub fn min_square(&self) -> u32 {
+        self.min().width.min(self.min().height)
+    }
+
+    pub fn max_square(&self) -> u32 {
+        self.max().width.min(self.max().height)
+    }
+
     pub fn limit_width(self, width: impl Into<Length>) -> Self {
         match width.into() {
             Length::Shrink | Length::Div(_) | Length::Fill => self,
@@ -416,6 +424,17 @@ impl Limits {
         };
 
         Size::new(width, height)
+    }
+
+    pub fn resolve_square(&self, size: impl Into<Length>) -> u32 {
+        let min_square = self.min_square();
+        let max_square = self.max_square();
+
+        match size.into() {
+            Length::Fill | Length::Div(_) => max_square,
+            Length::Fixed(fixed) => fixed.min(max_square).max(min_square),
+            Length::Shrink => min_square,
+        }
     }
 }
 
