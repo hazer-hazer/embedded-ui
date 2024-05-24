@@ -40,3 +40,18 @@ So bigger the size of the icons wider the catalog. It also means that when picki
 
 
 There's a special trait `InternalIconSet` which is implemented for all icon packs (and you can implement for yours) which contains icons used in system widgets, such as arrows for `Select` or check sign in `Checkbox`.
+
+## Length
+
+Length is a universal single-dimension size type, used both for width and height. 
+There are four options in `Length` enum:
+- `Fixed` - fixed length in pixels
+- `Shrink` - occupies as least free space as possible giving more space for other elements
+- `Fill` - occupies as much free space as possible
+- `Div(N)` - takes `free / N` space. For example, in 100px container in width, element with width of `Div(4)` will take 25px.
+
+## Flex layout
+
+There's a single container using flex layout -- 'Linear'. It is a generic element for both row and column.
+
+Flex
