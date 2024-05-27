@@ -6,6 +6,8 @@ use core::{
 
 use crate::{event::Event, render::Renderer, widget::Widget};
 
+// TODO: Not just any, but specific "State" trait with Default, etc.??? Is it possible
+
 pub enum State {
     None,
     Some(Box<dyn Any>),
@@ -27,6 +29,18 @@ impl State {
         match self {
             State::None => panic!("Downcast of stateless state"),
             State::Some(state) => state.downcast_mut().expect("Downcast mut state"),
+        }
+    }
+
+    pub fn reset<T: 'static>(&mut self)
+    where
+        T: Default,
+    {
+        match self {
+            State::None => panic!("Reset of stateless state"),
+            State::Some(state) => {
+                *state.downcast_mut::<T>().expect("Downcast reset state") = T::default();
+            },
         }
     }
 }
@@ -61,5 +75,20 @@ impl StateNode {
         let widget = widget.borrow();
 
         Self { tag: widget.state_tag(), state: widget.state(), children: widget.state_children() }
+    }
+
+    pub fn get<T: 'static>(&self) -> &T {
+        self.state.downcast_ref()
+    }
+
+    pub fn get_mut<T: 'static>(&mut self) -> &mut T {
+        self.state.downcast_mut()
+    }
+
+    pub fn reset<T: 'static>(&mut self)
+    where
+        T: Default,
+    {
+        self.state.reset::<T>()
     }
 }

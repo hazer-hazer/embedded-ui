@@ -1,13 +1,16 @@
 use std::process::exit;
 
 use embedded_graphics::{geometry::Size, pixelcolor::BinaryColor};
-use embedded_graphics_simulator::{sdl2, OutputSettingsBuilder, SimulatorDisplay, Window};
+use embedded_graphics_simulator::{
+    sdl2::{self, MouseButton},
+    OutputSettingsBuilder, SimulatorDisplay, Window,
+};
 use embedded_ui::{
     align::HorizontalAlign,
     col,
     el::ElId,
     event::CommonEvent,
-    helpers::{button, checkbox, h_div, select, text},
+    helpers::{button, checkbox, h_div, knob, select, slider_h, slider_v, text},
     icons::IconKind,
     render::Renderer,
     row,
@@ -15,7 +18,7 @@ use embedded_ui::{
     ui::UI,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum Event {
     MainEncoderRotation(i32),
     MainEncoderButtonDown,
@@ -52,6 +55,16 @@ impl TryFrom<embedded_graphics_simulator::SimulatorEvent> for Event {
 
                 Ok(Event::MainEncoderRotation(offset))
             },
+            embedded_graphics_simulator::SimulatorEvent::MouseButtonDown { mouse_btn, .. }
+                if mouse_btn == MouseButton::Middle =>
+            {
+                Ok(Event::MainEncoderButtonDown)
+            },
+            embedded_graphics_simulator::SimulatorEvent::MouseButtonUp { mouse_btn, .. }
+                if mouse_btn == MouseButton::Middle =>
+            {
+                Ok(Event::MainEncoderButtonUp)
+            },
             embedded_graphics_simulator::SimulatorEvent::Quit => exit(0),
             _ => Err(()),
         }
@@ -66,18 +79,40 @@ impl embedded_ui::event::Event for Event {
             Event::MainEncoderButtonUp => Some(CommonEvent::FocusClickUp),
         }
     }
+
+    fn as_select_shift(&self) -> Option<i32> {
+        match self {
+            &Event::MainEncoderRotation(offset) => Some(offset),
+            _ => None,
+        }
+    }
+
+    fn as_slider_shift(&self) -> Option<i32> {
+        match self {
+            &Event::MainEncoderRotation(offset) => Some(offset),
+            _ => None,
+        }
+    }
+
+    fn as_knob_rotation(&self) -> Option<i32> {
+        match self {
+            &Event::MainEncoderRotation(offset) => Some(offset),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
 enum Message {
+    None,
     Focus(ElId),
 }
 
 fn main() {
     let output_settings = OutputSettingsBuilder::new()
         .theme(embedded_graphics_simulator::BinaryColorTheme::OledWhite)
-        .pixel_spacing(1)
-        .scale(3)
+        .pixel_spacing(0)
+        .scale(4)
         .build();
 
     let mut window = Window::new("TEST", &output_settings);
@@ -87,16 +122,51 @@ fn main() {
     // I don't certainly know why, but display must be drawn at least once before event fetching. Otherwise SDL2 will panic :(
     window.update(&display);
 
-    let header_line = h_div().padding(0);
+    // let header_line = h_div().padding(0);
 
     let col = row![
-        col![text("OSC1"), header_line, button("TYPE"), button("SYNC"), button("EDIT")],
-        col![text("OSC2"), header_line, button("TYPE"), button("SYNC"), button("EDIT")],
+        col![text("OSC1"), button("TYPE"), button("SYNC"), button("EDIT")],
+        col![text("OSC2"), button("TYPE"), button("SYNC"), button("EDIT")],
         // col![text("OSC3"), header_line, button("TYPE"), button("SYNC"), button("EDIT")],
-        col![select(["1", "2", "3"])],
+        // col![
+        //     select(["1", "2", "3"]).cycle(true),
+        //     select(["1", "2", "3"]).cycle(true),
+        //     select(["1", "2", "3"]).cycle(true)
+        // ],
+        // col![
+        //     slider_h(|pos| {
+        //         println!("pos: {pos}");
+        //         Message::None
+        //     })
+        //     .step(8),
+        //     slider_h(|pos| {
+        //         println!("pos: {pos}");
+        //         Message::None
+        //     }),
+        //     row![
+        //         checkbox(|state| {
+        //             println!("Checkbox state: {state}");
+        //             Message::None
+        //         }),
+        //         checkbox(|state| {
+        //             println!("Checkbox state: {state}");
+        //             Message::None
+        //         }),
+        //         checkbox(|state| {
+        //             println!("Checkbox state: {state}");
+        //             Message::None
+        //         })
+        //     ],
+        // ],
+        col![knob(|value| {
+            println!("Knob value: {value}");
+            Message::None
+        })]
     ];
 
     let mut ui = UI::new(col, display.bounds().size).no_controls().monochrome();
+
+    ui.auto_focus();
 
     loop {
         ui.feed_events(window.events().filter_map(|event| Event::try_from(event).ok()));
@@ -105,6 +175,7 @@ fn main() {
         while let Some(message) = ui.deque_message() {
             match message {
                 Message::Focus(id) => ui.focus(id),
+                Message::None => {},
             }
         }
 

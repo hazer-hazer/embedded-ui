@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use embedded_graphics::geometry::Point;
 
 use crate::{
-    align::{Alignment, Axis},
+    align::{Alignment, Axis, HorizontalAlign, VerticalAlign},
     el::El,
     event::Event,
     padding::Padding,
@@ -45,15 +45,16 @@ impl LayoutNode {
         &mut self,
         horizontal: Alignment,
         vertical: Alignment,
-        inside: Size,
+        parent_size: Size,
     ) -> &mut Self {
         match horizontal {
             Alignment::Start => {},
             Alignment::Center => {
-                self.bounds.position.x += (inside.width as i32 - self.bounds.size.width as i32) / 2;
+                self.bounds.position.x +=
+                    (parent_size.width as i32 - self.bounds.size.width as i32) / 2;
             },
             Alignment::End => {
-                self.bounds.position.x += inside.width as i32 - self.bounds.size.width as i32;
+                self.bounds.position.x += parent_size.width as i32 - self.bounds.size.width as i32;
             },
         }
 
@@ -61,13 +62,23 @@ impl LayoutNode {
             Alignment::Start => {},
             Alignment::Center => {
                 self.bounds.position.y +=
-                    (inside.height as i32 - self.bounds.size.height as i32) / 2;
+                    (parent_size.height as i32 - self.bounds.size.height as i32) / 2;
             },
             Alignment::End => {
-                self.bounds.position.y += inside.width as i32 - self.bounds.size.width as i32;
+                self.bounds.position.y += parent_size.width as i32 - self.bounds.size.width as i32;
             },
         }
 
+        self
+    }
+
+    pub fn aligned(
+        mut self,
+        horizontal: Alignment,
+        vertical: Alignment,
+        parent_size: Size,
+    ) -> Self {
+        self.align_mut(horizontal, vertical, parent_size);
         self
     }
 
@@ -108,58 +119,58 @@ impl<'a> Layout<'a> {
 
     pub fn sized(
         limits: &Limits,
-        width: impl Into<Length>,
-        height: impl Into<Length>,
+        size: impl Into<Size<Length>>,
         content_limits: impl FnOnce(&Limits) -> Size,
     ) -> LayoutNode {
-        let width = width.into();
-        let height = height.into();
+        let size = size.into();
 
-        let limits = limits.limit_width(width).limit_height(height);
+        let limits = limits.limit_width(size.width).limit_height(size.height);
         let content_size = content_limits(&limits);
 
-        LayoutNode::new(limits.resolve_size(width, height, content_size))
+        LayoutNode::new(limits.resolve_size(size.width, size.height, content_size))
     }
+
+    // pub fn container(
+    //     limits: &Limits,
+    //     width: impl Into<Length>,
+    //     height: impl Into<Length>,
+    //     content: impl FnOnce(&Limits) -> LayoutNode,
+    // ) -> LayoutNode {
+    //     let width = width.into();
+    //     let height = height.into();
+
+    //     let limits = limits.limit_width(width).limit_height(height);
+    //     let content = content(&limits);
+
+    //     LayoutNode::with_children(limits.resolve_size(width, height, content.size()), vec![content])
+    // }
 
     pub fn container(
         limits: &Limits,
-        width: impl Into<Length>,
-        height: impl Into<Length>,
-        content: impl FnOnce(&Limits) -> LayoutNode,
-    ) -> LayoutNode {
-        let width = width.into();
-        let height = height.into();
-
-        let limits = limits.limit_width(width).limit_height(height);
-        let content = content(&limits);
-
-        LayoutNode::with_children(limits.resolve_size(width, height, content.size()), vec![content])
-    }
-
-    pub fn padded(
-        limits: &Limits,
-        width: impl Into<Length>,
-        height: impl Into<Length>,
+        size: impl Into<Size<Length>>,
         padding: impl Into<Padding>,
         border: impl Into<Padding>,
+        content_align_h: Alignment,
+        content_align_v: Alignment,
         content_layout: impl FnOnce(&Limits) -> LayoutNode,
         // place_content: impl FnOnce(LayoutNode, Size) -> LayoutNode,
     ) -> LayoutNode {
-        let width = width.into();
-        let height = height.into();
+        let size = size.into();
         let padding = padding.into();
         let border = border.into();
 
         let full_padding = padding + border;
 
-        let limits = limits.limit_width(width).limit_height(height);
+        let limits = limits.limit_width(size.width).limit_height(size.height);
         let content = content_layout(&limits.shrink(full_padding));
         let fit_padding = full_padding.fit(content.size(), limits.max());
 
-        let size = limits.shrink(fit_padding).resolve_size(width, height, content.size());
+        let size = limits.shrink(fit_padding).resolve_size(size.width, size.height, content.size());
         let content_offset = full_padding.top_left();
 
-        LayoutNode::with_children(size.expand(fit_padding), vec![content.moved(content_offset)])
+        let content = content.moved(content_offset).aligned(content_align_h, content_align_v, size);
+
+        LayoutNode::with_children(size.expand(fit_padding), vec![content])
     }
 
     pub fn flex<Message, R: Renderer, E: Event, S>(
@@ -168,18 +179,16 @@ impl<'a> Layout<'a> {
         styler: &S,
         axis: Axis,
         limits: &Limits,
-        width: impl Into<Length>,
-        height: impl Into<Length>,
+        size: impl Into<Size<Length>>,
         padding: impl Into<Padding>,
         gap: u32,
         align: Alignment,
         children: &[El<'_, Message, R, E, S>],
     ) -> LayoutNode {
-        let width = width.into();
-        let height = height.into();
+        let size = size.into();
         let padding = padding.into();
 
-        let limits = limits.limit_width(width).limit_height(height).shrink(padding);
+        let limits = limits.limit_width(size.width).limit_height(size.height).shrink(padding);
         let total_gap = gap * children.len().saturating_sub(1) as u32;
         let max_anti = axis.size_anti(limits.max());
 
@@ -190,8 +199,8 @@ impl<'a> Layout<'a> {
 
         let mut free_main = axis.size_main(limits.max()).saturating_sub(total_gap);
         let mut free_anti = match axis {
-            Axis::X if width == Length::Shrink => 0,
-            Axis::Y if height == Length::Shrink => 0,
+            Axis::X if size.width == Length::Shrink => 0,
+            Axis::Y if size.height == Length::Shrink => 0,
             _ => max_anti,
         };
 
@@ -224,11 +233,11 @@ impl<'a> Layout<'a> {
 
         // Remaining main axis length after calculating sizes of non-auto-sized children
         let remaining = match axis {
-            Axis::X => match width {
+            Axis::X => match size.width {
                 Length::Shrink => 0,
                 _ => free_main.max(0),
             },
-            Axis::Y => match height {
+            Axis::Y => match size.height {
                 Length::Shrink => 0,
                 _ => free_main.max(0),
             },
@@ -295,7 +304,8 @@ impl<'a> Layout<'a> {
         }
 
         let (content_width, content_height) = axis.canon(main_offset - main_padding, free_anti);
-        let size = limits.resolve_size(width, height, Size::new(content_width, content_height));
+        let size =
+            limits.resolve_size(size.width, size.height, Size::new(content_width, content_height));
 
         LayoutNode::with_children(size.expand(padding), layout_children)
     }

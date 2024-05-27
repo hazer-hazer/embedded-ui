@@ -15,7 +15,7 @@ use crate::{
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ElId {
     Unique(u64),
     Custom(&'static str), // TODO: Custom

@@ -39,7 +39,7 @@ My icon packs are not consistent as catalogs because with such small sizes it is
 So bigger the size of the icons wider the catalog. It also means that when picking an icon and don't know the exact limits, it is possible to use a generic icon name and the best size will be chosen automatically.
 
 
-There's a special trait `InternalIconSet` which is implemented for all icon packs (and you can implement for yours) which contains icons used in system widgets, such as arrows for `Select` or check sign in `Checkbox`.
+There's a special trait `InternalIconSet` which is implemented for all icon packs (and you can implement for yours) which contains icons used in system widgets, such as arrows for [`Select`](#select) or check sign in [`Checkbox`](#checkbox).
 
 ## Length
 
@@ -52,6 +52,87 @@ There are four options in `Length` enum:
 
 ## Flex layout
 
-There's a single container using flex layout -- 'Linear'. It is a generic element for both row and column.
+There's a single container using flex layout -- [`Linear`](#linear). It is a generic element for both row and column.
 
 Flex
+
+## Components
+
+### `Checkbox`
+
+### `FocusInput`
+
+### `Graph`
+
+### `Icon`
+
+### `Image`
+
+### `Knob`
+
+> TODO:
+> - Add child element to the center of the knob. For value as text and anything
+
+### `Linear`
+
+### `ProgressBar`
+
+__TODO__
+
+### `Radio`
+
+> __Postponed__. Use [`Select`](#select)
+> As I think `Select` covers radio button logic so `Radio` postponed.
+
+### `Scroll`
+
+### `Select`
+
+### `Slider`
+
+> TODO:
+> - Slider text, to display real value. It should follow the knob not go out of viewport.
+> - Add min/max if it makes sense
+
+### `Table`
+
+> __Postponed__. Use [`Linear`](#linear) with `row` and `col` macros.
+
+### `Toggle`
+
+> __Postponed__. Use [`Checkbox`](#checkbox).
+
+## Roadmap
+
+### Near plans
+
+- [`Knob`](#knob)
+- [`Graph`](#graph)
+- [`ProgressBar`](#progressbar)
+- [`Slider`](#slider)
+- [`FocusInput`](#focusinput)
+- [`Scroll`](#scroll)
+- Basic pages and links
+
+### Future
+
+- Better navigation and links
+- Transformations
+- Add animations. This opens the door for not only animations, but new time-based logic too:
+    - Animated transformations
+    - Spinners, loaders and other such stuff
+- Windows as popups, overlays
+- More high-level widgets (most aren't usable for small displays):
+    - Text inputs 
+    - Toolbar
+    - Header/Footer (not sure if we need it)
+    - Accordion
+    - Badge and chip
+    - Date/time picker
+    - Dropdown
+    - Tree (tree structure representation)
+- Complex special effects:
+    - Image in background, border, etc.
+    - Shadow (yeah, what about shadows on 128x32 monochrome display lol?)
+    - Parallax
+    - Transparency filters

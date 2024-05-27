@@ -3,7 +3,9 @@ use embedded_graphics::{
     image::{Image, ImageRaw},
     iterator::raw::RawDataSlice,
     pixelcolor::{raw::BigEndian, BinaryColor, PixelColor},
-    primitives::{Line, PrimitiveStyleBuilder, RoundedRectangle, StyledDrawable},
+    primitives::{
+        Arc, Circle, Line, PrimitiveStyle, PrimitiveStyleBuilder, RoundedRectangle, StyledDrawable,
+    },
     text::renderer::{CharacterStyle, TextRenderer},
     Pixel,
 };
@@ -28,6 +30,10 @@ pub trait Renderer {
     fn pixel(&mut self, point: Point, color: Self::Color);
     fn fill_rect(&mut self, rect: Rectangle, fill_color: Self::Color);
     fn line(&mut self, start: Point, end: Point, color: Self::Color, width: u32);
+
+    // TODO: Own Arc, Circle and Sector structs might be needed
+    fn arc(&mut self, arc: Arc, style: &PrimitiveStyle<Self::Color>);
+    fn circle(&mut self, circle: Circle, style: &PrimitiveStyle<Self::Color>);
 
     // High-level primitives
     fn block(&mut self, block: &Block<Self::Color>)
@@ -59,6 +65,8 @@ impl Renderer for NullRenderer {
     fn pixel(&mut self, point: Point, color: Self::Color) {}
     fn fill_rect(&mut self, _rect: Rectangle, _fill_color: Self::Color) {}
     fn line(&mut self, _from: Point, _to: Point, _color: Self::Color, _width: u32) {}
+    fn arc(&mut self, arc: Arc, style: &PrimitiveStyle<Self::Color>) {}
+    fn circle(&mut self, circle: Circle, style: &PrimitiveStyle<Self::Color>) {}
 
     fn block(&mut self, _block: &Block<Self::Color>)
     where
@@ -114,20 +122,31 @@ where
             .unwrap();
     }
 
+    fn arc(&mut self, arc: Arc, style: &PrimitiveStyle<Self::Color>) {
+        arc.draw_styled(&style, self).unwrap();
+    }
+
+    fn circle(&mut self, circle: Circle, style: &PrimitiveStyle<Self::Color>) {
+        circle.draw_styled(style, self).unwrap();
+    }
+
     fn block(&mut self, block: &Block<Self::Color>)
     where
         Self: Sized,
     {
-        RoundedRectangle::new(block.rect, block.border.radius.into())
-            .draw_styled(
-                &PrimitiveStyleBuilder::new()
-                    .fill_color(block.background)
-                    .stroke_color(block.border.color)
-                    .stroke_width(block.border.width)
-                    .build(),
-                self,
-            )
-            .unwrap();
+        RoundedRectangle::new(
+            block.rect,
+            block.border.radius.resolve_for_size(block.rect.size.into()).into(),
+        )
+        .draw_styled(
+            &PrimitiveStyleBuilder::new()
+                .fill_color(block.background)
+                .stroke_color(block.border.color)
+                .stroke_width(block.border.width)
+                .build(),
+            self,
+        )
+        .unwrap();
     }
 
     fn text<'a, S>(&mut self, text: &TextBox<'a, S>)

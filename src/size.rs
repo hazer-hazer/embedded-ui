@@ -1,4 +1,4 @@
-use core::ops::{Add, Sub};
+use core::ops::{Add, Div, Sub};
 
 use embedded_graphics::{geometry::Point, primitives::Rectangle, transform::Transform};
 
@@ -35,7 +35,7 @@ impl From<u32> for Length {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Size<T = u32> {
     pub width: T,
     pub height: T,
@@ -89,6 +89,18 @@ impl Size<u32> {
     }
 }
 
+impl Add<Size> for Point {
+    type Output = Self;
+
+    fn add(self, rhs: Size) -> Self::Output {
+        // TODO: Add debug assertions
+        let width = rhs.width as i32;
+        let height = rhs.height as i32;
+
+        Self::new(self.x + width, self.y + height)
+    }
+}
+
 impl From<u32> for Size {
     fn from(value: u32) -> Self {
         Self::new(value, value)
@@ -124,6 +136,14 @@ impl Sub<u32> for Size<u32> {
 
     fn sub(self, rhs: u32) -> Self::Output {
         self - Size::new_equal(rhs)
+    }
+}
+
+impl Div<u32> for Size<u32> {
+    type Output = Self;
+
+    fn div(self, rhs: u32) -> Self::Output {
+        Self::new(self.width / rhs, self.height / rhs)
     }
 }
 
@@ -163,6 +183,12 @@ impl Into<embedded_graphics_core::geometry::Size> for Size {
 pub struct Bounds {
     pub position: Point,
     pub size: Size,
+}
+
+impl Bounds {
+    pub fn center(&self) -> Point {
+        self.position + self.size / 2
+    }
 }
 
 impl Transform for Bounds {

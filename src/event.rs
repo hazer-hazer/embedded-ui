@@ -1,10 +1,11 @@
+use core::fmt::Debug;
 use core::{marker::PhantomData, ops::ControlFlow};
 
 use alloc::vec::Vec;
 
 use crate::el::ElId;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Capture {
     /// Event is captured by element and should not be accepted by its parents
     Captured,
@@ -17,7 +18,7 @@ impl<E: Event> Into<EventResponse<E>> for Capture {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Propagate<E: Event> {
     /// Event is ignored by element and can be accepted by parents
     Ignored,
@@ -35,7 +36,7 @@ impl<E: Event> Into<EventResponse<E>> for Propagate<E> {
 
 pub type EventResponse<E> = ControlFlow<Capture, Propagate<E>>;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum CommonEvent {
     /// Moves focus to current ±offset
     FocusMove(i32),
@@ -47,31 +48,44 @@ pub enum CommonEvent {
     FocusClickUp,
 }
 
-// impl CommonEvent {
-//     pub fn bubble_up<E: Event>(self) -> EventResponse<E> {
-//         Propagate::BubbleUp(self).into()
+// Unused
+// impl Event for CommonEvent {
+//     fn as_common(&self) -> Option<CommonEvent> {
+//         Some(*self)
 //     }
 // }
 
-impl Event for CommonEvent {
-    fn as_common(&self) -> Option<CommonEvent> {
-        Some(*self)
-    }
-}
-
-pub trait Event: Clone + From<CommonEvent> {
+pub trait Event: Clone + From<CommonEvent> + Debug {
     // fn is_focus_move(&self) -> Option<i32>;
 
     // fn is_focus_click(&self) -> bool;
 
     fn as_common(&self) -> Option<CommonEvent>;
+
+    // TODO: This might better be split and moved to separate traits such as `AsSelectShift`, etc. so if user don't want to use Slider for example, these methods don't need to be implemented.
+    //  Or the easier way is to make these methods return `None` or use `FocusMove` by default.
+    fn as_select_shift(&self) -> Option<i32>;
+    fn as_slider_shift(&self) -> Option<i32>;
+    fn as_knob_rotation(&self) -> Option<i32>;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct EventStub;
 
 impl Event for EventStub {
     fn as_common(&self) -> Option<CommonEvent> {
+        None
+    }
+
+    fn as_select_shift(&self) -> Option<i32> {
+        None
+    }
+
+    fn as_slider_shift(&self) -> Option<i32> {
+        None
+    }
+
+    fn as_knob_rotation(&self) -> Option<i32> {
         None
     }
 }

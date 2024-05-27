@@ -21,6 +21,18 @@ impl BorderRadius {
     pub fn new_equal(ellipse: Size) -> Self {
         Self::new(ellipse, ellipse, ellipse, ellipse)
     }
+
+    /// Avoid using border radius larger than half of block size
+    // TODO: Review this logic, it might be an invalid limit for a user
+    pub fn resolve_for_size(self, size: Size) -> Self {
+        let max_size = size / 2;
+        Self {
+            top_left: self.top_left.min(max_size),
+            top_right: self.top_right.min(max_size),
+            bottom_right: self.bottom_right.min(max_size),
+            bottom_left: self.bottom_left.min(max_size),
+        }
+    }
 }
 
 impl Into<CornerRadii> for BorderRadius {

@@ -1,4 +1,3 @@
-use alloc::string::String;
 use embedded_graphics::geometry::Point;
 use embedded_graphics::iterator::raw::RawDataSlice;
 use embedded_graphics::pixelcolor::raw::{BigEndian, RawData, RawU1};
@@ -7,10 +6,9 @@ use crate::el::El;
 use crate::icons::icons5::Icons5;
 use crate::icons::{IconData, IconKind, IconSet};
 use crate::layout::{LayoutNode, Limits};
+use crate::log::logger::warning;
 use crate::size::Length;
-use crate::{
-    color::UiColor, event::Event, layout::Layout, render::Renderer, size::Size, widget::Widget,
-};
+use crate::{color::UiColor, event::Event, render::Renderer, size::Size, widget::Widget};
 
 pub struct IconPicker;
 
@@ -130,25 +128,33 @@ where
         layout: crate::layout::Layout,
     ) {
         let bounds = layout.bounds();
-        let icon = IconPicker.by_size(bounds.size.max_square(), self.kind);
+        let bounds_size = bounds.size.max_square();
+        let icon = IconPicker.by_size(bounds_size, self.kind);
 
         // TODO: Warn that icon cannot be drawn because no fitted options found
 
         if let Some(icon) = icon {
-            let size = icon.size;
+            let icon_size = icon.size;
+
+            // Align icon to the center of bounds
+            // TODO: This may be useless as layout is always of size of the icon
+            let icon_position = bounds.position
+                + Point::new(bounds.size.width as i32, bounds.size.height as i32) / 2
+                - Point::new_equal(icon_size as i32) / 2;
+
             let bits_iter = RawDataSlice::<RawU1, BigEndian>::new(&icon.data).into_iter();
 
-            let data_width = size.max(8);
+            let data_width = icon_size.max(8);
 
             for (index, bit) in bits_iter.enumerate() {
-                if index % data_width as usize >= size as usize {
+                if index % data_width as usize >= icon_size as usize {
                     continue;
                 }
 
                 let y = index / data_width as usize;
                 let x = index % data_width as usize;
 
-                let point = Point::new(x as i32, y as i32) + bounds.position;
+                let point = Point::new(x as i32, y as i32) + icon_position;
 
                 let color = match bit.into_inner() {
                     0 => self.background,
@@ -158,6 +164,12 @@ where
 
                 renderer.pixel(point, color);
             }
+        } else {
+            warning!(
+                "Icon cannot be rendered: icon size: {:?} does not fit into box of size {:?}",
+                bounds_size,
+                bounds.size
+            );
         }
     }
 }

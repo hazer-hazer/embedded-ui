@@ -142,7 +142,7 @@ where
         _styler: &S,
         limits: &crate::layout::Limits,
     ) -> crate::layout::LayoutNode {
-        Layout::sized(limits, self.size.width, self.size.height, |limits| {
+        Layout::sized(limits, self.size, |limits| {
             let text_size = self.font.measure_text_size(&self.content);
             limits.resolve_size(self.size.width, self.size.height, text_size)
         })

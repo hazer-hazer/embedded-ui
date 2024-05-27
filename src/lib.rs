@@ -1,15 +1,17 @@
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod align;
 pub mod block;
 pub mod color;
 pub mod el;
 pub mod event;
+pub mod focus;
 pub mod font;
 pub mod helpers;
+pub mod icons;
 pub mod kit;
 pub mod layout;
-pub mod linear;
+mod log;
 pub mod padding;
 pub mod render;
 pub mod size;
@@ -18,9 +20,10 @@ pub mod style;
 pub mod text;
 pub mod ui;
 pub mod widget;
-pub mod focus;
-pub mod icons;
 
 // TODO: Feature to switch to fixed-sized heapless
 #[macro_use]
 extern crate alloc;
+
+#[cfg(not(feature = "no_std"))]
+extern crate std;

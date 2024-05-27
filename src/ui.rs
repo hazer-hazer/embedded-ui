@@ -3,12 +3,12 @@ use embedded_graphics::pixelcolor::BinaryColor;
 
 use crate::{
     el::{El, ElId},
-    event::{Capture, Controls, Event, EventResponse, EventStub, NullControls, Propagate},
+    event::{Controls, Event, EventStub, NullControls, Propagate},
     layout::{Layout, LayoutNode, Limits},
     render::Renderer,
     size::Size,
     state::StateNode,
-    style::{oled::MonochromeOled, Styler},
+    style::{monochrome::Monochrome, Styler},
     widget::Widget,
 };
 
@@ -105,33 +105,52 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>, C: Controls<E>>
             self.events.extend(controls.events())
         }
 
-        let _ = self.events.iter().cloned().map(|event| -> EventResponse<E> {
-            match self.root.on_event(&mut self.ctx, event, &mut self.root_state)? {
-                Propagate::BubbleUp(bubble_origin, bubbled) => {
-                    if let Some(common) = bubbled.as_common() {
-                        match common {
-                            crate::event::CommonEvent::FocusMove(offset) => {
-                                let tree = self.root.tree_ids();
-                                let current =
-                                    tree.iter().position(|&id| id == bubble_origin).unwrap_or(0)
+        self.events.iter().cloned().for_each(|event| {
+            // debug!("Process event {event:?}");
+            if let core::ops::ControlFlow::Continue(propagate) =
+                self.root.on_event(&mut self.ctx, event.clone(), &mut self.root_state)
+            {
+                match propagate {
+                    Propagate::BubbleUp(bubble_origin, bubbled) => {
+                        // debug!("Capture Bubble up event {bubbled:?} from {bubble_origin:?}");
+                        if let Some(common) = bubbled.as_common() {
+                            match common {
+                                crate::event::CommonEvent::FocusMove(offset) => {
+                                    let tree = self.root.tree_ids();
+                                    let current = tree
+                                        .iter()
+                                        .position(|&id| id == bubble_origin)
+                                        .unwrap_or(0)
                                         as i32;
-                                let next_focus = current
-                                    .saturating_add(offset)
-                                    .clamp(0, tree.len().saturating_sub(1) as i32);
-                                self.ctx.focus(tree[next_focus as usize]);
-                                return Capture::Captured.into();
-                            },
-                            _ => {},
+                                    let next_focus = current
+                                        .saturating_add(offset)
+                                        .clamp(0, tree.len().saturating_sub(1) as i32);
+                                    self.ctx.focus(tree[next_focus as usize]);
+                                    // return Capture::Captured.into();
+                                    return;
+                                },
+                                _ => {},
+                            }
                         }
-                    }
-                },
-                Propagate::Ignored => {},
+                    },
+                    Propagate::Ignored => {
+                        // debug!("Ignored event {event:?}");
+                    },
+                }
+            } else {
+                // debug!("Some element captured event {event:?}");
             }
             // TODO: Debug log "ignored event"
-            Propagate::Ignored.into()
+            // Propagate::Ignored.into()
         });
 
         self.events.clear();
+    }
+
+    pub fn auto_focus(&mut self) {
+        if let Some(first_el) = self.root.tree_ids().first().copied() {
+            self.ctx.focus(first_el)
+        }
     }
 
     pub fn focus(&mut self, id: ElId) {
@@ -178,7 +197,7 @@ impl<'a, R: Renderer, E: Event, S: Styler<R::Color>, C: Controls<E>> UI<'a, (), 
     }
 }
 
-impl<'a, Message, R, E, C> UI<'a, Message, R, E, MonochromeOled, C>
+impl<'a, Message, R, E, C> UI<'a, Message, R, E, Monochrome, C>
 where
     R: Renderer<Color = BinaryColor>,
     E: Event,

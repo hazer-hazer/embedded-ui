@@ -135,7 +135,10 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
         state: &mut crate::state::StateNode,
     ) -> EventResponse<E> {
         for (child, child_state) in self.children.iter_mut().zip(state.children.iter_mut()) {
-            child.on_event(ctx, event.clone(), child_state)?;
+            match child.on_event(ctx, event.clone(), child_state)? {
+                Propagate::Ignored => {},
+                bubbled @ Propagate::BubbleUp(_, _) => return bubbled.into(),
+            }
         }
 
         Propagate::Ignored.into()
@@ -154,8 +157,7 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
             styler,
             D::AXIS,
             limits,
-            self.size.width,
-            self.size.height,
+            self.size,
             self.padding,
             self.gap,
             self.align,

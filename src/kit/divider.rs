@@ -101,8 +101,7 @@ where
 
         Layout::sized(
             limits,
-            size.width,
-            size.height,
+            size,
             // self.padding,
             // Padding::zero(),
             |limits| {

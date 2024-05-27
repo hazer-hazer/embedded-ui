@@ -1,6 +1,7 @@
 use alloc::boxed::Box;
 
 use crate::{
+    align::Alignment,
     block::{Block, Border, BorderRadius},
     color::UiColor,
     el::{El, ElId},
@@ -10,11 +11,12 @@ use crate::{
     render::Renderer,
     size::{Length, Size},
     state::{self, StateNode, StateTag},
+    style::component_style,
     ui::UiCtx,
     widget::Widget,
 };
 
-// TODO: Double-click
+// TODO: Double-click (needs time source)
 struct ButtonState {
     is_pressed: bool,
 }
@@ -27,56 +29,28 @@ impl Default for ButtonState {
 
 #[derive(Clone, Copy)]
 pub enum ButtonStatus {
-    Active,
+    Normal,
     Focused,
     Pressed,
     // Disabled,
     // Hovered,
 }
 
-pub type ButtonStyleFn<'a, C> = Box<dyn Fn(ButtonStatus) -> ButtonStyle<C> + 'a>;
+// pub type ButtonStyleFn<'a, C> = Box<dyn Fn(ButtonStatus) -> ButtonStyle<C> + 'a>;
 
-pub trait ButtonStyler<C: UiColor> {
-    type Class<'a>;
-
-    fn default<'a>() -> Self::Class<'a>;
-    fn style(&self, class: &Self::Class<'_>, status: ButtonStatus) -> ButtonStyle<C>;
-}
-
-#[derive(Clone, Copy)]
-pub struct ButtonStyle<C: UiColor> {
-    // TODO: Inner content styles, like text color
-    background: C,
-    border: Border<C>,
-}
-
-impl<C: UiColor> ButtonStyle<C> {
-    pub fn new() -> Self {
-        Self { background: C::default_background(), border: Border::new() }
-    }
-
-    pub fn background(mut self, background: impl Into<C>) -> Self {
-        self.background = background.into();
-        self
-    }
-
-    pub fn border_color(mut self, color: impl Into<C>) -> Self {
-        self.border.color = color.into();
-        self
-    }
-
-    pub fn border_width(mut self, width: u32) -> Self {
-        self.border.width = width;
-        self
-    }
-
-    pub fn border_radius(mut self, radius: impl Into<BorderRadius>) -> Self {
-        self.border.radius = radius.into();
-        self
+component_style! {
+    pub ButtonStyle: ButtonStyler(ButtonStatus) {
+        background: background,
+        border: border,
     }
 }
 
-pub struct Button<'a, Message, R: Renderer, E: Event, S: ButtonStyler<R::Color>> {
+pub struct Button<'a, Message, R, E, S>
+where
+    R: Renderer,
+    E: Event,
+    S: ButtonStyler<R::Color>,
+{
     id: ElId,
     content: El<'a, Message, R, E, S>,
     size: Size<Length>,
@@ -137,13 +111,13 @@ where
         self
     }
 
-    fn status(&self, ctx: &UiCtx<Message>, state_tree: &mut StateNode) -> ButtonStatus {
-        if state_tree.state.downcast_ref::<ButtonState>().is_pressed {
+    fn status(&self, ctx: &UiCtx<Message>, state: &mut StateNode) -> ButtonStatus {
+        if state.get::<ButtonState>().is_pressed {
             ButtonStatus::Pressed
         } else if ctx.is_focused(self) {
             ButtonStatus::Focused
         } else {
-            ButtonStatus::Active
+            ButtonStatus::Normal
         }
     }
 }
@@ -185,9 +159,9 @@ where
         &mut self,
         ctx: &mut UiCtx<Message>,
         event: E,
-        state_tree: &mut StateNode,
+        state: &mut StateNode,
     ) -> EventResponse<E> {
-        match self.content.on_event(ctx, event.clone(), &mut state_tree.children[0])? {
+        match self.content.on_event(ctx, event.clone(), &mut state.children[0])? {
             Propagate::Ignored => match event.as_common() {
                 Some(common) => match common {
                     // Tell parent that this child is the currently focused so parent can use it as an offset of focus
@@ -195,26 +169,34 @@ where
                         Propagate::BubbleUp(self.id, event).into()
                     },
                     CommonEvent::FocusClickDown if ctx.is_focused(self) => {
-                        state_tree.state.downcast_mut::<ButtonState>().is_pressed = true;
+                        state.get_mut::<ButtonState>().is_pressed = true;
 
                         Capture::Captured.into()
                     },
                     CommonEvent::FocusClickUp if ctx.is_focused(self) => {
-                        // Button was clicked (focus click was down and now released)
+                        // Button was clicked only if
+                        // - Focus wasn't moved
+                        // - Focus button was down on it
+                        // - Focus button released on it
 
-                        state_tree.state.downcast_mut::<ButtonState>().is_pressed = false;
+                        let pressed = state.get::<ButtonState>().is_pressed;
 
-                        if let Some(on_press) = self.on_press.clone() {
-                            ctx.publish(on_press)
+                        state.get_mut::<ButtonState>().is_pressed = false;
+
+                        if pressed {
+                            if let Some(on_press) = self.on_press.clone() {
+                                ctx.publish(on_press);
+                                return Capture::Captured.into();
+                            }
                         }
 
-                        Capture::Captured.into()
+                        Propagate::Ignored.into()
                     },
                     CommonEvent::FocusClickDown
                     | CommonEvent::FocusClickUp
                     | CommonEvent::FocusMove(_) => {
                         // Reset pressed state on click on other element
-                        state_tree.state.downcast_mut::<ButtonState>().is_pressed = false;
+                        state.get_mut::<ButtonState>().is_pressed = false;
 
                         Propagate::Ignored.into()
                     },
@@ -228,43 +210,44 @@ where
     fn layout(
         &self,
         ctx: &mut UiCtx<Message>,
-        state_tree: &mut StateNode,
+        state: &mut StateNode,
         styler: &S,
         limits: &crate::layout::Limits,
     ) -> crate::layout::LayoutNode {
-        let style = styler.style(&self.class, self.status(ctx, state_tree));
+        let style = styler.style(&self.class, self.status(ctx, state));
 
-        Layout::padded(
+        Layout::container(
             limits,
-            self.size.width,
-            self.size.height,
+            self.size,
             self.padding,
             style.border.width,
-            |limits| self.content.layout(ctx, &mut state_tree.children[0], styler, limits),
+            Alignment::Start,
+            Alignment::Start,
+            |limits| self.content.layout(ctx, &mut state.children[0], styler, limits),
         )
     }
 
     fn draw(
         &self,
         ctx: &mut UiCtx<Message>,
-        state_tree: &mut StateNode,
+        state: &mut StateNode,
         renderer: &mut R,
         styler: &S,
         layout: Layout,
     ) {
         let bounds = layout.bounds();
 
-        let style = styler.style(&self.class, self.status(ctx, state_tree));
+        let style = styler.style(&self.class, self.status(ctx, state));
 
         renderer.block(&Block {
             border: style.border,
             rect: bounds.into(),
-            background: R::Color::default_background(),
+            background: style.background,
         });
 
         self.content.draw(
             ctx,
-            &mut state_tree.children[0],
+            &mut state.children[0],
             renderer,
             styler,
             layout.children().next().unwrap(),

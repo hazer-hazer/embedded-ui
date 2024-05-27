@@ -3,62 +3,126 @@ use embedded_graphics::primitives::Rectangle;
 
 use crate::color::UiColor;
 use crate::el::{El, ElId};
-use crate::event::Event;
+use crate::event::{Capture, CommonEvent, Event, Propagate};
+use crate::icons::IconKind;
 use crate::layout::Layout;
-use crate::size::Size;
-use crate::state::StateNode;
+use crate::padding::Padding;
+use crate::size::{Length, Size};
+use crate::state::{State, StateNode, StateTag};
+use crate::style::component_style;
 use crate::ui::UiCtx;
 use crate::widget::Widget;
 use crate::{block::Border, render::Renderer};
 
+use super::icon::Icon;
+
+// #[derive(Clone, Copy)]
+// pub enum CheckboxSign {
+//     Check,
+//     Dot,
+//     Cross,
+// }
+
 #[derive(Clone, Copy)]
-pub enum CheckboxSign {
-    Check,
-    Dot,
-    Cross,
+pub struct CheckboxState {
+    is_pressed: bool,
+    is_checked: bool,
 }
 
-pub struct Checkbox<R: Renderer> {
+impl Default for CheckboxState {
+    fn default() -> Self {
+        Self { is_pressed: false, is_checked: false }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum CheckboxStatus {
+    Normal,
+    Pressed,
+    Focused,
+
+    // TODO: Think about compound statuses such as FocusedChecked, PressedChecked, etc.
+    Checked,
+}
+
+component_style! {
+    pub CheckboxStyle: CheckboxStyler(CheckboxStatus) {
+        background: background,
+        border: border,
+    }
+}
+
+// pub type CheckboxOnChange =
+
+pub struct Checkbox<'a, Message, R, S>
+where
+    R: Renderer,
+    S: CheckboxStyler<R::Color>,
+{
     id: ElId,
-    sign: CheckboxSign,
-    size: u32,
-    roundness: u32,
-    color: R::Color,
+    check_icon: Icon<R>,
+    size: Size<Length>,
+    on_change: Box<dyn Fn(bool) -> Message + 'a>,
+    class: S::Class<'a>,
 }
 
-impl<R: Renderer> Checkbox<R> {
-    pub fn new() -> Self {
+impl<'a, Message, R, S> Checkbox<'a, Message, R, S>
+where
+    R: Renderer,
+    S: CheckboxStyler<R::Color>,
+{
+    pub fn new<F>(on_change: F) -> Self
+    where
+        F: 'a + Fn(bool) -> Message,
+    {
         Self {
             id: ElId::unique(),
-            sign: CheckboxSign::Check,
-            size: 10,
-            roundness: 0,
-            color: R::Color::default_foreground(),
+            check_icon: Icon::new(crate::icons::IconKind::Check),
+            size: Size::fill(),
+            on_change: Box::new(on_change),
+            class: S::default(),
+            // color: R::Color::default_foreground(),
         }
     }
 
-    pub fn sign(mut self, sign: CheckboxSign) -> Self {
-        self.sign = sign;
+    // pub fn sign(mut self, sign: CheckboxSign) -> Self {
+    //     self.sign = sign;
+    //     self
+    // }
+
+    pub fn icon(mut self, icon: IconKind) -> Self {
+        self.check_icon = Icon::new(icon);
         self
     }
 
-    pub fn roundness(mut self, roundness: u32) -> Self {
-        self.roundness = roundness;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.size.width = width.into();
         self
     }
 
-    pub fn color(mut self, color: R::Color) -> Self {
-        self.color = color;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.size.height = height.into();
         self
     }
 
-    pub fn size(mut self, size: u32) -> Self {
-        self.size = size;
-        self
+    // Helpers //
+    fn status<E: Event>(&self, ctx: &UiCtx<Message>, state: &StateNode) -> CheckboxStatus {
+        let focused = UiCtx::is_focused::<R, E, S>(&ctx, self);
+        match (state.get::<CheckboxState>(), focused) {
+            (CheckboxState { is_pressed: true, .. }, _) => CheckboxStatus::Pressed,
+            (CheckboxState { is_checked: true, .. }, false) => CheckboxStatus::Checked,
+            (CheckboxState { .. }, true) => CheckboxStatus::Focused,
+            (CheckboxState { .. }, false) => CheckboxStatus::Normal,
+        }
     }
 }
 
-impl<Message, R: Renderer, E: Event, S> Widget<Message, R, E, S> for Checkbox<R> {
+impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Checkbox<'a, Message, R, S>
+where
+    R: Renderer,
+    E: Event,
+    S: CheckboxStyler<R::Color>,
+{
     fn id(&self) -> Option<crate::el::ElId> {
         Some(self.id)
     }
@@ -68,77 +132,131 @@ impl<Message, R: Renderer, E: Event, S> Widget<Message, R, E, S> for Checkbox<R>
     }
 
     fn size(&self) -> crate::size::Size<crate::size::Length> {
-        // Size::new_equal(self.size)
-        Size::fixed_length(self.size, self.size)
+        self.size
+    }
+
+    fn state_tag(&self) -> crate::state::StateTag {
+        StateTag::of::<CheckboxState>()
+    }
+
+    fn state(&self) -> crate::state::State {
+        State::new(CheckboxState::default())
+    }
+
+    fn state_children(&self) -> Vec<StateNode> {
+        vec![]
+    }
+
+    fn on_event(
+        &mut self,
+        ctx: &mut UiCtx<Message>,
+        event: E,
+        state: &mut StateNode,
+    ) -> crate::event::EventResponse<E> {
+        let focused = UiCtx::is_focused::<R, E, S>(&ctx, self);
+        let current_state = state.get::<CheckboxState>();
+
+        if let Some(common) = event.as_common() {
+            match common {
+                CommonEvent::FocusMove(_) if focused => {
+                    return Propagate::BubbleUp(self.id, event).into()
+                },
+                CommonEvent::FocusClickDown if focused => {
+                    state.get_mut::<CheckboxState>().is_pressed = true;
+                    return Capture::Captured.into();
+                },
+                CommonEvent::FocusClickUp if focused => {
+                    let was_pressed = current_state.is_pressed;
+
+                    state.get_mut::<CheckboxState>().is_pressed = false;
+
+                    if was_pressed {
+                        let new_state = !state.get::<CheckboxState>().is_checked;
+                        state.get_mut::<CheckboxState>().is_checked = new_state;
+
+                        ctx.publish((self.on_change)(new_state));
+
+                        return Capture::Captured.into();
+                    }
+                },
+                CommonEvent::FocusClickDown
+                | CommonEvent::FocusClickUp
+                | CommonEvent::FocusMove(_) => {
+                    // Should we reset state on any event? Or only on common
+                    state.get_mut::<CheckboxState>().is_pressed = false;
+                },
+            }
+        }
+
+        Propagate::Ignored.into()
     }
 
     fn layout(
         &self,
-        _ctx: &mut UiCtx<Message>,
+        ctx: &mut UiCtx<Message>,
         _state_tree: &mut StateNode,
-        _styler: &S,
+        styler: &S,
         limits: &crate::layout::Limits,
     ) -> crate::layout::LayoutNode {
-        Layout::sized(limits, self.size, self.size, |_| Size::zero())
+        Layout::container(
+            limits,
+            self.size,
+            Padding::zero(),
+            Padding::new_equal(1),
+            crate::align::Alignment::Center,
+            crate::align::Alignment::Center,
+            |limits| {
+                Widget::<Message, R, E, S>::layout(
+                    &self.check_icon,
+                    ctx,
+                    &mut StateNode::stateless(),
+                    styler,
+                    limits,
+                )
+            },
+        )
     }
 
     fn draw(
         &self,
-        _ctx: &mut UiCtx<Message>,
-        _state_tree: &mut StateNode,
+        ctx: &mut UiCtx<Message>,
+        state: &mut StateNode,
         renderer: &mut R,
-        _styler: &S,
+        styler: &S,
         layout: crate::layout::Layout,
     ) {
+        let style = styler.style(&self.class, self.status::<E>(ctx, state));
+        let state = state.get::<CheckboxState>();
+
         let bounds = layout.bounds();
 
-        // TODO: Adjust border width by size
-        let border = Border { color: self.color, width: 1, radius: self.roundness.into() };
-
         renderer.block(&crate::block::Block {
-            border,
+            border: style.border,
             rect: Rectangle::new(bounds.position, bounds.size.into()),
-            background: R::Color::transparent(),
+            background: style.background,
         });
 
-        let sign_pos = bounds.position + Point::new_equal(border.width as i32 + 1);
-        let sign_size = bounds.size - border.width * 2 - 2;
-
-        // TODO: Adjust stroke with of sign
-        // TODO: State
-        match self.sign {
-            CheckboxSign::Check => todo!(),
-            CheckboxSign::Dot => {
-                renderer.fill_rect(Rectangle::new(sign_pos, sign_size.into()), self.color)
-            },
-            CheckboxSign::Cross => {
-                renderer.line(
-                    bounds.position,
-                    bounds.position
-                        + Point::new_equal(self.size.saturating_sub(border.width) as i32),
-                    self.color,
-                    1,
-                );
-                renderer.line(
-                    bounds.position + Point::new(self.size as i32 - 1, 0),
-                    bounds.position
-                        + Point::new_equal(self.size.saturating_sub(border.width) as i32)
-                        - Point::new(self.size as i32 - 1, 0),
-                    self.color,
-                    1,
-                )
-            },
+        if state.is_checked {
+            Widget::<Message, R, E, S>::draw(
+                &self.check_icon,
+                ctx,
+                &mut StateNode::stateless(),
+                renderer,
+                styler,
+                layout.children().next().unwrap(),
+            )
         }
     }
 }
 
-impl<'a, Message, R, E, S> From<Checkbox<R>> for El<'a, Message, R, E, S>
+impl<'a, Message, R, E, S> From<Checkbox<'a, Message, R, S>> for El<'a, Message, R, E, S>
 where
     Message: 'a,
     R: Renderer + 'a,
     E: Event + 'a,
+    S: CheckboxStyler<R::Color> + 'a,
 {
-    fn from(value: Checkbox<R>) -> Self {
+    fn from(value: Checkbox<'a, Message, R, S>) -> Self {
         Self::new(value)
     }
 }

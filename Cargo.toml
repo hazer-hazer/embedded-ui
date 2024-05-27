@@ -9,6 +9,14 @@ edition = "2021"
 embedded-graphics = "0.8.1"
 embedded-graphics-core = "0.4.0"
 embedded-text = "0.7.1"
+defmt = { version = "0.3", optional = true }
 
 [dev-dependencies]
 embedded-graphics-simulator = "0.6.0"
+
+[features]
+default = []
+
+std = []
+
+defmt = ["dep:defmt"]
