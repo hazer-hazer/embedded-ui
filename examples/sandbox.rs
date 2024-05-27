@@ -106,6 +106,7 @@ impl embedded_ui::event::Event for Event {
 enum Message {
     None,
     Focus(ElId),
+    KnobChange(u8),
 }
 
 fn main() {
@@ -123,6 +124,8 @@ fn main() {
     window.update(&display);
 
     // let header_line = h_div().padding(0);
+
+    let mut knob_value = 0u8;
 
     let col = row![
         col![text("OSC1"), button("TYPE"), button("SYNC"), button("EDIT")],
@@ -160,7 +163,7 @@ fn main() {
         // ],
         col![knob(|value| {
             println!("Knob value: {value}");
-            Message::None
+            Message::KnobChange(value)
         })]
     ];
 
@@ -175,6 +178,7 @@ fn main() {
         while let Some(message) = ui.deque_message() {
             match message {
                 Message::Focus(id) => ui.focus(id),
+                Message::KnobChange(value) => knob_value
                 Message::None => {},
             }
         }

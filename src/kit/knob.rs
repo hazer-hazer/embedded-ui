@@ -7,7 +7,8 @@ use crate::{
     color::UiColor,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
-    layout::Layout,
+    layout::{Layout, LayoutNode},
+    padding::Padding,
     render::Renderer,
     size::{Length, Size},
     state::{State, StateTag},
@@ -52,9 +53,10 @@ component_style! {
 
 pub type KnobValue = u8;
 
-pub struct Knob<'a, Message, R, S>
+pub struct Knob<'a, Message, R, E, S>
 where
     R: Renderer,
+    E: Event,
     S: KnobStyler<R::Color>,
 {
     id: ElId,
@@ -63,15 +65,17 @@ where
     step: KnobValue,
     min: KnobValue,
     max: KnobValue,
+    inner: Option<El<'a, Message, R, E, S>>,
     // TODO: Can be moved to style as it doesn't affect layout
     start: Angle,
     on_change: Box<dyn Fn(KnobValue) -> Message + 'a>,
     class: S::Class<'a>,
 }
 
-impl<'a, Message, R, S> Knob<'a, Message, R, S>
+impl<'a, Message, R, E, S> Knob<'a, Message, R, E, S>
 where
     R: Renderer,
+    E: Event,
     S: KnobStyler<R::Color>,
 {
     pub fn new<F>(on_change: F) -> Self
@@ -85,6 +89,7 @@ where
             step: 1,
             min: 0,
             max: KnobValue::MAX,
+            inner: None,
             start: Angle::from_degrees(-90.0),
             on_change: Box::new(on_change),
             class: S::default(),
@@ -121,9 +126,14 @@ where
         self
     }
 
+    pub fn inner(mut self, inner: impl Into<El<'a, Message, R, E, S>>) -> Self {
+        self.inner = Some(inner.into());
+        self
+    }
+
     // Helpers //
-    fn status<E: Event>(&self, ctx: &UiCtx<Message>, state: &KnobState) -> KnobStatus {
-        let is_focused = UiCtx::is_focused::<R, E, S>(&ctx, self);
+    fn status(&self, ctx: &UiCtx<Message>, state: &KnobState) -> KnobStatus {
+        let is_focused = ctx.is_focused(self);
         match (is_focused, state) {
             (_, KnobState { is_active: true, .. }) => KnobStatus::Active,
             (_, KnobState { is_pressed: true, .. }) => KnobStatus::Pressed,
@@ -133,7 +143,7 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Knob<'a, Message, R, S>
+impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Knob<'a, Message, R, E, S>
 where
     R: Renderer,
     E: Event,
@@ -227,26 +237,41 @@ where
         limits: &crate::layout::Limits,
     ) -> crate::layout::LayoutNode {
         let size = Size::new_equal(self.diameter);
-        Layout::sized(limits, size, |limits| {
-            limits.resolve_size(size.width, size.height, Size::zero())
-        })
+        Layout::container(
+            limits,
+            size,
+            Padding::zero(),
+            Padding::zero(),
+            crate::align::Alignment::Center,
+            crate::align::Alignment::Center,
+            |limits| {
+                if let Some(inner) = self.inner.as_ref() {
+                    inner.layout(ctx, &mut state.children[0], styler, limits)
+                } else {
+                    LayoutNode::new(Size::zero())
+                }
+            },
+        )
+        // Layout::sized(limits, size, |limits| {
+        //     limits.resolve_size(size.width, size.height, Size::zero())
+        // })
     }
 
     fn draw(
         &self,
         ctx: &mut crate::ui::UiCtx<Message>,
-        state: &mut crate::state::StateNode,
+        state_tree: &mut crate::state::StateNode,
         renderer: &mut R,
         styler: &S,
         layout: crate::layout::Layout,
     ) {
-        let state = state.get::<KnobState>();
-        let status = self.status::<E>(ctx, state);
+        let state = state_tree.get::<KnobState>();
+        let status = self.status(ctx, state);
         let style = styler.style(&self.class, status);
         let bounds = layout.bounds();
 
         let outer_diameter = bounds.size.max_square();
-        let track_diameter = outer_diameter - style.track_width;
+        let track_diameter = outer_diameter - style.track_width - style.track_width / 2;
 
         let center = bounds.center();
 
@@ -254,9 +279,19 @@ where
 
         // Center circle
         renderer.circle(
-            Circle::with_center(center, outer_diameter - style.track_width),
+            Circle::with_center(center, outer_diameter - style.track_width - style.track_width / 2),
             &PrimitiveStyle::with_fill(style.center_color),
         );
+
+        if let Some(inner) = self.inner.as_ref() {
+            inner.draw(
+                ctx,
+                &mut state_tree.children[0],
+                renderer,
+                styler,
+                layout.children().next().unwrap(),
+            );
+        }
 
         // Whole track
         renderer.arc(
@@ -275,14 +310,14 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> From<Knob<'a, Message, R, S>> for El<'a, Message, R, E, S>
+impl<'a, Message, R, E, S> From<Knob<'a, Message, R, E, S>> for El<'a, Message, R, E, S>
 where
     Message: Clone + 'a,
     R: Renderer + 'a,
     E: Event + 'a,
     S: KnobStyler<R::Color> + 'a,
 {
-    fn from(value: Knob<'a, Message, R, S>) -> Self {
+    fn from(value: Knob<'a, Message, R, E, S>) -> Self {
         El::new(value)
     }
 }

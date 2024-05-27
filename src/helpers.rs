@@ -73,8 +73,8 @@ pub fn slider_h<'a, Message: Clone, R: Renderer, S: SliderStyler<R::Color>>(
     Slider::new(crate::align::Axis::X, on_change)
 }
 
-pub fn knob<'a, Message: Clone, R: Renderer, S: KnobStyler<R::Color>>(
+pub fn knob<'a, Message: Clone, R: Renderer, E: Event, S: KnobStyler<R::Color>>(
     on_change: impl (Fn(u8) -> Message) + 'a,
-) -> Knob<'a, Message, R, S> {
+) -> Knob<'a, Message, R, E, S> {
     Knob::new(on_change)
 }

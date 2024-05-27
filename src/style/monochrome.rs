@@ -173,22 +173,22 @@ impl KnobStyler<BinaryColor> for Monochrome {
                 .center_color(BinaryColor::On)
                 .color(BinaryColor::On)
                 .track_color(BinaryColor::Off)
-                .track_width(2),
+                .track_width(3),
             crate::kit::knob::KnobStatus::Focused => KnobStyle::new()
                 .center_color(BinaryColor::On)
                 .color(BinaryColor::On)
                 .track_color(BinaryColor::Off)
-                .track_width(3),
+                .track_width(4),
             crate::kit::knob::KnobStatus::Pressed => KnobStyle::new()
                 .center_color(BinaryColor::On)
                 .color(BinaryColor::On)
                 .track_color(BinaryColor::Off)
-                .track_width(2),
+                .track_width(3),
             crate::kit::knob::KnobStatus::Active => KnobStyle::new()
                 .center_color(BinaryColor::On)
                 .color(BinaryColor::On)
                 .track_color(BinaryColor::Off)
-                .track_width(2),
+                .track_width(3),
         }
     }
 }
