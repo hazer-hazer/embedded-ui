@@ -21,6 +21,9 @@ pub mod text;
 pub mod ui;
 pub mod widget;
 pub mod app;
+pub mod action;
+pub mod lazy;
+pub mod value;
 
 // TODO: Feature to switch to fixed-sized heapless
 #[macro_use]

@@ -46,26 +46,16 @@ impl<Message> UiCtx<Message> {
     }
 }
 
-pub struct UI<
-    'a,
-    Message,
-    R: Renderer,
-    E: Event,
-    S: Styler<R::Color>,
-    C: Controls<E> = NullControls<E>,
-> {
+pub struct UI<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> {
     root: El<'a, Message, R, E, S>,
     root_node: LayoutNode,
     root_state: StateNode,
     styler: S,
     events: Vec<E>,
-    controls: Option<C>,
     ctx: UiCtx<Message>,
 }
 
-impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>, C: Controls<E>>
-    UI<'a, Message, R, E, S, C>
-{
+impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R, E, S> {
     pub fn new(root: impl Widget<Message, R, E, S> + 'a, size: Size) -> Self {
         let mut ctx = UiCtx::new();
         let styler = Default::default();
@@ -80,15 +70,9 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>, C: Controls<E>>
             root_node,
             root_state,
             events: Vec::new(),
-            controls: None,
             styler: Default::default(),
             ctx,
         }
-    }
-
-    pub fn controls(mut self, controls: C) -> Self {
-        self.controls = Some(controls);
-        self
     }
 
     pub fn feed_events(&mut self, events: impl Iterator<Item = E>) {
@@ -99,12 +83,7 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>, C: Controls<E>>
         self.ctx.message_pool.pop_back()
     }
 
-    pub fn tick(&mut self) {
-        // Event processing
-        if let Some(controls) = &mut self.controls {
-            self.events.extend(controls.events())
-        }
-
+    pub fn process_events(&mut self) {
         self.events.iter().cloned().for_each(|event| {
             // debug!("Process event {event:?}");
             if let core::ops::ControlFlow::Continue(propagate) =
@@ -171,37 +150,24 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>, C: Controls<E>>
     }
 }
 
-/// Does not have controls
-impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>>
-    UI<'a, Message, R, E, S, NullControls<E>>
-{
-    pub fn no_controls(mut self) -> Self {
-        self.controls = Some(NullControls::default());
-        self
-    }
-}
-
 /// Does not have events
-impl<'a, Message, R: Renderer, S: Styler<R::Color>>
-    UI<'a, Message, R, EventStub, S, NullControls<EventStub>>
-{
+impl<'a, Message, R: Renderer, S: Styler<R::Color>> UI<'a, Message, R, EventStub, S> {
     pub fn no_events(self) -> Self {
         self
     }
 }
 
 /// Does not allow messages
-impl<'a, R: Renderer, E: Event, S: Styler<R::Color>, C: Controls<E>> UI<'a, (), R, E, S, C> {
+impl<'a, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, (), R, E, S> {
     pub fn static_ui(self) -> Self {
         self
     }
 }
 
-impl<'a, Message, R, E, C> UI<'a, Message, R, E, Monochrome, C>
+impl<'a, Message, R, E> UI<'a, Message, R, E, Monochrome>
 where
     R: Renderer<Color = BinaryColor>,
     E: Event,
-    C: Controls<E>,
 {
     pub fn monochrome(self) -> Self {
         self

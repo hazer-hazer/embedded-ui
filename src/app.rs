@@ -1,112 +1,68 @@
-use core::marker::PhantomData;
+// use core::marker::PhantomData;
 
-use crate::{
-    el::El,
-    event::{Controls, Event, NullControls},
-    render::Renderer,
-    state::State,
-    style::Styler,
-    ui::UI,
-};
+// use crate::{action::Action, el::El, event::Event, render::Renderer};
 
-pub trait Update<State, Message> {
-    fn update(&self, state: &mut State, message: Message);
-}
+// pub trait App<'a> {
+//     type State;
+//     type Message;
+//     type R: Renderer;
+//     type E: Event;
+//     type S;
 
-pub trait View<'a, State, Message, R: Renderer, E: Event, S> {
-    fn view(&self, state: &'a State) -> impl Into<El<'a, Message, R, E, S>>;
-}
+//     fn update(&self, state: &mut Self::State, message: Self::Message) -> impl Into<Action>;
 
-pub trait App:
-    Update<Self::State, Self::Message>
-    + for<'a> View<'a, Self::State, Self::Message, Self::R, Self::E, Self::S>
-{
-    type State;
-    type Message;
-    type R: Renderer;
-    type E: Event;
-    type S;
-}
+//     fn view(
+//         &self,
+//         state: &'a Self::State,
+//     ) -> impl Into<El<'a, Self::Message, Self::R, Self::E, Self::S>>;
+// }
 
-pub fn app<State, Message, R: Renderer, E: Event, S>(
-    update: impl Update<State, Message>,
-    view: impl for<'a> View<'a, State, Message, R, E, S>,
-) -> impl App {
-    struct Instance<U, V> {
-        update: U,
-        view: V,
-    }
+// pub fn app<'a, State, Message, R: Renderer, E: Event, S>(
+//     update: impl Fn(&mut State, Message) -> Action,
+//     view: impl Fn(&State),
+// ) -> impl App<'a> {
+//     struct Instance<State, Message, R: Renderer, E: Event, S, U, V> {
+//         update: U,
+//         view: V,
+//         _state: PhantomData<State>,
+//         _message: PhantomData<Message>,
+//         _r: PhantomData<R>,
+//         _e: PhantomData<E>,
+//         _s: PhantomData<S>,
+//     }
 
-    // struct Instance<
-    //     State,
-    //     Message,
-    //     R: Renderer,
-    //     E: Event,
-    //     S,
-    //     U: Update<State, Message>,
-    //     V: for<'a> View<'a, State, Message, R, E, S>,
-    // > {
-    //     update: U,
-    //     view: V,
-    //     _state: PhantomData<State>,
-    //     _message: PhantomData<Message>,
-    //     _r: PhantomData<R>,
-    //     _e: PhantomData<E>,
-    //     _s: PhantomData<S>,
-    // }
+//     impl<'a, State, Message, R, E, S, U, V> App<'a> for Instance<State, Message, R, E, S, U, V>
+//     where
+//         R: Renderer,
+//         E: Event,
+//         U: Fn(&mut State, Message),
+//         V: Fn(&State) -> Into<El<'a, Self::Message, Self::R, Self::E, Self::S>>,
+//     {
+//         type State = State;
+//         type Message = Message;
+//         type R = R;
+//         type E = E;
+//         type S = S;
 
-    // impl<
-    //         State,
-    //         Message,
-    //         R: Renderer,
-    //         E: Event,
-    //         S,
-    //         U: Update<State, Message>,
-    //         V: for<'a> View<'a, State, Message, R, E, S>,
-    //     > Update<State, Message> for Instance<State, Message, R, E, S, U, V>
-    // {
-    //     #[inline]
-    //     fn update(&self, state: &mut State, message: Message) {
-    //         self.update.update(state, message)
-    //     }
-    // }
+//         fn update(&self, state: &mut Self::State, message: Self::Message) -> impl Into<Action> {
+//             (self.update)(state, message)
+//         }
 
-    // impl<
-    //         'a,
-    //         State,
-    //         Message,
-    //         R: Renderer,
-    //         E: Event,
-    //         S,
-    //         U: Update<State, Message>,
-    //         V: View<'a, State, Message, R, E, S>,
-    //     > View<'a, State, Message, R, E, S> for Instance<State, Message, R, E, S, U, V>
-    // {
-    //     fn view(&'a self, state: &'a State) -> impl Into<El<'a, Message, R, E, S>> {
-    //         self.view.view(state)
-    //     }
-    // }
+//         fn view(
+//             &self,
+//             state: &'a Self::State,
+//         ) -> impl Into<El<'a, Self::Message, Self::R, Self::E, Self::S>> {
+//             (self.view)(state)
+//         }
+//     }
 
-    // impl<
-    //         State,
-    //         Message,
-    //         R: Renderer,
-    //         E: Event,
-    //         S,
-    //         U: Update<State, Message>,
-    //         V: for<'a> View<'a, State, Message, R, E, S>,
-    //     > App for Instance<State, Message, R, E, S, U, V>
-    // {
-    //     type State = State;
-
-    //     type Message = Message;
-
-    //     type R = R;
-
-    //     type E = E;
-
-    //     type S = S;
-    // }
-
-    Instance { update, view }
-}
+//     Instance {
+//         update,
+//         view,
+//         _state: PhantomData,
+//         _message: PhantomData,
+//         _r: PhantomData,
+//         _e: PhantomData,
+//         _s: PhantomData,
+//     }
+// }

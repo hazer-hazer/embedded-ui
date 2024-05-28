@@ -1,4 +1,4 @@
-use core::any::Any;
+use core::{any::Any, hash::Hash};
 
 use alloc::vec::Vec;
 
@@ -27,6 +27,7 @@ where
         styler: &S,
         limits: &Limits,
     ) -> LayoutNode;
+
     fn draw(
         &self,
         ctx: &mut UiCtx<Message>,

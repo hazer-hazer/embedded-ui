@@ -14,6 +14,7 @@ use crate::{
     state::{State, StateTag},
     style::component_style,
     ui::UiCtx,
+    value::Value,
     widget::Widget,
 };
 
@@ -61,14 +62,14 @@ where
 {
     id: ElId,
     diameter: Length,
-    value: KnobValue,
+    value: Value<KnobValue>,
     step: KnobValue,
     min: KnobValue,
     max: KnobValue,
     inner: Option<El<'a, Message, R, E, S>>,
     // TODO: Can be moved to style as it doesn't affect layout
     start: Angle,
-    on_change: Box<dyn Fn(KnobValue) -> Message + 'a>,
+    on_change: Option<Box<dyn Fn(KnobValue) -> Message + 'a>>,
     class: S::Class<'a>,
 }
 
@@ -78,26 +79,41 @@ where
     E: Event,
     S: KnobStyler<R::Color>,
 {
-    pub fn new<F>(on_change: F) -> Self
-    where
-        F: 'a + Fn(KnobValue) -> Message,
-    {
+    // pub fn new<F>(on_change: F) -> Self
+    // where
+    //     F: 'a + Fn(KnobValue) -> Message,
+    // {
+    //     Self {
+    //         id: ElId::unique(),
+    //         diameter: Length::Fill,
+    //         value: ,
+    //         step: 1,
+    //         min: 0,
+    //         max: KnobValue::MAX,
+    //         inner: None,
+    //         start: Angle::from_degrees(-90.0),
+    //         on_change: Box::new(on_change),
+    //         class: S::default(),
+    //     }
+    // }
+
+    pub fn new(value: Value<KnobValue>) -> Self {
         Self {
             id: ElId::unique(),
             diameter: Length::Fill,
-            value: 0,
+            value,
             step: 1,
             min: 0,
             max: KnobValue::MAX,
             inner: None,
             start: Angle::from_degrees(-90.0),
-            on_change: Box::new(on_change),
+            on_change: None,
             class: S::default(),
         }
     }
 
-    pub fn initial(mut self, initial: KnobValue) -> Self {
-        self.value = initial.clamp(self.min, self.max);
+    pub fn value(mut self, value: Value<KnobValue>) -> Self {
+        self.value = value;
         self
     }
 
@@ -184,14 +200,17 @@ where
 
         if let Some(offset) = event.as_knob_rotation() {
             if current_state.is_active {
-                let prev_value = self.value;
+                let prev_value = *self.value.get();
 
-                self.value = (self.value as i32)
+                *self.value.get_mut() = (prev_value as i32)
                     .saturating_add(offset * self.step as i32)
-                    .clamp(self.min as i32, self.max as i32) as u8;
+                    .clamp(self.min as i32, self.max as i32)
+                    as u8;
 
-                if prev_value != self.value {
-                    ctx.publish((self.on_change)(self.value));
+                if let Some(on_change) = self.on_change.as_ref() {
+                    if prev_value != *self.value.get() {
+                        ctx.publish((on_change)(*self.value.get()));
+                    }
                 }
 
                 return Capture::Captured.into();
@@ -301,7 +320,7 @@ where
 
         // TODO: Draw min/max serifs
 
-        let value_degree = 360.0 * (self.value as f32 / u8::MAX as f32);
+        let value_degree = 360.0 * (*self.value.get() as f32 / u8::MAX as f32);
 
         renderer.arc(
             Arc::with_center(center, track_diameter, self.start, Angle::from_degrees(value_degree)),

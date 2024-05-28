@@ -1,3 +1,5 @@
+use core::fmt::Display;
+
 use crate::{
     el::El,
     event::Event,
@@ -19,7 +21,7 @@ pub fn button<'a, Message: Clone, R: Renderer, E: Event, S: ButtonStyler<R::Colo
     Button::new(content)
 }
 
-pub fn text<'a, R: Renderer>(content: impl Into<Text<'a, R>>) -> Text<'a, R> {
+pub fn text<'a, T: Display, R: Renderer>(content: impl Into<Text<'a, T, R>>) -> Text<'a, T, R> {
     content.into()
 }
 
@@ -73,8 +75,8 @@ pub fn slider_h<'a, Message: Clone, R: Renderer, S: SliderStyler<R::Color>>(
     Slider::new(crate::align::Axis::X, on_change)
 }
 
-pub fn knob<'a, Message: Clone, R: Renderer, E: Event, S: KnobStyler<R::Color>>(
-    on_change: impl (Fn(u8) -> Message) + 'a,
-) -> Knob<'a, Message, R, E, S> {
-    Knob::new(on_change)
-}
+// pub fn knob<'a, Message: Clone, R: Renderer, E: Event, S: KnobStyler<R::Color>>(
+//     on_change: impl (Fn(u8) -> Message) + 'a,
+// ) -> Knob<'a, Message, R, E, S> {
+//     Knob::new(on_change)
+// }

@@ -1,3 +1,5 @@
+use core::{fmt::Display, marker::PhantomData};
+
 use embedded_graphics::{
     mono_font::MonoTextStyleBuilder,
     text::renderer::{CharacterStyle, TextRenderer},
@@ -14,6 +16,7 @@ use crate::{
     size::{Length, Size},
     state::StateNode,
     ui::UiCtx,
+    value::Value,
     widget::Widget,
 };
 
@@ -52,11 +55,13 @@ impl From<f32> for LineHeight {
     }
 }
 
-pub struct Text<'a, R>
+pub struct Text<'a, T, R>
 where
     R: Renderer,
+    T: Display,
 {
-    content: &'a str,
+    content: Value<T>,
+    marker: PhantomData<&'a str>,
 
     // style: TextStyle<R::Color>,
     align: HorizontalAlign,
@@ -69,12 +74,13 @@ where
     size: Size<Length>,
 }
 
-impl<'a, R: Renderer> Text<'a, R> {
-    pub fn new(content: &'a str) -> Self {
+impl<'a, T: Display, R: Renderer> Text<'a, T, R> {
+    pub fn new(content: Value<T>) -> Self {
         let font = Font::default();
 
         Self {
             content,
+            marker: PhantomData,
             // style: TextStyle {
             //     font: font,
             //     text_color: R::Color::default_foreground(),
@@ -119,7 +125,7 @@ impl<'a, R: Renderer> Text<'a, R> {
     }
 }
 
-impl<'a, Message, R, E: Event, S> Widget<Message, R, E, S> for Text<'a, R>
+impl<'a, T: Display, Message, R, E: Event, S> Widget<Message, R, E, S> for Text<'a, T, R>
 where
     R: Renderer,
 {
@@ -143,7 +149,7 @@ where
         limits: &crate::layout::Limits,
     ) -> crate::layout::LayoutNode {
         Layout::sized(limits, self.size, |limits| {
-            let text_size = self.font.measure_text_size(&self.content);
+            let text_size = self.font.measure_text_size(&self.content.get().to_string());
             limits.resolve_size(self.size.width, self.size.height, text_size)
         })
     }
@@ -163,7 +169,7 @@ where
         //     text: &self.content,
         // })
         renderer.text(&TextBox::with_textbox_style(
-            &self.content,
+            &self.content.get().to_string(),
             layout.bounds().into(),
             self.char_style(),
             TextBoxStyleBuilder::new()
@@ -175,21 +181,29 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> From<Text<'a, R>> for El<'a, Message, R, E, S>
+impl<'a, T, R> From<Value<T>> for Text<'a, T, R>
 where
-    Message: 'a,
-    R: Renderer + 'a,
-    E: Event + 'a,
-    S: 'a,
+    T: Display + 'a,
+    R: Renderer,
 {
-    fn from(value: Text<'a, R>) -> Self {
-        El::new(value)
+    fn from(value: Value<T>) -> Self {
+        Text::new(value)
     }
 }
 
-impl<'a, R: Renderer> From<&'a str> for Text<'a, R> {
-    fn from(value: &'a str) -> Self {
-        Self::new(&value)
+// impl<'a, R: Renderer> From<&'a str> for Text<'a, &'a str, R> {
+//     fn from(value: &'a str) -> Self {
+//         Self::new(Value::new(value))
+//     }
+// }
+
+impl<'a, T, R: Renderer> From<T> for Text<'a, T, R>
+where
+    R: Renderer,
+    T: Display + 'a,
+{
+    fn from(value: T) -> Self {
+        Text::new(Value::new(value))
     }
 }
 
@@ -201,9 +215,49 @@ where
     S: 'a,
 {
     fn from(value: &'a str) -> Self {
-        Text::from(value).into()
+        Text::new(Value::new(value)).into()
     }
 }
+
+impl<'a, T, Message, R, E, S> From<Text<'a, T, R>> for El<'a, Message, R, E, S>
+where
+    T: Display + 'a,
+    Message: 'a,
+    R: Renderer + 'a,
+    E: Event + 'a,
+    S: 'a,
+{
+    fn from(value: Text<'a, T, R>) -> Self {
+        Self::new(value)
+    }
+}
+
+// impl<'a, T, Message, R, E, S> From<T> for El<'a, Message, R, E, S>
+// where
+//     Message: 'a,
+//     R: Renderer + 'a,
+//     E: Event + 'a,
+//     S: 'a,
+//     T: ToString,
+// {
+//     fn from(value: T) -> Self {
+//         Text::from(value.to_string().as_str()).into()
+//     }
+// }
+
+// impl<'a, F, T, Message, R, E, S> From<F> for El<'a, Message, R, E, S>
+// where
+//     Message: 'a,
+//     R: Renderer + 'a,
+//     E: Event + 'a,
+//     S: 'a,
+//     F: FnMut() -> T,
+//     T: for<'b> Into<Text<'b, R>>,
+// {
+//     fn from(mut value: F) -> Self {
+//         Text::from((value)().into()).into()
+//     }
+// }
 
 // #[derive(Clone, Copy)]
 // pub struct TextStyle<C: UiColor> {

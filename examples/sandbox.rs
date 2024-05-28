@@ -10,12 +10,15 @@ use embedded_ui::{
     col,
     el::ElId,
     event::CommonEvent,
-    helpers::{button, checkbox, h_div, knob, select, slider_h, slider_v, text},
+    helpers::{button, checkbox, h_div, select, slider_h, slider_v, text},
     icons::IconKind,
+    kit::knob::Knob,
     render::Renderer,
     row,
     size::Length,
+    text::Text,
     ui::UI,
+    value::Value,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -109,6 +112,22 @@ enum Message {
     KnobChange(u8),
 }
 
+// struct Sandbox {
+//     knob_value: u8,
+// }
+
+// impl Sandbox {
+//     fn update(&mut self, message: Message) {
+//         match message {
+//             Message::Focus(id) => ui.focus(id),
+//             Message::KnobChange(value) => {
+//                 self.knob_value = value;
+//             },
+//             Message::None => {},
+//         }
+//     }
+// }
+
 fn main() {
     let output_settings = OutputSettingsBuilder::new()
         .theme(embedded_graphics_simulator::BinaryColorTheme::OledWhite)
@@ -125,11 +144,11 @@ fn main() {
 
     // let header_line = h_div().padding(0);
 
-    let mut knob_value = 0u8;
+    let mut knob_value = Value::dynamic(0u8);
 
     let col = row![
         col![text("OSC1"), button("TYPE"), button("SYNC"), button("EDIT")],
-        col![text("OSC2"), button("TYPE"), button("SYNC"), button("EDIT")],
+        // col![text("OSC2"), button("TYPE"), button("SYNC"), button("EDIT")],
         // col![text("OSC3"), header_line, button("TYPE"), button("SYNC"), button("EDIT")],
         // col![
         //     select(["1", "2", "3"]).cycle(true),
@@ -161,24 +180,22 @@ fn main() {
         //         })
         //     ],
         // ],
-        col![knob(|value| {
-            println!("Knob value: {value}");
-            Message::KnobChange(value)
-        })]
+        col![text(1)],
+        col![Knob::new(knob_value.clone()), text(knob_value.clone())]
     ];
 
-    let mut ui = UI::new(col, display.bounds().size).no_controls().monochrome();
+    let mut ui = UI::new(col, display.bounds().size).monochrome();
 
     ui.auto_focus();
 
     loop {
         ui.feed_events(window.events().filter_map(|event| Event::try_from(event).ok()));
-        ui.tick();
+        ui.process_events();
 
         while let Some(message) = ui.deque_message() {
             match message {
                 Message::Focus(id) => ui.focus(id),
-                Message::KnobChange(value) => knob_value
+                Message::KnobChange(value) => {},
                 Message::None => {},
             }
         }
