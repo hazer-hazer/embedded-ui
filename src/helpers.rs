@@ -7,12 +7,13 @@ use crate::{
         button::{Button, ButtonStyler},
         checkbox::{Checkbox, CheckboxStyler},
         divider::Divider,
-        knob::{Knob, KnobStyler},
+        knob::{Knob, KnobStyler, KnobValue},
         select::{Select, SelectStyler},
         slider::{Slider, SliderPosition, SliderStyler},
+        text::Text,
     },
     render::Renderer,
-    text::Text,
+    value::Value,
 };
 
 pub fn button<'a, Message: Clone, R: Renderer, E: Event, S: ButtonStyler<R::Color>>(
@@ -80,3 +81,9 @@ pub fn slider_h<'a, Message: Clone, R: Renderer, S: SliderStyler<R::Color>>(
 // ) -> Knob<'a, Message, R, E, S> {
 //     Knob::new(on_change)
 // }
+
+pub fn knob<'a, Message: Clone, R: Renderer, E: Event, S: KnobStyler<R::Color>>(
+    value: impl Into<Value<KnobValue>>,
+) -> Knob<'a, Message, R, E, S> {
+    Knob::new(value.into())
+}

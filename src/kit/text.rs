@@ -114,6 +114,10 @@ impl<'a, T: Display, R: Renderer> Text<'a, T, R> {
         self
     }
 
+    pub fn update(&mut self, new_value: T) {
+        *self.content.get_mut() = new_value;
+    }
+
     fn char_style(
         &self,
     ) -> impl CharacterStyle<Color = R::Color> + TextRenderer<Color = R::Color> + '_ {

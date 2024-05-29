@@ -1,7 +1,4 @@
-use core::{
-    cell::{Ref, RefCell, RefMut},
-    ops::Deref as _,
-};
+use core::cell::{Ref, RefCell, RefMut};
 
 use alloc::rc::Rc;
 
@@ -22,6 +19,7 @@ impl<T> Value<T> {
         Self::Dynamic(Rc::new(RefCell::new(value)))
     }
 
+    #[inline]
     pub fn get(&self) -> Ref<'_, T> {
         match self {
             Value::Static(value) => value.borrow(),
@@ -29,7 +27,8 @@ impl<T> Value<T> {
         }
     }
 
-    pub fn get_mut(&mut self) -> RefMut<'_, T> {
+    #[inline]
+    pub fn get_mut(&self) -> RefMut<'_, T> {
         match self {
             Value::Static(value) => value.borrow_mut(),
             Value::Dynamic(value) => value.borrow_mut(),

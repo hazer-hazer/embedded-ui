@@ -52,8 +52,6 @@ component_style! {
     }
 }
 
-// pub type CheckboxOnChange =
-
 pub struct Checkbox<'a, Message, R, S>
 where
     R: Renderer,

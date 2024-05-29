@@ -16,7 +16,6 @@ use embedded_ui::{
     render::Renderer,
     row,
     size::Length,
-    text::Text,
     ui::UI,
     value::Value,
 };
@@ -103,6 +102,13 @@ impl embedded_ui::event::Event for Event {
             _ => None,
         }
     }
+
+    fn as_input_letter_scroll(&self) -> Option<i32> {
+        match self {
+            &Event::MainEncoderRotation(offset) => Some(offset),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -144,7 +150,7 @@ fn main() {
 
     // let header_line = h_div().padding(0);
 
-    let mut knob_value = Value::dynamic(0u8);
+    let knob_value = Value::dynamic(0u8);
 
     let col = row![
         col![text("OSC1"), button("TYPE"), button("SYNC"), button("EDIT")],
@@ -180,7 +186,7 @@ fn main() {
         //         })
         //     ],
         // ],
-        col![text(1)],
+        col![select(["1", "2", "3"]).cycle(true)],
         col![Knob::new(knob_value.clone()), text(knob_value.clone())]
     ];
 

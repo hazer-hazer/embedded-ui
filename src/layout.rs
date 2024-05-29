@@ -13,22 +13,58 @@ use crate::{
     widget::Widget,
 };
 
+/// Positioning strategy, don't confuse with logic of CSS position.
+/// For now, [`Position::Relative`] means "relative to the parent".
+/// [`Position::Absolute`] is relative to viewport.
+#[derive(Clone, Copy)]
+pub enum Position {
+    Relative,
+    Absolute,
+}
+
 #[derive(Clone)]
 pub struct LayoutNode {
+    position: Position,
+    z_index: u32,
     bounds: Bounds,
     children: Vec<LayoutNode>,
 }
 
 impl LayoutNode {
     pub fn new(size: Size) -> Self {
-        Self { bounds: Bounds { position: Point::zero(), size }, children: vec![] }
+        Self {
+            position: Position::Relative,
+            z_index: 0,
+            bounds: Bounds { position: Point::zero(), size },
+            children: vec![],
+        }
     }
 
     pub fn with_children(size: Size, children: impl IntoIterator<Item = LayoutNode>) -> Self {
         Self {
+            position: Position::Relative,
+            z_index: 0,
             bounds: Bounds { position: Point::zero(), size },
             children: children.into_iter().collect(),
         }
+    }
+
+    pub fn absolute(size: Size) -> Self {
+        Self {
+            position: Position::Absolute,
+            z_index: 0,
+            bounds: Bounds { position: Point::zero(), size },
+            children: vec![],
+        }
+    }
+
+    pub fn z_offset(mut self, z_offset: u32) -> Self {
+        self.z_index += z_offset;
+        self
+    }
+
+    pub fn position(&self) -> Position {
+        self.position
     }
 
     pub fn moved(mut self, to: impl Into<Point>) -> Self {
@@ -94,27 +130,39 @@ impl Default for LayoutNode {
 }
 
 pub struct Layout<'a> {
-    position: Point,
+    /// Position in viewport (display)
+    viewport_position: Point,
+    z_index: u32,
     node: &'a LayoutNode,
 }
 
 impl<'a> Layout<'a> {
     pub fn new(node: &'a LayoutNode) -> Self {
-        Self { position: node.bounds.position.into(), node }
+        Self { z_index: 0, viewport_position: node.bounds.position.into(), node }
     }
 
     pub fn with_offset(offset: Point, node: &'a LayoutNode) -> Self {
         let bounds = node.bounds;
 
-        Self { position: bounds.position + offset, node }
+        let offset = match node.position {
+            Position::Relative => offset,
+            Position::Absolute => Point::zero(),
+        };
+
+        Self { z_index: node.z_index, viewport_position: bounds.position + offset, node }
     }
 
+    /// Get iterator of children with offset relative to parent
     pub fn children(self) -> impl DoubleEndedIterator<Item = Layout<'a>> {
-        self.node.children.iter().map(move |child| Layout::with_offset(self.position, child))
+        self.node
+            .children
+            .iter()
+            .map(move |child| Layout::with_offset(self.viewport_position, child))
     }
 
+    /// Bounds in viewport
     pub fn bounds(&self) -> Bounds {
-        Bounds { position: self.position, size: self.node.bounds.size }
+        Bounds { position: self.viewport_position, size: self.node.bounds.size }
     }
 
     pub fn sized(
@@ -129,21 +177,6 @@ impl<'a> Layout<'a> {
 
         LayoutNode::new(limits.resolve_size(size.width, size.height, content_size))
     }
-
-    // pub fn container(
-    //     limits: &Limits,
-    //     width: impl Into<Length>,
-    //     height: impl Into<Length>,
-    //     content: impl FnOnce(&Limits) -> LayoutNode,
-    // ) -> LayoutNode {
-    //     let width = width.into();
-    //     let height = height.into();
-
-    //     let limits = limits.limit_width(width).limit_height(height);
-    //     let content = content(&limits);
-
-    //     LayoutNode::with_children(limits.resolve_size(width, height, content.size()), vec![content])
-    // }
 
     pub fn container(
         limits: &Limits,

@@ -67,6 +67,7 @@ pub trait Event: Clone + From<CommonEvent> + Debug {
     fn as_select_shift(&self) -> Option<i32>;
     fn as_slider_shift(&self) -> Option<i32>;
     fn as_knob_rotation(&self) -> Option<i32>;
+    fn as_input_letter_scroll(&self) -> Option<i32>;
 }
 
 #[derive(Clone, Debug)]
@@ -86,6 +87,10 @@ impl Event for EventStub {
     }
 
     fn as_knob_rotation(&self) -> Option<i32> {
+        None
+    }
+
+    fn as_input_letter_scroll(&self) -> Option<i32> {
         None
     }
 }

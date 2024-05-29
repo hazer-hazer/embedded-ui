@@ -112,10 +112,10 @@ where
         }
     }
 
-    pub fn value(mut self, value: Value<KnobValue>) -> Self {
-        self.value = value;
-        self
-    }
+    // pub fn value(mut self, value: Value<KnobValue>) -> Self {
+    //     self.value = value;
+    //     self
+    // }
 
     pub fn min(mut self, min: KnobValue) -> Self {
         self.min = min;
@@ -139,6 +139,14 @@ where
 
     pub fn start(mut self, start: impl Into<Angle>) -> Self {
         self.start = start.into();
+        self
+    }
+
+    pub fn on_change<F>(mut self, on_change: F) -> Self
+    where
+        F: 'a + Fn(KnobValue) -> Message,
+    {
+        self.on_change = Some(Box::new(on_change));
         self
     }
 

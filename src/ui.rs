@@ -48,7 +48,8 @@ impl<Message> UiCtx<Message> {
 
 pub struct UI<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> {
     root: El<'a, Message, R, E, S>,
-    root_node: LayoutNode,
+    // root_node: LayoutNode,
+    viewport_size: Size,
     root_state: StateNode,
     styler: S,
     events: Vec<E>,
@@ -56,18 +57,18 @@ pub struct UI<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> {
 }
 
 impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R, E, S> {
-    pub fn new(root: impl Widget<Message, R, E, S> + 'a, size: Size) -> Self {
-        let mut ctx = UiCtx::new();
-        let styler = Default::default();
+    pub fn new(root: impl Widget<Message, R, E, S> + 'a, viewport_size: Size) -> Self {
+        let ctx = UiCtx::new();
 
-        let root_el = El::new(root);
-        let mut root_state = StateNode::new(&root_el);
+        let root = El::new(root);
+        let root_state = StateNode::new(&root);
 
-        let root_node = root_el.layout(&mut ctx, &mut root_state, &styler, &Limits::only_max(size));
+        // let root_node = root_el.layout(&mut ctx, &mut root_state, &styler, &Limits::only_max(size));
 
         Self {
-            root: root_el,
-            root_node,
+            root,
+            // root_node,
+            viewport_size,
             root_state,
             events: Vec::new(),
             styler: Default::default(),
@@ -138,15 +139,18 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
 
     pub fn draw(&mut self, renderer: &mut R) {
         // FIXME: Performance?
+        // TODO: Maybe should clear only root bounds
         renderer.clear();
 
-        self.root.draw(
+        let layout = self.root.layout(
             &mut self.ctx,
             &mut self.root_state,
-            renderer,
-            &self.styler,
-            Layout::new(&self.root_node),
+            &Default::default(),
+            &Limits::only_max(self.viewport_size),
         );
+        let layout = Layout::new(&layout);
+
+        self.root.draw(&mut self.ctx, &mut self.root_state, renderer, &self.styler, layout);
     }
 }
 

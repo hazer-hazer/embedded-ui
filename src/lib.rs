@@ -1,6 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod action;
 pub mod align;
+pub mod app;
 pub mod block;
 pub mod color;
 pub mod el;
@@ -11,19 +13,16 @@ pub mod helpers;
 pub mod icons;
 pub mod kit;
 pub mod layout;
+pub mod lazy;
 mod log;
 pub mod padding;
 pub mod render;
 pub mod size;
 pub mod state;
 pub mod style;
-pub mod text;
 pub mod ui;
-pub mod widget;
-pub mod app;
-pub mod action;
-pub mod lazy;
 pub mod value;
+pub mod widget;
 
 // TODO: Feature to switch to fixed-sized heapless
 #[macro_use]
