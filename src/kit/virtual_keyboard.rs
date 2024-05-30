@@ -51,7 +51,7 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        self.size
+        Size::fixed_length(0, 0)
     }
 
     fn layout(

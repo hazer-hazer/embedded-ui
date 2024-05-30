@@ -25,7 +25,6 @@ pub enum Position {
 #[derive(Clone)]
 pub struct LayoutNode {
     position: Position,
-    z_index: u32,
     bounds: Bounds,
     children: Vec<LayoutNode>,
 }
@@ -34,7 +33,6 @@ impl LayoutNode {
     pub fn new(size: Size) -> Self {
         Self {
             position: Position::Relative,
-            z_index: 0,
             bounds: Bounds { position: Point::zero(), size },
             children: vec![],
         }
@@ -43,7 +41,6 @@ impl LayoutNode {
     pub fn with_children(size: Size, children: impl IntoIterator<Item = LayoutNode>) -> Self {
         Self {
             position: Position::Relative,
-            z_index: 0,
             bounds: Bounds { position: Point::zero(), size },
             children: children.into_iter().collect(),
         }
@@ -52,15 +49,9 @@ impl LayoutNode {
     pub fn absolute(size: Size) -> Self {
         Self {
             position: Position::Absolute,
-            z_index: 0,
             bounds: Bounds { position: Point::zero(), size },
             children: vec![],
         }
-    }
-
-    pub fn z_offset(mut self, z_offset: u32) -> Self {
-        self.z_index += z_offset;
-        self
     }
 
     pub fn position(&self) -> Position {
@@ -129,16 +120,16 @@ impl Default for LayoutNode {
     }
 }
 
+#[derive(Clone)]
 pub struct Layout<'a> {
     /// Position in viewport (display)
     viewport_position: Point,
-    z_index: u32,
     node: &'a LayoutNode,
 }
 
 impl<'a> Layout<'a> {
     pub fn new(node: &'a LayoutNode) -> Self {
-        Self { z_index: 0, viewport_position: node.bounds.position.into(), node }
+        Self { viewport_position: node.bounds.position.into(), node }
     }
 
     pub fn with_offset(offset: Point, node: &'a LayoutNode) -> Self {
@@ -149,7 +140,7 @@ impl<'a> Layout<'a> {
             Position::Absolute => Point::zero(),
         };
 
-        Self { z_index: node.z_index, viewport_position: bounds.position + offset, node }
+        Self { viewport_position: bounds.position + offset, node }
     }
 
     /// Get iterator of children with offset relative to parent

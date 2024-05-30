@@ -48,48 +48,68 @@ impl<Message> UiCtx<Message> {
 
 pub struct UI<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> {
     root: El<'a, Message, R, E, S>,
-    // root_node: LayoutNode,
-    viewport_size: Size,
+    root_node: LayoutNode,
+    // viewport_size: Size,
     root_state: StateNode,
+    overlay_node: LayoutNode,
     styler: S,
-    events: Vec<E>,
+    // events: Vec<E>,
     ctx: UiCtx<Message>,
 }
 
 impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R, E, S> {
     pub fn new(root: impl Widget<Message, R, E, S> + 'a, viewport_size: Size) -> Self {
-        let ctx = UiCtx::new();
+        let mut ctx = UiCtx::new();
 
         let root = El::new(root);
-        let root_state = StateNode::new(&root);
+        let mut root_state = StateNode::new(&root);
 
-        // let root_node = root_el.layout(&mut ctx, &mut root_state, &styler, &Limits::only_max(size));
+        let root_node = root.layout(
+            &mut ctx,
+            &mut root_state,
+            &Default::default(),
+            &Limits::only_max(viewport_size),
+        );
+
+        let overlay_node = root.overlay().layout(
+            &mut ctx,
+            &mut root_state,
+            &Default::default(),
+            &Limits::only_max(viewport_size),
+        );
 
         Self {
             root,
-            // root_node,
-            viewport_size,
+            root_node,
+            // viewport_size,
             root_state,
-            events: Vec::new(),
+            overlay_node,
+            // events: Vec::new(),
             styler: Default::default(),
             ctx,
         }
     }
 
-    pub fn feed_events(&mut self, events: impl Iterator<Item = E>) {
-        self.events.extend(events)
-    }
+    // pub fn feed_events(&mut self, events: impl Iterator<Item = E>) {
+    //     self.events.extend(events)
+    // }
 
     pub fn deque_message(&mut self) -> Option<Message> {
         self.ctx.message_pool.pop_back()
     }
 
-    pub fn process_events(&mut self) {
-        self.events.iter().cloned().for_each(|event| {
-            // debug!("Process event {event:?}");
-            if let core::ops::ControlFlow::Continue(propagate) =
+    pub fn tick(&mut self, events: &[E]) {
+        for event in events {
+            let result =
+                self.root.overlay().on_event(&mut self.ctx, event.clone(), &mut self.root_state);
+
+            let result = if let core::ops::ControlFlow::Continue(Propagate::Ignored) = result {
                 self.root.on_event(&mut self.ctx, event.clone(), &mut self.root_state)
-            {
+            } else {
+                result
+            };
+
+            if let core::ops::ControlFlow::Continue(propagate) = result {
                 match propagate {
                     Propagate::BubbleUp(bubble_origin, bubbled) => {
                         // debug!("Capture Bubble up event {bubbled:?} from {bubble_origin:?}");
@@ -122,9 +142,7 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
             }
             // TODO: Debug log "ignored event"
             // Propagate::Ignored.into()
-        });
-
-        self.events.clear();
+        }
     }
 
     pub fn auto_focus(&mut self) {
@@ -142,15 +160,21 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
         // TODO: Maybe should clear only root bounds
         renderer.clear();
 
-        let layout = self.root.layout(
+        self.root.draw(
             &mut self.ctx,
             &mut self.root_state,
-            &Default::default(),
-            &Limits::only_max(self.viewport_size),
+            renderer,
+            &self.styler,
+            Layout::new(&self.root_node),
         );
-        let layout = Layout::new(&layout);
 
-        self.root.draw(&mut self.ctx, &mut self.root_state, renderer, &self.styler, layout);
+        self.root.overlay().draw(
+            &mut self.ctx,
+            &mut self.root_state,
+            renderer,
+            &self.styler,
+            Layout::new(&self.overlay_node),
+        );
     }
 }
 

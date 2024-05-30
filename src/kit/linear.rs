@@ -7,6 +7,7 @@ use crate::{
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, EventResponse, Propagate},
     layout::Layout,
+    overlay::Overlay,
     padding::Padding,
     render::Renderer,
     size::{Length, Size},
@@ -179,6 +180,10 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
         {
             child.draw(ctx, child_state, renderer, styler, child_layout);
         }
+    }
+
+    fn overlay(&self) -> crate::overlay::Overlay<'_, Message, R, E, S> {
+        Overlay::from_children(&self.children)
     }
 }
 

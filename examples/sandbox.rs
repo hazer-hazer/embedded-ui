@@ -195,8 +195,7 @@ fn main() {
     ui.auto_focus();
 
     loop {
-        ui.feed_events(window.events().filter_map(|event| Event::try_from(event).ok()));
-        ui.process_events();
+        ui.tick(window.events().filter_map(|event| Event::try_from(event).ok()));
 
         while let Some(message) = ui.deque_message() {
             match message {
