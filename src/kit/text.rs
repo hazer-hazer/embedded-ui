@@ -1,7 +1,7 @@
 use core::{fmt::Display, marker::PhantomData};
 
 use embedded_graphics::{
-    mono_font::MonoTextStyleBuilder,
+    mono_font::{MonoTextStyle, MonoTextStyleBuilder},
     text::renderer::{CharacterStyle, TextRenderer},
 };
 use embedded_text::{style::TextBoxStyleBuilder, TextBox};
@@ -81,10 +81,6 @@ impl<'a, T: Display, R: Renderer> Text<'a, T, R> {
         Self {
             content,
             marker: PhantomData,
-            // style: TextStyle {
-            //     font: font,
-            //     text_color: R::Color::default_foreground(),
-            // },
             text_color: R::Color::default_foreground(),
             line_height: LineHeight::default(),
             align: HorizontalAlign::Center,
@@ -119,8 +115,9 @@ impl<'a, T: Display, R: Renderer> Text<'a, T, R> {
     }
 
     fn char_style(
-        &self,
-    ) -> impl CharacterStyle<Color = R::Color> + TextRenderer<Color = R::Color> + '_ {
+        &'a self,
+        // ) -> impl CharacterStyle<Color = R::Color> + TextRenderer<Color = R::Color> + '_ {
+    ) -> MonoTextStyle<'a, R::Color> {
         match &self.font {
             Font::Mono(mono) => {
                 MonoTextStyleBuilder::new().font(&mono).text_color(self.text_color).build()
@@ -131,7 +128,7 @@ impl<'a, T: Display, R: Renderer> Text<'a, T, R> {
 
 impl<'a, T: Display, Message, R, E: Event, S> Widget<Message, R, E, S> for Text<'a, T, R>
 where
-    R: Renderer,
+    R: Renderer<Text = TextBox<'a, MonoTextStyle<'a, <R as Renderer>::Color>>> + 'a,
 {
     fn id(&self) -> Option<crate::el::ElId> {
         None
@@ -166,13 +163,7 @@ where
         _styler: &S,
         layout: Layout,
     ) {
-        // renderer.text(&TextBox {
-        //     position: layout.bounds().position,
-        //     align: self.align,
-        //     style: self.style,
-        //     text: &self.content,
-        // })
-        renderer.text(&TextBox::with_textbox_style(
+        renderer.mono_text(TextBox::with_textbox_style(
             &self.content.get().to_string(),
             layout.bounds().into(),
             self.char_style(),
@@ -214,7 +205,7 @@ where
 impl<'a, Message, R, E, S> From<&'a str> for El<'a, Message, R, E, S>
 where
     Message: 'a,
-    R: Renderer + 'a,
+    R: Renderer<Text = TextBox<'a, MonoTextStyle<'a, <R as Renderer>::Color>>> + 'a,
     E: Event + 'a,
     S: 'a,
 {
@@ -227,7 +218,7 @@ impl<'a, T, Message, R, E, S> From<Text<'a, T, R>> for El<'a, Message, R, E, S>
 where
     T: Display + 'a,
     Message: 'a,
-    R: Renderer + 'a,
+    R: Renderer<Text = TextBox<'a, MonoTextStyle<'a, <R as Renderer>::Color>>> + 'a,
     E: Event + 'a,
     S: 'a,
 {

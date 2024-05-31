@@ -228,7 +228,7 @@ where
 
         let bounds = layout.bounds();
 
-        renderer.block(&crate::block::Block {
+        renderer.block(crate::block::Block {
             border: style.border,
             rect: Rectangle::new(bounds.position, bounds.size.into()),
             background: style.background,

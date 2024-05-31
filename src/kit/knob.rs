@@ -307,7 +307,7 @@ where
         // Center circle
         renderer.circle(
             Circle::with_center(center, outer_diameter - style.track_width - style.track_width / 2),
-            &PrimitiveStyle::with_fill(style.center_color),
+            PrimitiveStyle::with_fill(style.center_color),
         );
 
         if let Some(inner) = self.inner.as_ref() {
@@ -323,7 +323,7 @@ where
         // Whole track
         renderer.arc(
             Arc::with_center(center, track_diameter, self.start, Angle::from_degrees(360.0)),
-            &PrimitiveStyle::with_stroke(style.track_color, style.track_width),
+            PrimitiveStyle::with_stroke(style.track_color, style.track_width),
         );
 
         // TODO: Draw min/max serifs
@@ -332,7 +332,7 @@ where
 
         renderer.arc(
             Arc::with_center(center, track_diameter, self.start, Angle::from_degrees(value_degree)),
-            &PrimitiveStyle::with_stroke(style.color, style.track_width),
+            PrimitiveStyle::with_stroke(style.color, style.track_width),
         );
     }
 }

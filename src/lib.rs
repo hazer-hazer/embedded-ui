@@ -23,7 +23,8 @@ pub mod style;
 pub mod ui;
 pub mod value;
 pub mod widget;
-pub mod overlay;
+mod layer;
+pub mod text;
 
 // TODO: Feature to switch to fixed-sized heapless
 #[macro_use]

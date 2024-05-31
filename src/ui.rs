@@ -51,7 +51,6 @@ pub struct UI<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> {
     root_node: LayoutNode,
     // viewport_size: Size,
     root_state: StateNode,
-    overlay_node: LayoutNode,
     styler: S,
     // events: Vec<E>,
     ctx: UiCtx<Message>,
@@ -71,19 +70,11 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
             &Limits::only_max(viewport_size),
         );
 
-        let overlay_node = root.overlay().layout(
-            &mut ctx,
-            &mut root_state,
-            &Default::default(),
-            &Limits::only_max(viewport_size),
-        );
-
         Self {
             root,
             root_node,
             // viewport_size,
             root_state,
-            overlay_node,
             // events: Vec::new(),
             styler: Default::default(),
             ctx,
@@ -100,16 +91,9 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
 
     pub fn tick(&mut self, events: &[E]) {
         for event in events {
-            let result =
-                self.root.overlay().on_event(&mut self.ctx, event.clone(), &mut self.root_state);
-
-            let result = if let core::ops::ControlFlow::Continue(Propagate::Ignored) = result {
+            if let core::ops::ControlFlow::Continue(propagate) =
                 self.root.on_event(&mut self.ctx, event.clone(), &mut self.root_state)
-            } else {
-                result
-            };
-
-            if let core::ops::ControlFlow::Continue(propagate) = result {
+            {
                 match propagate {
                     Propagate::BubbleUp(bubble_origin, bubbled) => {
                         // debug!("Capture Bubble up event {bubbled:?} from {bubble_origin:?}");
@@ -166,14 +150,6 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
             renderer,
             &self.styler,
             Layout::new(&self.root_node),
-        );
-
-        self.root.overlay().draw(
-            &mut self.ctx,
-            &mut self.root_state,
-            renderer,
-            &self.styler,
-            Layout::new(&self.overlay_node),
         );
     }
 }

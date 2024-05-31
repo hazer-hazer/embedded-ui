@@ -241,7 +241,7 @@ where
             return;
         }
 
-        renderer.block(&Block {
+        renderer.block(Block {
             border: style.border,
             rect: bounds.into(),
             background: style.background,
@@ -289,7 +289,7 @@ where
             background: knob_background,
         };
 
-        renderer.block(&knob);
+        renderer.block(knob);
     }
 }
 

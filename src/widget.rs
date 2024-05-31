@@ -6,7 +6,6 @@ use crate::{
     el::{El, ElId},
     event::{Event, EventResponse, Propagate},
     layout::{Layout, LayoutNode, Limits},
-    overlay::Overlay,
     render::Renderer,
     size::{Bounds, Length, Size},
     state::{State, StateNode, StateTag},
@@ -63,9 +62,5 @@ where
     }
     fn state_children(&self) -> Vec<StateNode> {
         vec![]
-    }
-
-    fn overlay(&self) -> Overlay<'_, Message, R, E, S> {
-        Overlay::none()
     }
 }

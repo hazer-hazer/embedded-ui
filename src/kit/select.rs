@@ -278,7 +278,7 @@ where
 
         let style = styler.style(&self.class, self.status(ctx, state));
 
-        renderer.block(&Block {
+        renderer.block(Block {
             border: style.border,
             rect: bounds.into(),
             background: style.background,
