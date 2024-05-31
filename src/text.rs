@@ -5,13 +5,14 @@ use embedded_text::style::TextBoxStyle;
 
 use crate::{color::UiColor, value::Value};
 
-pub struct TextBox<T, C: UiColor>
+#[derive(Clone)]
+pub struct TextBox<'a, T, C: UiColor>
 where
-    T: Display,
+    T: Display + Clone,
 {
     pub text: Value<T>,
     pub bounds: Rectangle,
-    pub character_style: MonoTextStyle<'static, C>,
+    pub character_style: MonoTextStyle<'a, C>,
     pub style: TextBoxStyle,
     pub vertical_offset: i32,
 }

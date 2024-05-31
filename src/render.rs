@@ -68,7 +68,7 @@ pub trait Renderer {
     // High-level primitives //
     fn block(&mut self, block: Block<Self::Color>);
 
-    fn mono_text<T: Display>(&mut self, text: TextBox<T, Self::Color>);
+    fn mono_text<T: Display + Clone>(&mut self, text: TextBox<T, Self::Color>);
     // fn image(&mut self, image: Self::Image);
 }
 
@@ -103,8 +103,6 @@ pub struct NullRenderer;
 
 impl Renderer for NullRenderer {
     type Color = BinaryColor;
-    type Text = TextBox<'static, MonoTextStyle<'static, Self::Color>>;
-    type Image = Image<'static, ImageRaw<'static, Self::Color>>;
 
     fn clear(&mut self) {}
 
@@ -114,8 +112,8 @@ impl Renderer for NullRenderer {
     fn circle(&mut self, _circle: Circle, _style: PrimitiveStyle<Self::Color>) {}
 
     fn block(&mut self, _block: Block<Self::Color>) {}
-    fn mono_text(&mut self, _text: Self::Text) {}
-    fn image(&mut self, _image: Self::Image) {}
+
+    fn mono_text(&mut self, _text: TextBox<T, Self::Color>) {}
 }
 
 // impl<'a> ImageRenderer<'a> for NullRenderer {

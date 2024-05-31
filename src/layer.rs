@@ -1,3 +1,5 @@
+use core::fmt::Display;
+
 use alloc::collections::BTreeMap;
 use embedded_graphics::{
     geometry::Point,
@@ -8,23 +10,24 @@ use embedded_graphics::{
     primitives::{Arc, Circle, PrimitiveStyle},
     text::renderer::CharacterStyle,
 };
-use embedded_text::TextBox;
 
-use crate::{block::Block, color::UiColor, render::Renderer};
+use crate::{block::Block, color::UiColor, render::Renderer, text::TextBox};
 
-pub struct Layering<'a, C>
+pub struct Layering<'a, Text, C>
 where
     C: UiColor,
+    Text: Display + Clone,
     RawDataSlice<'a, <C as PixelColor>::Raw, BigEndian>:
         IntoIterator<Item = <C as PixelColor>::Raw>,
 {
     z_index: i32,
-    map: BTreeMap<i32, Layer<'a, C>>,
+    map: BTreeMap<i32, Layer<'a, Text, C>>,
 }
 
-impl<'a, C> Layering<'a, C>
+impl<'a, Text, C> Layering<'a, Text, C>
 where
     C: UiColor,
+    Text: Display + Clone,
     RawDataSlice<'a, <C as PixelColor>::Raw, BigEndian>:
         IntoIterator<Item = <C as PixelColor>::Raw>,
 {
@@ -36,20 +39,19 @@ where
     //     self.map.get_mut(&0).unwrap()
     // }
 
-    fn on_current(&mut self, command: DrawCommand<'a, C>) {
+    fn on_current(&mut self, command: DrawCommand<'a, Text, C>) {
         self.map.get_mut(&0).unwrap().command(command);
     }
 }
 
-impl<'a, C> Renderer for Layering<'a, C>
+impl<'a, Text, C> Renderer for Layering<'a, Text, C>
 where
     C: UiColor,
+    Text: Display + Clone,
     RawDataSlice<'a, <C as PixelColor>::Raw, BigEndian>:
         IntoIterator<Item = <C as PixelColor>::Raw>,
 {
     type Color = C;
-    type Text = TextBox<'a, MonoTextStyle<'a, C>>;
-    type Image = Image<'a, ImageRaw<'a, C>>;
 
     fn clear(&mut self) {
         // self.base_layer().command(DrawCommand::Clear)
@@ -85,12 +87,11 @@ where
         self.on_current(DrawCommand::Block(block))
     }
 
-    fn mono_text(&mut self, text: Self::Text) {
+    fn mono_text<T: core::fmt::Display + Clone>(
+        &mut self,
+        text: crate::text::TextBox<T, Self::Color>,
+    ) {
         self.on_current(DrawCommand::MonoText(text))
-    }
-
-    fn image(&mut self, image: Self::Image) {
-        self.on_current(DrawCommand::Image(image))
     }
 
     // fn text<'t>(&mut self, text: TextBox<'t, MonoTextStyle<'t, Self::Color>>)
@@ -136,16 +137,18 @@ where
 //     }
 // }
 
-pub struct Layer<'a, C>
+pub struct Layer<'a, Text, C>
 where
+    Text: Display + Clone,
     C: UiColor,
 {
-    commands: Vec<DrawCommand<'a, C>>,
+    commands: Vec<DrawCommand<'a, Text, C>>,
 }
 
-impl<'a, C> Layer<'a, C>
+impl<'a, Text, C> Layer<'a, Text, C>
 where
     C: UiColor,
+    Text: Display + Clone,
     RawDataSlice<'a, <C as PixelColor>::Raw, BigEndian>:
         IntoIterator<Item = <C as PixelColor>::Raw>,
 {
@@ -153,17 +156,13 @@ where
         Self { commands: vec![] }
     }
 
-    fn command(&mut self, command: DrawCommand<'a, C>) {
+    fn command(&mut self, command: DrawCommand<'a, Text, C>) {
         self.commands.push(command);
     }
 
     pub fn draw<D>(&self, target: &mut D)
     where
-        D: Renderer<
-            Color = C,
-            Text = TextBox<'a, MonoTextStyle<'a, C>>,
-            Image = Image<'a, ImageRaw<'a, C>>,
-        >,
+        D: Renderer<Color = C>,
     {
         for command in &self.commands {
             match command {
@@ -176,15 +175,17 @@ where
                 &DrawCommand::Circle { circle, style } => target.circle(circle, style),
                 &DrawCommand::Block(block) => target.block(block),
                 DrawCommand::MonoText(text) => target.mono_text(text.clone()),
-                &DrawCommand::Image(image) => target.image(image),
+                // &DrawCommand::Image(image) => target.image(image),
+                &DrawCommand::Image(image) => todo!(),
             }
         }
     }
 }
 
-pub enum DrawCommand<'a, C>
+pub enum DrawCommand<'a, Text, C>
 where
     C: UiColor,
+    Text: Display + Clone,
     // S: embedded_graphics::text::renderer::TextRenderer<Color = C> + CharacterStyle<Color = C>,
 {
     Clear,
@@ -196,7 +197,7 @@ where
 
     // High-level primitives //
     Block(Block<C>),
-    MonoText(TextBox<'a, MonoTextStyle<'a, C>>),
+    MonoText(TextBox<'a, Text, C>),
 
     // Images //
     Image(Image<'a, ImageRaw<'a, C>>),

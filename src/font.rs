@@ -4,12 +4,12 @@ use crate::size::Size;
 
 #[derive(Clone, Copy)]
 pub enum Font {
-    Mono(MonoFont<'static>),
+    Mono(&'static MonoFont<'static>),
 }
 
 impl Default for Font {
     fn default() -> Self {
-        Self::Mono(FONT_4X6)
+        Self::Mono(&FONT_4X6)
     }
 }
 

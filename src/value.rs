@@ -5,12 +5,12 @@ use alloc::rc::Rc;
 use crate::{el::El, event::Event, render::Renderer, widget::Widget};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Value<T> {
+pub enum Value<T: Clone> {
     Static(RefCell<T>),
     Dynamic(Rc<RefCell<T>>),
 }
 
-impl<T> Value<T> {
+impl<T: Clone> Value<T> {
     pub fn new(value: T) -> Self {
         Self::Static(RefCell::new(value))
     }
@@ -36,13 +36,13 @@ impl<T> Value<T> {
     }
 }
 
-impl<T> From<T> for Value<T> {
+impl<T: Clone> From<T> for Value<T> {
     fn from(value: T) -> Self {
         Self::new(value)
     }
 }
 
-impl<T, Message, R, E, S> Widget<Message, R, E, S> for Value<T>
+impl<T: Clone, Message, R, E, S> Widget<Message, R, E, S> for Value<T>
 where
     R: Renderer,
     E: Event,
@@ -84,7 +84,7 @@ where
 
 impl<'a, T, Message, R, E, S> From<Value<T>> for El<'a, Message, R, E, S>
 where
-    T: Widget<Message, R, E, S> + 'a,
+    T: Widget<Message, R, E, S> + Clone + 'a,
     Message: Clone + 'a,
     R: Renderer + 'a,
     E: Event + 'a,

@@ -1,10 +1,7 @@
 use core::{fmt::Display, marker::PhantomData};
 
-use embedded_graphics::{
-    mono_font::{MonoTextStyle, MonoTextStyleBuilder},
-    text::renderer::{CharacterStyle, TextRenderer},
-};
-use embedded_text::{style::TextBoxStyleBuilder, TextBox};
+use embedded_graphics::mono_font::{MonoFont, MonoTextStyle, MonoTextStyleBuilder};
+use embedded_text::style::TextBoxStyleBuilder;
 
 use crate::{
     align::{HorizontalAlign, VerticalAlign},
@@ -15,6 +12,7 @@ use crate::{
     render::Renderer,
     size::{Length, Size},
     state::StateNode,
+    text::TextBox,
     ui::UiCtx,
     value::Value,
     widget::Widget,
@@ -58,7 +56,7 @@ impl From<f32> for LineHeight {
 pub struct Text<'a, T, R>
 where
     R: Renderer,
-    T: Display,
+    T: Display + Clone,
 {
     content: Value<T>,
     marker: PhantomData<&'a str>,
@@ -74,7 +72,7 @@ where
     size: Size<Length>,
 }
 
-impl<'a, T: Display, R: Renderer> Text<'a, T, R> {
+impl<'a, T: Display + Clone, R: Renderer> Text<'a, T, R> {
     pub fn new(content: Value<T>) -> Self {
         let font = Font::default();
 
@@ -114,21 +112,22 @@ impl<'a, T: Display, R: Renderer> Text<'a, T, R> {
         *self.content.get_mut() = new_value;
     }
 
-    fn char_style(
-        &'a self,
-        // ) -> impl CharacterStyle<Color = R::Color> + TextRenderer<Color = R::Color> + '_ {
-    ) -> MonoTextStyle<'a, R::Color> {
-        match &self.font {
-            Font::Mono(mono) => {
-                MonoTextStyleBuilder::new().font(&mono).text_color(self.text_color).build()
-            },
-        }
-    }
+    // fn char_style(
+    //     &self,
+    //     // ) -> impl CharacterStyle<Color = R::Color> + TextRenderer<Color = R::Color> + '_ {
+    // ) -> MonoTextStyle<'static, R::Color> {
+    //     match &self.font {
+    //         Font::Mono(mono) => {
+    //             MonoTextStyleBuilder::new().font(&mono).text_color(self.text_color).build()
+    //         },
+    //     }
+    // }
 }
 
-impl<'a, T: Display, Message, R, E: Event, S> Widget<Message, R, E, S> for Text<'a, T, R>
+impl<'a, T, Message, R, E: Event, S> Widget<Message, R, E, S> for Text<'a, T, R>
 where
-    R: Renderer<Text = TextBox<'a, MonoTextStyle<'a, <R as Renderer>::Color>>> + 'a,
+    T: Display + Clone,
+    R: Renderer,
 {
     fn id(&self) -> Option<crate::el::ElId> {
         None
@@ -163,22 +162,28 @@ where
         _styler: &S,
         layout: Layout,
     ) {
-        renderer.mono_text(TextBox::with_textbox_style(
-            &self.content.get().to_string(),
-            layout.bounds().into(),
-            self.char_style(),
-            TextBoxStyleBuilder::new()
+        renderer.mono_text(TextBox {
+            text: self.content.clone(),
+            bounds: layout.bounds().into(),
+            character_style: MonoTextStyleBuilder::new()
+                .font(match self.font {
+                    Font::Mono(mono) => &mono,
+                })
+                .text_color(self.text_color)
+                .build(),
+            style: TextBoxStyleBuilder::new()
                 .alignment(self.align.into())
                 .vertical_alignment(self.vertical_align.into())
                 .line_height(self.line_height.into())
                 .build(),
-        ))
+            vertical_offset: 0,
+        })
     }
 }
 
 impl<'a, T, R> From<Value<T>> for Text<'a, T, R>
 where
-    T: Display + 'a,
+    T: Display + Clone + 'a,
     R: Renderer,
 {
     fn from(value: Value<T>) -> Self {
@@ -195,7 +200,7 @@ where
 impl<'a, T, R: Renderer> From<T> for Text<'a, T, R>
 where
     R: Renderer,
-    T: Display + 'a,
+    T: Display + Clone + 'a,
 {
     fn from(value: T) -> Self {
         Text::new(Value::new(value))
@@ -205,7 +210,7 @@ where
 impl<'a, Message, R, E, S> From<&'a str> for El<'a, Message, R, E, S>
 where
     Message: 'a,
-    R: Renderer<Text = TextBox<'a, MonoTextStyle<'a, <R as Renderer>::Color>>> + 'a,
+    R: Renderer + 'a,
     E: Event + 'a,
     S: 'a,
 {
@@ -216,9 +221,9 @@ where
 
 impl<'a, T, Message, R, E, S> From<Text<'a, T, R>> for El<'a, Message, R, E, S>
 where
-    T: Display + 'a,
+    T: Display + Clone + 'a,
     Message: 'a,
-    R: Renderer<Text = TextBox<'a, MonoTextStyle<'a, <R as Renderer>::Color>>> + 'a,
+    R: Renderer + 'a,
     E: Event + 'a,
     S: 'a,
 {
