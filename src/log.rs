@@ -33,3 +33,17 @@ pub mod logger {
     pub(crate) use debug;
     pub(crate) use warning;
 }
+
+#[cfg(all(not(feature = "std"), not(feature = "defmt")))]
+pub mod logger {
+    macro_rules! debug {
+        ($($args: expr),* $(,)?) => {};
+    }
+
+    macro_rules! warning {
+        ($($args: expr),* $(,)?) => {};
+    }
+
+    pub(crate) use debug;
+    pub(crate) use warning;
+}

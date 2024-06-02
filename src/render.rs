@@ -14,12 +14,12 @@ use embedded_graphics::{
 };
 use embedded_graphics_core::Drawable;
 use embedded_graphics_core::{draw_target::DrawTarget, primitives::Rectangle};
+use embedded_text::TextBox;
 
 use crate::{
     block::Block,
     color::UiColor,
     size::{Bounds, Size},
-    text::TextBox,
 };
 
 pub trait Renderer {
@@ -68,30 +68,12 @@ pub trait Renderer {
     // High-level primitives //
     fn block(&mut self, block: Block<Self::Color>);
 
-    fn mono_text<T: Display + Clone>(&mut self, text: TextBox<T, Self::Color>);
-    // fn image(&mut self, image: Self::Image);
+    fn mono_text<'a>(&mut self, text: TextBox<'a, MonoTextStyle<'a, Self::Color>>);
+    fn image<'a>(&mut self, image: Image<'a, ImageRaw<'a, Self::Color>>)
+    where
+        RawDataSlice<'a, <Self::Color as PixelColor>::Raw, BigEndian>:
+            IntoIterator<Item = <Self::Color as PixelColor>::Raw>;
 }
-
-// pub trait TextRenderer<'a, S>
-// where
-//     S: embedded_graphics::text::renderer::TextRenderer<Color = Self::Color>
-//         + CharacterStyle<Color = Self::Color>,
-// {
-//     type Color: UiColor + Copy;
-
-//     fn text(&mut self, text: TextBox<'a, S>);
-// }
-
-// pub trait ImageRenderer<'a>
-// where
-//     RawDataSlice<'a, <Self::Color as PixelColor>::Raw, BigEndian>:
-//         IntoIterator<Item = <Self::Color as PixelColor>::Raw>,
-// {
-//     type Color: UiColor + Copy;
-
-//     // Images //
-//     fn image(&mut self, image: Image<'a, ImageRaw<'a, Self::Color>>);
-// }
 
 pub struct NullRenderer;
 
@@ -113,94 +95,75 @@ impl Renderer for NullRenderer {
 
     fn block(&mut self, _block: Block<Self::Color>) {}
 
-    fn mono_text(&mut self, _text: TextBox<T, Self::Color>) {}
+    fn mono_text<'a>(&mut self, _text: TextBox<'a, MonoTextStyle<'a, Self::Color>>) {}
+    fn image<'a>(&mut self, _image: Image<'a, ImageRaw<'a, Self::Color>>)
+    where
+        RawDataSlice<'a, <Self::Color as PixelColor>::Raw, BigEndian>:
+            IntoIterator<Item = <Self::Color as PixelColor>::Raw>,
+    {
+    }
 }
 
-// impl<'a> ImageRenderer<'a> for NullRenderer {
-//     type Color = BinaryColor;
+impl<D, C: UiColor> Renderer for D
+where
+    D: DrawTarget<Color = C>,
+    D::Error: core::fmt::Debug,
+{
+    type Color = C;
 
-//     fn image(&mut self, _image: Image<'a, ImageRaw<'a, Self::Color>>) {}
-// }
+    fn clear(&mut self) {
+        self.clear(Self::Color::default_background()).unwrap()
+    }
 
-// impl<D, C: UiColor> Renderer for D
-// where
-//     D: DrawTarget<Color = C>,
-//     D::Error: core::fmt::Debug,
-// {
-//     type Color = C;
+    fn pixel(&mut self, point: Point, color: Self::Color) {
+        Pixel(point, color).draw(self).unwrap();
+    }
 
-//     fn clear(&mut self) {
-//         self.clear(Self::Color::default_background()).unwrap()
-//     }
+    fn line(&mut self, start: Point, end: Point, color: Self::Color, width: u32) {
+        Line::new(start, end)
+            .draw_styled(
+                &PrimitiveStyleBuilder::new().stroke_width(width).stroke_color(color).build(),
+                self,
+            )
+            .unwrap();
+    }
 
-//     fn pixel(&mut self, point: Point, color: Self::Color) {
-//         Pixel(point, color).draw(self).unwrap();
-//     }
+    fn arc(&mut self, arc: Arc, style: PrimitiveStyle<Self::Color>) {
+        arc.draw_styled(&style, self).unwrap();
+    }
 
-//     fn line(&mut self, start: Point, end: Point, color: Self::Color, width: u32) {
-//         Line::new(start, end)
-//             .draw_styled(
-//                 &PrimitiveStyleBuilder::new().stroke_width(width).stroke_color(color).build(),
-//                 self,
-//             )
-//             .unwrap();
-//     }
+    fn circle(&mut self, circle: Circle, style: PrimitiveStyle<Self::Color>) {
+        circle.draw_styled(&style, self).unwrap();
+    }
 
-//     fn arc(&mut self, arc: Arc, style: PrimitiveStyle<Self::Color>) {
-//         arc.draw_styled(&style, self).unwrap();
-//     }
+    fn block(&mut self, block: Block<Self::Color>)
+    where
+        Self: Sized,
+    {
+        RoundedRectangle::new(
+            block.rect,
+            block.border.radius.resolve_for_size(block.rect.size.into()).into(),
+        )
+        .draw_styled(
+            &PrimitiveStyleBuilder::new()
+                .fill_color(block.background)
+                .stroke_color(block.border.color)
+                .stroke_width(block.border.width)
+                .build(),
+            self,
+        )
+        .unwrap();
+    }
 
-//     fn circle(&mut self, circle: Circle, style: PrimitiveStyle<Self::Color>) {
-//         circle.draw_styled(&style, self).unwrap();
-//     }
+    fn mono_text(&mut self, text: TextBox<'_, MonoTextStyle<'_, Self::Color>>) {
+        text.draw(self).unwrap();
+    }
 
-//     fn block(&mut self, block: Block<Self::Color>)
-//     where
-//         Self: Sized,
-//     {
-//         RoundedRectangle::new(
-//             block.rect,
-//             block.border.radius.resolve_for_size(block.rect.size.into()).into(),
-//         )
-//         .draw_styled(
-//             &PrimitiveStyleBuilder::new()
-//                 .fill_color(block.background)
-//                 .stroke_color(block.border.color)
-//                 .stroke_width(block.border.width)
-//                 .build(),
-//             self,
-//         )
-//         .unwrap();
-//     }
-
-//     fn mono_text(&mut self, text: TextBox<'_, MonoTextStyle<'_, Self::Color>>) {
-//         text.draw(self);
-//     }
-// }
-
-// // impl<'a, S, D, C: UiColor> TextRenderer<'a, S> for D
-// // where
-// //     D: DrawTarget<Color = C>,
-// //     D::Error: core::fmt::Debug,
-// //     S: embedded_graphics::text::renderer::TextRenderer<Color = C> + CharacterStyle<Color = C>,
-// // {
-// //     type Color = C;
-
-// //     fn text(&mut self, text: TextBox<'a, S>) {
-// //         text.draw(self);
-// //     }
-// // }
-
-// // impl<'a, D, C: UiColor> ImageRenderer<'a> for D
-// // where
-// //     D: DrawTarget<Color = C>,
-// //     D::Error: core::fmt::Debug,
-// //     RawDataSlice<'a, <C as PixelColor>::Raw, BigEndian>:
-// //         IntoIterator<Item = <C as PixelColor>::Raw>,
-// // {
-// //     type Color = C;
-
-// //     fn image(&mut self, image: Image<'a, ImageRaw<'a, Self::Color>>) {
-// //         image.draw(self);
-// //     }
-// // }
+    fn image<'a>(&mut self, image: Image<'a, ImageRaw<'a, Self::Color>>)
+    where
+        RawDataSlice<'a, <Self::Color as PixelColor>::Raw, BigEndian>:
+            IntoIterator<Item = <Self::Color as PixelColor>::Raw>,
+    {
+        image.draw(self).unwrap();
+    }
+}

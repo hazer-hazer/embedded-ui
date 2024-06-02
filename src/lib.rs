@@ -12,8 +12,8 @@ pub mod font;
 pub mod helpers;
 pub mod icons;
 pub mod kit;
+mod layer;
 pub mod layout;
-pub mod lazy;
 mod log;
 pub mod padding;
 pub mod render;
@@ -23,8 +23,6 @@ pub mod style;
 pub mod ui;
 pub mod value;
 pub mod widget;
-mod layer;
-pub mod text;
 
 // TODO: Feature to switch to fixed-sized heapless
 #[macro_use]

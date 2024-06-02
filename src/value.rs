@@ -1,16 +1,16 @@
 use core::cell::{Ref, RefCell, RefMut};
 
-use alloc::rc::Rc;
+use alloc::{rc::Rc, vec::Vec};
 
-use crate::{el::El, event::Event, render::Renderer, widget::Widget};
+use crate::{el::El, event::Event, layout::Viewport, render::Renderer, widget::Widget};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Value<T: Clone> {
+pub enum Value<T> {
     Static(RefCell<T>),
     Dynamic(Rc<RefCell<T>>),
 }
 
-impl<T: Clone> Value<T> {
+impl<T> Value<T> {
     pub fn new(value: T) -> Self {
         Self::Static(RefCell::new(value))
     }
@@ -36,13 +36,13 @@ impl<T: Clone> Value<T> {
     }
 }
 
-impl<T: Clone> From<T> for Value<T> {
+impl<T> From<T> for Value<T> {
     fn from(value: T) -> Self {
         Self::new(value)
     }
 }
 
-impl<T: Clone, Message, R, E, S> Widget<Message, R, E, S> for Value<T>
+impl<T, Message, R, E, S> Widget<Message, R, E, S> for Value<T>
 where
     R: Renderer,
     E: Event,
@@ -66,8 +66,9 @@ where
         state: &mut crate::state::StateNode,
         styler: &S,
         limits: &crate::layout::Limits,
+        viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
-        self.get().layout(ctx, state, styler, limits)
+        self.get().layout(ctx, state, styler, limits, viewport)
     }
 
     fn draw(

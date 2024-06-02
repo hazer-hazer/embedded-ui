@@ -4,7 +4,7 @@ use embedded_graphics::pixelcolor::BinaryColor;
 use crate::{
     el::{El, ElId},
     event::{Controls, Event, EventStub, NullControls, Propagate},
-    layout::{Layout, LayoutNode, Limits},
+    layout::{Layout, LayoutNode, Limits, Viewport},
     render::Renderer,
     size::Size,
     state::StateNode,
@@ -68,6 +68,7 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
             &mut root_state,
             &Default::default(),
             &Limits::only_max(viewport_size),
+            &Viewport { size: viewport_size },
         );
 
         Self {
@@ -89,7 +90,7 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
         self.ctx.message_pool.pop_back()
     }
 
-    pub fn tick(&mut self, events: &[E]) {
+    pub fn tick(&mut self, events: impl Iterator<Item = E>) {
         for event in events {
             if let core::ops::ControlFlow::Continue(propagate) =
                 self.root.on_event(&mut self.ctx, event.clone(), &mut self.root_state)

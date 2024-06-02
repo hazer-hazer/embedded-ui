@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use crate::{
     el::{El, ElId},
     event::{Event, EventResponse, Propagate},
-    layout::{Layout, LayoutNode, Limits},
+    layout::{Layout, LayoutNode, Limits, Position, Viewport},
     render::Renderer,
     size::{Bounds, Length, Size},
     state::{State, StateNode, StateTag},
@@ -25,12 +25,16 @@ where
     fn id(&self) -> Option<ElId>;
     fn tree_ids(&self) -> Vec<ElId>;
     fn size(&self) -> Size<Length>;
+    fn position(&self) -> Position {
+        Position::Relative
+    }
     fn layout(
         &self,
         ctx: &mut UiCtx<Message>,
         state: &mut StateNode,
         styler: &S,
         limits: &Limits,
+        viewport: &Viewport,
     ) -> LayoutNode;
 
     fn draw(

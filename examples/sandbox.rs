@@ -1,6 +1,9 @@
 use std::process::exit;
 
-use embedded_graphics::{geometry::Size, pixelcolor::BinaryColor};
+use embedded_graphics::{
+    geometry::{Dimensions, Size},
+    pixelcolor::BinaryColor,
+};
 use embedded_graphics_simulator::{
     sdl2::{self, MouseButton},
     OutputSettingsBuilder, SimulatorDisplay, Window,
@@ -190,7 +193,7 @@ fn main() {
         col![Knob::new(knob_value.clone()), text(knob_value.clone())]
     ];
 
-    let mut ui = UI::new(col, display.bounds().size).monochrome();
+    let mut ui = UI::new(col, display.bounding_box().size.into()).monochrome();
 
     ui.auto_focus();
 

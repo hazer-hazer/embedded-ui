@@ -1,3 +1,4 @@
+use alloc::{boxed::Box, vec::Vec};
 use embedded_graphics::{
     geometry::Angle,
     primitives::{Arc, Circle, PrimitiveStyle},
@@ -7,7 +8,7 @@ use crate::{
     color::UiColor,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
-    layout::{Layout, LayoutNode},
+    layout::{Layout, LayoutNode, Viewport},
     padding::Padding,
     render::Renderer,
     size::{Length, Size},
@@ -262,18 +263,21 @@ where
         state: &mut crate::state::StateNode,
         styler: &S,
         limits: &crate::layout::Limits,
+        viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
         let size = Size::new_equal(self.diameter);
         Layout::container(
             limits,
             size,
+            crate::layout::Position::Relative,
+            viewport,
             Padding::zero(),
             Padding::zero(),
             crate::align::Alignment::Center,
             crate::align::Alignment::Center,
             |limits| {
                 if let Some(inner) = self.inner.as_ref() {
-                    inner.layout(ctx, &mut state.children[0], styler, limits)
+                    inner.layout(ctx, &mut state.children[0], styler, limits, viewport)
                 } else {
                     LayoutNode::new(Size::zero())
                 }

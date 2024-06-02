@@ -4,7 +4,7 @@ use alloc::boxed::Box;
 
 use crate::{
     event::Event,
-    layout::Layout,
+    layout::{Layout, Viewport},
     render::Renderer,
     size::{Length, Size},
     state::{self, StateNode},
@@ -60,8 +60,9 @@ impl<'a, Message, R: Renderer, E: Event, S> Widget<Message, R, E, S> for El<'a, 
         state_tree: &mut StateNode,
         styler: &S,
         limits: &crate::layout::Limits,
+        viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
-        self.widget.layout(ctx, state_tree, styler, limits)
+        self.widget.layout(ctx, state_tree, styler, limits, viewport)
     }
 
     fn draw(

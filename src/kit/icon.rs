@@ -5,7 +5,7 @@ use embedded_graphics::pixelcolor::raw::{BigEndian, RawData, RawU1};
 use crate::el::El;
 use crate::icons::icons5::Icons5;
 use crate::icons::{IconData, IconKind, IconSet};
-use crate::layout::{LayoutNode, Limits};
+use crate::layout::{LayoutNode, Limits, Viewport};
 use crate::log::logger::warning;
 use crate::size::Length;
 use crate::{color::UiColor, event::Event, render::Renderer, size::Size, widget::Widget};
@@ -113,6 +113,7 @@ where
         _state: &mut crate::state::StateNode,
         _styler: &S,
         limits: &crate::layout::Limits,
+        _viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
         let size = Size::new_equal(IconPicker.flex_size(self.size, limits));
 

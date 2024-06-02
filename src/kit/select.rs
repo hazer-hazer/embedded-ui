@@ -10,7 +10,7 @@ use crate::{
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
     icons::IconKind,
-    layout::{Layout, LayoutNode, Limits},
+    layout::{Layout, LayoutNode, Limits, Viewport},
     padding::Padding,
     render::Renderer,
     size::{Length, Size},
@@ -237,6 +237,7 @@ where
         state: &mut crate::state::StateNode,
         styler: &S,
         limits: &crate::layout::Limits,
+        viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
         // Layout::container(limits, self.size.width, self.size.height, |limits| {
         //     // TODO: Use real icons layouts to be accurate?
@@ -254,11 +255,21 @@ where
         Layout::container(
             limits,
             self.size,
+            crate::layout::Position::Relative,
+            viewport,
             Padding::new_axis(0, padding_for_icons),
             style.border.width,
             crate::align::Alignment::Center,
             crate::align::Alignment::Center,
-            |limits| self.options[self.chosen].layout(ctx, &mut state.children[0], styler, limits),
+            |limits| {
+                self.options[self.chosen].layout(
+                    ctx,
+                    &mut state.children[0],
+                    styler,
+                    limits,
+                    viewport,
+                )
+            },
         )
     }
 

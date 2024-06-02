@@ -22,6 +22,11 @@ pub enum Position {
     Absolute,
 }
 
+#[derive(Clone, Copy)]
+pub struct Viewport {
+    pub size: Size,
+}
+
 #[derive(Clone)]
 pub struct LayoutNode {
     position: Position,
@@ -159,11 +164,16 @@ impl<'a> Layout<'a> {
     pub fn sized(
         limits: &Limits,
         size: impl Into<Size<Length>>,
+        position: Position,
+        viewport: &Viewport,
         content_limits: impl FnOnce(&Limits) -> Size,
     ) -> LayoutNode {
         let size = size.into();
 
-        let limits = limits.limit_width(size.width).limit_height(size.height);
+        let limits = limits
+            .for_position(position, viewport)
+            .limit_width(size.width)
+            .limit_height(size.height);
         let content_size = content_limits(&limits);
 
         LayoutNode::new(limits.resolve_size(size.width, size.height, content_size))
@@ -172,6 +182,8 @@ impl<'a> Layout<'a> {
     pub fn container(
         limits: &Limits,
         size: impl Into<Size<Length>>,
+        position: Position,
+        viewport: &Viewport,
         padding: impl Into<Padding>,
         border: impl Into<Padding>,
         content_align_h: Alignment,
@@ -185,7 +197,10 @@ impl<'a> Layout<'a> {
 
         let full_padding = padding + border;
 
-        let limits = limits.limit_width(size.width).limit_height(size.height);
+        let limits = limits
+            .for_position(position, viewport)
+            .limit_width(size.width)
+            .limit_height(size.height);
         let content = content_layout(&limits.shrink(full_padding));
         let fit_padding = full_padding.fit(content.size(), limits.max());
 
@@ -204,6 +219,8 @@ impl<'a> Layout<'a> {
         axis: Axis,
         limits: &Limits,
         size: impl Into<Size<Length>>,
+        position: Position,
+        viewport: &Viewport,
         padding: impl Into<Padding>,
         gap: u32,
         align: Alignment,
@@ -212,7 +229,11 @@ impl<'a> Layout<'a> {
         let size = size.into();
         let padding = padding.into();
 
-        let limits = limits.limit_width(size.width).limit_height(size.height).shrink(padding);
+        let limits = limits
+            .for_position(position, viewport)
+            .limit_width(size.width)
+            .limit_height(size.height)
+            .shrink(padding);
         let total_gap = gap * children.len().saturating_sub(1) as u32;
         let max_anti = axis.size_anti(limits.max());
 
@@ -232,26 +253,37 @@ impl<'a> Layout<'a> {
         for ((i, child), child_state) in
             children.iter().enumerate().zip(state_tree.children.iter_mut())
         {
-            let (fill_main_div, fill_anti_div) = {
-                let size = child.size();
-                axis.canon(size.width.div_factor(), size.height.div_factor())
-            };
+            match child.position() {
+                Position::Absolute => {
+                    layout_children[i] = child.layout(ctx, child_state, styler, &limits, viewport);
+                },
+                Position::Relative => {
+                    let (fill_main_div, fill_anti_div) = {
+                        let size = child.size();
+                        axis.canon(size.width.div_factor(), size.height.div_factor())
+                    };
 
-            if fill_main_div == 0 {
-                let (max_width, max_height) =
-                    axis.canon(free_main, if fill_anti_div == 0 { max_anti } else { free_anti });
+                    if fill_main_div == 0 {
+                        let (max_width, max_height) = axis.canon(
+                            free_main,
+                            if fill_anti_div == 0 { max_anti } else { free_anti },
+                        );
 
-                let child_limits = Limits::new(Size::zero(), Size::new(max_width, max_height));
+                        let child_limits =
+                            Limits::new(Size::zero(), Size::new(max_width, max_height));
 
-                let layout = child.layout(ctx, child_state, styler, &child_limits);
-                let size = layout.size();
+                        let layout =
+                            child.layout(ctx, child_state, styler, &child_limits, viewport);
+                        let size = layout.size();
 
-                free_main -= axis.size_main(size);
-                free_anti = free_anti.max(axis.size_anti(size));
+                        free_main -= axis.size_main(size);
+                        free_anti = free_anti.max(axis.size_anti(size));
 
-                layout_children[i] = layout;
-            } else {
-                total_main_divs += fill_main_div as u32;
+                        layout_children[i] = layout;
+                    } else {
+                        total_main_divs += fill_main_div as u32;
+                    }
+                },
             }
         }
 
@@ -273,36 +305,40 @@ impl<'a> Layout<'a> {
         for ((i, child), child_state) in
             children.iter().enumerate().zip(state_tree.children.iter_mut())
         {
-            let (fill_main_div, fill_anti_div) = {
-                let size = child.size();
+            if let Position::Relative = child.position() {
+                let (fill_main_div, fill_anti_div) = {
+                    let size = child.size();
 
-                axis.canon(size.width.div_factor(), size.height.div_factor())
-            };
-
-            if fill_main_div != 0 {
-                let max_main = if total_main_divs == 0 {
-                    remaining
-                } else {
-                    remaining_div * fill_main_div as u32
-                        + if remaining_mod > 0 {
-                            remaining_mod -= 1;
-                            1
-                        } else {
-                            0
-                        }
+                    axis.canon(size.width.div_factor(), size.height.div_factor())
                 };
-                let min_main = 0;
 
-                let (min_width, min_height) = axis.canon(min_main, 0);
-                let (max_width, max_height) =
-                    axis.canon(max_main, if fill_anti_div == 0 { max_anti } else { free_anti });
+                if fill_main_div != 0 {
+                    let max_main = if total_main_divs == 0 {
+                        remaining
+                    } else {
+                        remaining_div * fill_main_div as u32
+                            + if remaining_mod > 0 {
+                                remaining_mod -= 1;
+                                1
+                            } else {
+                                0
+                            }
+                    };
+                    let min_main = 0;
 
-                let child_limits =
-                    Limits::new(Size::new(min_width, min_height), Size::new(max_width, max_height));
+                    let (min_width, min_height) = axis.canon(min_main, 0);
+                    let (max_width, max_height) =
+                        axis.canon(max_main, if fill_anti_div == 0 { max_anti } else { free_anti });
 
-                let layout = child.layout(ctx, child_state, styler, &child_limits);
-                free_anti = free_anti.max(axis.size_anti(layout.size()));
-                layout_children[i] = layout;
+                    let child_limits = Limits::new(
+                        Size::new(min_width, min_height),
+                        Size::new(max_width, max_height),
+                    );
+
+                    let layout = child.layout(ctx, child_state, styler, &child_limits, viewport);
+                    free_anti = free_anti.max(axis.size_anti(layout.size()));
+                    layout_children[i] = layout;
+                }
             }
         }
 
@@ -310,21 +346,23 @@ impl<'a> Layout<'a> {
         let mut main_offset = main_padding;
 
         for (i, node) in layout_children.iter_mut().enumerate() {
-            if i > 0 {
-                main_offset += gap;
+            if let Position::Relative = node.position() {
+                if i > 0 {
+                    main_offset += gap;
+                }
+
+                let (x, y) = axis.canon(main_offset as i32, anti_padding as i32);
+                node.move_mut(Point::new(x, y));
+
+                match axis {
+                    Axis::X => node.align_mut(align, Alignment::Start, Size::new(0, free_anti)),
+                    Axis::Y => node.align_mut(Alignment::Start, align, Size::new(free_anti, 0)),
+                };
+
+                let size = node.size();
+
+                main_offset += axis.size_main(size);
             }
-
-            let (x, y) = axis.canon(main_offset as i32, anti_padding as i32);
-            node.move_mut(Point::new(x, y));
-
-            match axis {
-                Axis::X => node.align_mut(align, Alignment::Start, Size::new(0, free_anti)),
-                Axis::Y => node.align_mut(Alignment::Start, align, Size::new(free_anti, 0)),
-            };
-
-            let size = node.size();
-
-            main_offset += axis.size_main(size);
         }
 
         let (content_width, content_height) = axis.canon(main_offset - main_padding, free_anti);
@@ -333,51 +371,6 @@ impl<'a> Layout<'a> {
 
         LayoutNode::with_children(size.expand(padding), layout_children)
     }
-
-    // pub fn flex<Message, R: Renderer>(
-    //     axis: Axis,
-    //     limits: &Limits,
-    //     width: impl Into<Length>,
-    //     height: impl Into<Length>,
-    //     gap: u32,
-    //     align: Alignment,
-    //     children: &[El<'_, Message, R>],
-    // ) -> LayoutNode {
-    //     let width = width.into();
-    //     let height = height.into();
-
-    //     let limits = limits.limit_width(width).limit_height(height);
-    //     let max_anti = axis.size_anti(limits.max());
-
-    //     let total_gap = children.len().saturating_sub(1) as u32 * gap;
-
-    //     let mut children_layouts = Vec::with_capacity(children.len());
-    //     children_layouts.resize(children.len(), LayoutNode::default());
-
-    //     let mut free_main = axis.size_main(limits.max()) - total_gap;
-    //     let mut used_main = 0;
-    //     let mut used_anti = 0;
-
-    //     let total_main_div = children.iter().fold(0, |div, child| {
-    //         div + axis.size_main(child.size()).div_factor()
-    //     });
-
-    //     for (i, child) in children.iter().enumerate() {
-    //         // let child_size = child.size();
-    //         let child_limits = Limits::new(Size::zero(), Size::new(free_main, max_anti));
-    //         let child_layout = child.layout(&child_limits);
-    //         let child_size = child_layout.size();
-
-    //         used_anti = used_anti.max(axis.size_anti(child_layout.size()));
-
-    //         free_main -= axis.size_main(child_size);
-    //     }
-
-    //     let (content_width, content_height) = axis.canon(used_main, used_anti);
-    //     let size = limits.resolve_size(width, height, Size::new(content_width, content_height));
-
-    //     LayoutNode::with_children(size, children_layouts)
-    // }
 }
 
 #[derive(Clone, Copy)]
@@ -409,6 +402,14 @@ impl Limits {
 
     pub fn max_square(&self) -> u32 {
         self.max().width.min(self.max().height)
+    }
+
+    pub fn for_position(&self, position: Position, viewport: &Viewport) -> Self {
+        match position {
+            Position::Relative => *self,
+            // TODO: Review this, may be only_max(viewport.size)
+            Position::Absolute => Limits::new(self.min, viewport.size),
+        }
     }
 
     pub fn limit_width(self, width: impl Into<Length>) -> Self {

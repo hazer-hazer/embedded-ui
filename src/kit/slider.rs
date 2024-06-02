@@ -1,3 +1,4 @@
+use alloc::{boxed::Box, vec::Vec};
 use embedded_graphics::{geometry::Point, primitives::Rectangle};
 
 use crate::{
@@ -7,7 +8,7 @@ use crate::{
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
     icons::IconKind,
-    layout::Layout,
+    layout::{Layout, Viewport},
     render::Renderer,
     size::{Length, Size},
     state::{State, StateNode, StateTag},
@@ -217,8 +218,9 @@ where
         state: &mut crate::state::StateNode,
         styler: &S,
         limits: &crate::layout::Limits,
+        viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
-        Layout::sized(limits, self.size, |limits| {
+        Layout::sized(limits, self.size, crate::layout::Position::Relative, viewport, |limits| {
             limits.resolve_size(self.size.width, self.size.height, Size::zero())
         })
     }
