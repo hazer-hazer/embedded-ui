@@ -6,7 +6,7 @@ authors = ["hazer-hazer"]
 description = "Simple UI framework created for embedded systems"
 keywords = ["embedded", "ui", "gui", "graphics", "no-std"]
 categories = ["embedded", "gui", "graphics", "no-std"]
-
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
