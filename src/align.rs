@@ -1,6 +1,7 @@
 use crate::size::Size;
 
 #[derive(Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub enum Axis {
     X,
     Y,
@@ -37,6 +38,7 @@ impl Axis {
 }
 
 #[derive(Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub enum Alignment {
     Start,
     Center,
@@ -44,6 +46,7 @@ pub enum Alignment {
 }
 
 #[derive(Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub enum HorizontalAlign {
     Left,
     Center,
@@ -71,6 +74,7 @@ impl Into<embedded_text::alignment::HorizontalAlignment> for HorizontalAlign {
 }
 
 #[derive(Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub enum VerticalAlign {
     Top,
     Center,

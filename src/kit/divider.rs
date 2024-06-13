@@ -3,7 +3,7 @@ use embedded_graphics::geometry::Point;
 use crate::align::Axis;
 use crate::color::UiColor;
 use crate::el::El;
-use crate::layout::{Layout, LayoutNode, Viewport};
+use crate::layout::{Layout, Viewport};
 use crate::size::{Length, Size};
 use crate::widget::Widget;
 use crate::{event::Event, padding::Padding, render::Renderer};

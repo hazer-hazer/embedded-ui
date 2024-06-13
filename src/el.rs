@@ -1,4 +1,4 @@
-use core::{borrow::Borrow, sync::atomic::AtomicU64};
+use core::{borrow::Borrow, sync::atomic::AtomicUsize};
 
 use alloc::boxed::Box;
 
@@ -8,16 +8,16 @@ use crate::{
     render::Renderer,
     size::{Length, Size},
     state::{self, StateNode},
-    style::Styler,
     ui::UiCtx,
     widget::Widget,
 };
 
-static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub enum ElId {
-    Unique(u64),
+    Unique(usize),
     Custom(&'static str), // TODO: Custom
 }
 
@@ -37,6 +37,7 @@ impl From<&'static str> for ElId {
     }
 }
 
+#[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub struct El<'a, Message, R: Renderer, E: Event, S> {
     widget: Box<dyn Widget<Message, R, E, S> + 'a>,
 }

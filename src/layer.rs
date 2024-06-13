@@ -1,5 +1,3 @@
-use core::fmt::Display;
-
 use alloc::collections::BTreeMap;
 use embedded_canvas::Canvas;
 use embedded_graphics::{
@@ -9,9 +7,7 @@ use embedded_graphics::{
     mono_font::MonoTextStyle,
     pixelcolor::{raw::BigEndian, PixelColor},
     primitives::{Arc, Circle, PrimitiveStyle},
-    text::renderer::CharacterStyle,
 };
-use embedded_graphics_core::draw_target::DrawTarget;
 
 use crate::{block::Block, color::UiColor, render::Renderer};
 
@@ -28,7 +24,7 @@ impl<C> Layering<C>
 where
     C: UiColor,
 {
-    pub fn new(size: Size) -> Self {
+    pub fn _new(size: Size) -> Self {
         Self { map: BTreeMap::from([(0, Canvas::new(size))]), z_index: 0, size }
     }
 

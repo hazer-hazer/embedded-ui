@@ -1,4 +1,3 @@
-use core::{fmt::Display, marker::PhantomData};
 
 use embedded_graphics::{
     geometry::Point,
@@ -9,17 +8,15 @@ use embedded_graphics::{
     primitives::{
         Arc, Circle, Line, PrimitiveStyle, PrimitiveStyleBuilder, RoundedRectangle, StyledDrawable,
     },
-    text::renderer::CharacterStyle,
     Pixel,
 };
 use embedded_graphics_core::Drawable;
-use embedded_graphics_core::{draw_target::DrawTarget, primitives::Rectangle};
+use embedded_graphics_core::{draw_target::DrawTarget};
 use embedded_text::TextBox;
 
 use crate::{
     block::Block,
     color::UiColor,
-    size::{Bounds, Size},
 };
 
 pub trait Renderer {

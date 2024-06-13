@@ -9,16 +9,12 @@ use embedded_graphics_simulator::{
     OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_ui::{
-    align::HorizontalAlign,
     col,
     el::ElId,
     event::CommonEvent,
-    helpers::{button, checkbox, h_div, select, slider_h, slider_v, text},
-    icons::IconKind,
+    helpers::{button, select, text},
     kit::knob::Knob,
-    render::Renderer,
     row,
-    size::Length,
     ui::UI,
     value::Value,
 };

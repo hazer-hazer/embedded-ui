@@ -28,5 +28,5 @@ pub mod widget;
 #[macro_use]
 extern crate alloc;
 
-#[cfg(not(feature = "no_std"))]
+#[cfg(feature = "std")]
 extern crate std;

@@ -7,7 +7,6 @@ use crate::{
     color::UiColor,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
-    icons::IconKind,
     layout::{Layout, Viewport},
     render::Renderer,
     size::{Length, Size},
@@ -214,9 +213,9 @@ where
 
     fn layout(
         &self,
-        ctx: &mut crate::ui::UiCtx<Message>,
-        state: &mut crate::state::StateNode,
-        styler: &S,
+        _ctx: &mut crate::ui::UiCtx<Message>,
+        _state: &mut crate::state::StateNode,
+        _styler: &S,
         limits: &crate::layout::Limits,
         viewport: &Viewport,
     ) -> crate::layout::LayoutNode {

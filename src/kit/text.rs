@@ -211,6 +211,18 @@ where
     }
 }
 
+impl<'a, Message, R, E, S> From<alloc::string::String> for El<'a, Message, R, E, S>
+where
+    Message: 'a,
+    R: Renderer + 'a,
+    E: Event + 'a,
+    S: 'a,
+{
+    fn from(value: alloc::string::String) -> Self {
+        Text::new(Value::new(value)).into()
+    }
+}
+
 impl<'a, T, Message, R, E, S> From<Text<'a, T, R>> for El<'a, Message, R, E, S>
 where
     T: Display + 'a,

@@ -1,7 +1,4 @@
-use embedded_graphics::{
-    iterator::raw::RawDataSlice,
-    pixelcolor::{raw::BigEndian, BinaryColor},
-};
+use embedded_graphics::pixelcolor::BinaryColor;
 use embedded_graphics_core::pixelcolor::PixelColor;
 
 pub trait UiColor: PixelColor + From<<Self as PixelColor>::Raw> + Default

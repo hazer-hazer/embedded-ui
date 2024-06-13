@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use embedded_graphics::geometry::Point;
 
 use crate::{
-    align::{Alignment, Axis, HorizontalAlign, VerticalAlign},
+    align::{Alignment, Axis},
     el::El,
     event::Event,
     padding::Padding,

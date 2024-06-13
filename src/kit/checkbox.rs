@@ -1,20 +1,18 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use embedded_graphics::geometry::Point;
 use embedded_graphics::primitives::Rectangle;
 
-use crate::color::UiColor;
 use crate::el::{El, ElId};
 use crate::event::{Capture, CommonEvent, Event, Propagate};
 use crate::icons::IconKind;
 use crate::layout::{Layout, Viewport};
 use crate::padding::Padding;
+use crate::render::Renderer;
 use crate::size::{Length, Size};
 use crate::state::{State, StateNode, StateTag};
 use crate::style::component_style;
 use crate::ui::UiCtx;
 use crate::widget::Widget;
-use crate::{block::Border, render::Renderer};
 
 use super::icon::Icon;
 

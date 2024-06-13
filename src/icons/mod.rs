@@ -1,6 +1,6 @@
 pub mod icons5;
 
-use crate::{kit::icon::Icon, render::Renderer, size::Size};
+use crate::render::Renderer;
 
 #[derive(Clone, Copy)]
 pub enum InternalIcon {
@@ -216,5 +216,3 @@ macro_rules! make_icon_set {
 }
 
 pub use make_icon_set;
-
-use self::icons5::Icons5;

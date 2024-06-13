@@ -1,9 +1,9 @@
-use alloc::{collections::VecDeque, vec::Vec};
+use alloc::collections::VecDeque;
 use embedded_graphics::pixelcolor::BinaryColor;
 
 use crate::{
     el::{El, ElId},
-    event::{Controls, Event, EventStub, NullControls, Propagate},
+    event::{Event, EventStub, Propagate},
     layout::{Layout, LayoutNode, Limits, Viewport},
     render::Renderer,
     size::Size,

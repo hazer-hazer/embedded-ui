@@ -44,6 +44,5 @@ pub mod logger {
         ($($args: expr),* $(,)?) => {};
     }
 
-    pub(crate) use debug;
     pub(crate) use warning;
 }

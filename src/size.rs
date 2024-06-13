@@ -5,6 +5,7 @@ use embedded_graphics::{geometry::Point, primitives::Rectangle, transform::Trans
 use crate::align::Axis;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub enum Length {
     /// Fills all the remaining space
     Fill,
@@ -36,6 +37,7 @@ impl From<u32> for Length {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub struct Size<T = u32> {
     pub width: T,
     pub height: T,
@@ -180,6 +182,7 @@ impl Into<embedded_graphics_core::geometry::Size> for Size {
 }
 
 #[derive(Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub struct Bounds {
     pub position: Point,
     pub size: Size,

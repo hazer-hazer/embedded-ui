@@ -1,9 +1,6 @@
-use alloc::boxed::Box;
-
 use crate::{
     align::Alignment,
-    block::{Block, Border, BorderRadius},
-    color::UiColor,
+    block::Block,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, EventResponse, Propagate},
     layout::{Layout, Viewport},

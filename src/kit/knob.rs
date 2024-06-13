@@ -5,7 +5,6 @@ use embedded_graphics::{
 };
 
 use crate::{
-    color::UiColor,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
     layout::{Layout, LayoutNode, Viewport},

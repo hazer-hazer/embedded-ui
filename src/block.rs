@@ -1,6 +1,5 @@
 use embedded_graphics::primitives::{CornerRadii, Rectangle};
 
-use crate::render::Renderer;
 use crate::size::Size;
 
 use crate::color::UiColor;

@@ -11,8 +11,8 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-embedded-graphics = "0.8.1"
-embedded-graphics-core = "0.4.0"
+embedded-graphics = { version = "0.8.1", features = ["defmt"] }
+embedded-graphics-core = { version = "0.4.0", features = ["defmt"] }
 embedded-text = "0.7.1"
 defmt = { version = "0.3", optional = true }
 embedded-canvas = "0.3.1"

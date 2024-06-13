@@ -1,9 +1,11 @@
 use crate::el::ElId;
 
+#[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub enum WidgetAction {
     Focus(ElId),
 }
 
+#[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub enum Action {
     None,
     Widget(WidgetAction),
@@ -20,7 +22,7 @@ impl Action {
 }
 
 impl From<()> for Action {
-    fn from(value: ()) -> Self {
+    fn from(_value: ()) -> Self {
         Self::None
     }
 }

@@ -168,6 +168,7 @@ checksum = "0649998afacf6d575d126d83e68b78c0ab0e00ca2ac7e9b3db11b4cbe8274ef0"
 dependencies = [
  "az",
  "byteorder",
+ "defmt",
  "embedded-graphics-core",
  "float-cmp",
  "micromath",
@@ -181,6 +182,7 @@ checksum = "ba9ecd261f991856250d2207f6d8376946cd9f412a2165d3b75bc87a0bc7a044"
 dependencies = [
  "az",
  "byteorder",
+ "defmt",
 ]
 
 [[package]]

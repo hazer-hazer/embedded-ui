@@ -8,7 +8,7 @@ use crate::{
         checkbox::{Checkbox, CheckboxStyler},
         divider::Divider,
         knob::{Knob, KnobStyler, KnobValue},
-        select::{Select, SelectStyler},
+        select::{Select, SelectOption, SelectStyler},
         slider::{Slider, SliderPosition, SliderStyler},
         text::Text,
     },
@@ -60,8 +60,14 @@ pub fn checkbox<'a, Message, R: Renderer, S: CheckboxStyler<R::Color>>(
 
 pub fn select<'a, Message: Clone, R: Renderer, E: Event, S: SelectStyler<R::Color>>(
     options: impl IntoIterator<Item = impl Into<El<'a, Message, R, E, S>>>,
-) -> Select<'a, Message, R, E, S> {
-    Select::new(options.into_iter().map(Into::into).collect())
+) -> Select<'a, Message, R, E, S, usize> {
+    Select::new(options.into_iter().map(Into::into).enumerate())
+}
+
+pub fn select_keyed<'a, Message: Clone, R: Renderer, E: Event, S: SelectStyler<R::Color>, V>(
+    options: impl IntoIterator<Item = (V, impl Into<El<'a, Message, R, E, S>>)>,
+) -> Select<'a, Message, R, E, S, V> {
+    Select::new(options.into_iter().map(|(value, el)| (value, el.into())))
 }
 
 pub fn slider_v<'a, Message: Clone, R: Renderer, S: SliderStyler<R::Color>>(

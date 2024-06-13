@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use crate::{
     align::{Alignment, Axis},
     el::{El, ElId},
-    event::{Capture, CommonEvent, Event, EventResponse, Propagate},
+    event::{Event, EventResponse, Propagate},
     layout::{Layout, Viewport},
     padding::Padding,
     render::Renderer,

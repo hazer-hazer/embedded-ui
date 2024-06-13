@@ -1,12 +1,11 @@
-use alloc::vec::Vec;
-use embedded_graphics::{
-    geometry::Point,
-    primitives::{PrimitiveStyle, Rectangle, StyledDrawable},
+use alloc::{
+    boxed::Box,
+    vec::{self, Vec},
 };
+use embedded_graphics::geometry::Point;
 
 use crate::{
-    block::{Block, Border, BorderRadius},
-    color::UiColor,
+    block::Block,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
     icons::IconKind,
@@ -50,7 +49,41 @@ component_style! {
     }
 }
 
-pub struct Select<'a, Message, R, E, S>
+pub struct SelectOption<'a, Message, R, E, S, V>
+where
+    R: Renderer,
+    E: Event,
+    S: SelectStyler<R::Color>,
+{
+    value: V,
+    el: El<'a, Message, R, E, S>,
+}
+
+impl<'a, Message, R, E, S, V> SelectOption<'a, Message, R, E, S, V>
+where
+    R: Renderer,
+    E: Event,
+    S: SelectStyler<R::Color>,
+{
+    pub fn new(value: V, el: El<'a, Message, R, E, S>) -> Self {
+        Self { value, el }
+    }
+}
+
+impl<'a, Message, R, E, S, V, T> From<T> for SelectOption<'a, Message, R, E, S, V>
+where
+    R: Renderer,
+    E: Event,
+    S: SelectStyler<R::Color>,
+    T: Into<(V, El<'a, Message, R, E, S>)>,
+{
+    fn from(value: T) -> Self {
+        let (value, el) = value.into();
+        Self::new(value, el)
+    }
+}
+
+pub struct Select<'a, Message, R, E, S, V>
 where
     R: Renderer,
     E: Event,
@@ -60,26 +93,77 @@ where
     size: Size<Length>,
     icon_left: IconKind,
     icon_right: IconKind,
-    options: Vec<El<'a, Message, R, E, S>>,
+    options: Vec<SelectOption<'a, Message, R, E, S, V>>,
     chosen: usize,
+    on_change: Option<Box<dyn Fn(&V) -> Message + 'a>>,
     class: S::Class<'a>,
     cycle: bool,
 }
 
-impl<'a, Message, R, E, S> Select<'a, Message, R, E, S>
+// impl<'a, Message, R, E, S, T> From<T> for Select<'a, Message, R, E, S, usize>
+// where
+//     R: Renderer,
+//     E: Event,
+//     S: SelectStyler<R::Color>,
+//     T: IntoIterator<Item = El<'a, Message, R, E, S>>,
+// {
+//     fn from(value: T) -> Self {
+//         Self::new_inner(value.into_iter().enumerate().map(Into::into).collect())
+//     }
+// }
+
+// impl<'a, Message, R, E, S, T, V> From<T> for Select<'a, Message, R, E, S, V>
+// where
+//     R: Renderer,
+//     E: Event,
+//     S: SelectStyler<R::Color>,
+//     T: IntoIterator<Item = (V, El<'a, Message, R, E, S>)>,
+// {
+//     fn from(value: T) -> Self {
+//         Self::new_inner(value.into_iter().map(Into::into).collect())
+//     }
+// }
+
+// impl<'a, Message, R, E, S, T, V> From<T> for Select<'a, Message, R, E, S, V>
+// where
+//     R: Renderer,
+//     E: Event,
+//     S: SelectStyler<R::Color>,
+//     T: IntoIterator<Item = SelectOption<'a, Message, R, E, S, V>>,
+// {
+//     fn from(value: T) -> Self {
+//         Self::new_inner(value.into_iter().collect())
+//     }
+// }
+
+// impl<'a, Message, R, E, S, V> Select<'a, Message, R, E, S, V>
+// where
+//     R: Renderer,
+//     E: Event,
+//     S: SelectStyler<R::Color>,
+// {
+//     pub fn new_keyed(options: Vec<(V, El<'a, Message, R, E, S>)>) -> Self {
+//         Self::new_inner(options.into_iter().map(Into::into).collect())
+//     }
+// }
+
+impl<'a, Message, R, E, S, V> Select<'a, Message, R, E, S, V>
 where
     R: Renderer,
     E: Event,
     S: SelectStyler<R::Color>,
 {
-    pub fn new(options: Vec<El<'a, Message, R, E, S>>) -> Self {
+    pub fn new(
+        options: impl Iterator<Item = impl Into<SelectOption<'a, Message, R, E, S, V>>>,
+    ) -> Self {
         Self {
             id: ElId::unique(),
             size: Size::fill(),
             icon_left: IconKind::ArrowLeft,
             icon_right: IconKind::ArrowRight,
-            options,
+            options: options.into_iter().map(Into::into).collect(),
             chosen: 0,
+            on_change: None,
             class: S::default(),
             cycle: false,
         }
@@ -87,6 +171,14 @@ where
 
     pub fn initial(mut self, index: impl Into<usize>) -> Self {
         self.chosen = index.into();
+        self
+    }
+
+    pub fn on_change<F>(mut self, on_change: F) -> Self
+    where
+        F: Fn(&V) -> Message + 'a,
+    {
+        self.on_change = Some(Box::new(on_change));
         self
     }
 
@@ -116,11 +208,11 @@ where
     }
 
     // Helpers //
-    fn current(&self) -> &El<'a, Message, R, E, S> {
+    fn current(&self) -> &SelectOption<'a, Message, R, E, S, V> {
         &self.options[self.chosen]
     }
 
-    fn arrow_icon_size(&self, limits: &Limits) -> u32 {
+    fn arrow_icon_size(&self, _limits: &Limits) -> u32 {
         // limits.max().height
         // TODO
         5
@@ -141,7 +233,7 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Select<'a, Message, R, E, S>
+impl<'a, Message, R, E, S, V> Widget<Message, R, E, S> for Select<'a, Message, R, E, S, V>
 where
     R: Renderer,
     E: Event,
@@ -171,7 +263,7 @@ where
 
     fn state_children(&self) -> Vec<StateNode> {
         // TODO: Do we need to tell about children?
-        vec![StateNode::new(self.current())]
+        vec![StateNode::new(&self.current().el)]
     }
 
     fn on_event(
@@ -187,6 +279,7 @@ where
 
         if let Some(offset) = event.as_select_shift() {
             if focused && current_state.is_active {
+                let prev = self.chosen;
                 if self.cycle {
                     let len = self.options.len() as i32;
                     self.chosen = ((self.chosen as i32 + offset % len + len) % len) as usize;
@@ -194,6 +287,11 @@ where
                     self.chosen = (self.chosen as i32 + offset)
                         .clamp(0, self.options.len() as i32 - 1)
                         as usize;
+                }
+                if let Some(on_change) = self.on_change.as_ref() {
+                    if prev != self.chosen {
+                        ctx.publish((on_change)(&self.current().value));
+                    }
                 }
                 return Capture::Captured.into();
             }
@@ -262,7 +360,7 @@ where
             crate::align::Alignment::Center,
             crate::align::Alignment::Center,
             |limits| {
-                self.options[self.chosen].layout(
+                self.options[self.chosen].el.layout(
                     ctx,
                     &mut state.children[0],
                     styler,
@@ -309,7 +407,7 @@ where
             );
         }
 
-        self.current().draw(
+        self.current().el.draw(
             ctx,
             &mut state.children[0],
             renderer,
@@ -339,15 +437,16 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> From<Select<'a, Message, R, E, S>> for El<'a, Message, R, E, S>
+impl<'a, Message, R, E, S, V> From<Select<'a, Message, R, E, S, V>> for El<'a, Message, R, E, S>
 where
     Message: Clone + 'a,
     R: Renderer + 'a,
     E: Event + 'a,
     S: 'a,
     S: SelectStyler<R::Color> + 'a,
+    V: 'a,
 {
-    fn from(value: Select<'a, Message, R, E, S>) -> Self {
+    fn from(value: Select<'a, Message, R, E, S, V>) -> Self {
         El::new(value)
     }
 }
