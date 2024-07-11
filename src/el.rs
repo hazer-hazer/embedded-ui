@@ -18,7 +18,7 @@ static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 #[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub enum ElId {
     Unique(usize),
-    Custom(&'static str), // TODO: Custom
+    Custom(&'static str),
 }
 
 impl ElId {

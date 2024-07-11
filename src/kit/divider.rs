@@ -23,12 +23,12 @@ where
     R: Renderer,
 {
     pub fn new(axis: Axis) -> Self {
-        let (padding_main, padding_anti) = axis.canon(0, 1);
+        let (padding_main, padding_cross) = axis.canon(0, 1);
         Self {
             axis,
             thickness: 1,
             color: R::Color::default_foreground(),
-            padding: Padding::new_axis(padding_anti, padding_main),
+            padding: Padding::new_axis(padding_cross, padding_main),
         }
     }
 
@@ -52,10 +52,10 @@ where
 
     /// Add a little padding on sides
     pub fn inset(mut self) -> Self {
-        let (padding_main, _padding_anti) =
+        let (padding_main, _padding_cross) =
             self.axis.canon(self.padding.total_x(), self.padding.total_y());
-        let (main_axis, anti_axis) = self.axis.canon(padding_main, 5);
-        self.padding = self.padding + Padding::new_axis(anti_axis, main_axis);
+        let (main_axis, cross_axis) = self.axis.canon(padding_main, 5);
+        self.padding = self.padding + Padding::new_axis(cross_axis, main_axis);
         self
     }
 
@@ -79,11 +79,11 @@ where
     }
 
     fn size(&self) -> crate::size::Size<crate::size::Length> {
-        let (main_axis, anti_axis) = self.axis.canon(
+        let (main_axis, cross_axis) = self.axis.canon(
             Length::Fill,
             Length::Fixed(self.thickness + self.padding.total_axis(self.axis.invert())),
         );
-        Size::new(main_axis, anti_axis)
+        Size::new(main_axis, cross_axis)
     }
 
     fn layout(
@@ -94,11 +94,11 @@ where
         limits: &crate::layout::Limits,
         viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
-        let (main_axis, anti_axis) = self.axis.canon(
+        let (main_axis, cross_axis) = self.axis.canon(
             Length::Fill,
             Length::Fixed(self.thickness + self.padding.total_axis(self.axis.invert())),
         );
-        let size = Size::new(main_axis, anti_axis);
+        let size = Size::new(main_axis, cross_axis);
 
         Layout::sized(
             limits,
@@ -108,9 +108,9 @@ where
             // self.padding,
             // Padding::zero(),
             |limits| {
-                // let (main_axis, anti_axis) =
+                // let (main_axis, cross_axis) =
                 //     self.axis.canon(limits.max().axis(self.axis), self.thickness);
-                // LayoutNode::new(Size::new(main_axis, anti_axis))
+                // LayoutNode::new(Size::new(main_axis, cross_axis))
                 // LayoutNode::new(limits.max())
                 limits.resolve_size(size.width, size.height, Size::zero())
             },
@@ -128,12 +128,12 @@ where
     ) {
         let bounds = layout.bounds();
 
-        let (main_axis_size, anti_axis_size) =
+        let (main_axis_size, cross_axis_size) =
             self.axis.canon(bounds.size.width, bounds.size.height);
         // let start = bounds.position + self.padding.top_left();
-        let start = Point::new(bounds.position.x, bounds.position.y + anti_axis_size as i32 / 2);
-        let (main_axis_start, anti_axis_start) = self.axis.canon(start.x, start.y);
-        let end = self.axis.canon(main_axis_start + main_axis_size as i32, anti_axis_start);
+        let start = Point::new(bounds.position.x, bounds.position.y + cross_axis_size as i32 / 2);
+        let (main_axis_start, cross_axis_start) = self.axis.canon(start.x, start.y);
+        let end = self.axis.canon(main_axis_start + main_axis_size as i32, cross_axis_start);
         let end = Point::new(end.0, end.1);
 
         renderer.line(start, end, self.color, self.thickness)

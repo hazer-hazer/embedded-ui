@@ -251,16 +251,16 @@ where
 
         // TODO: WTF. Just finally add compound type `AxisData` for such calculations,
         // looks buggy asf
-        let (main_axis_pos, anti_axis_pos) = self.axis.canon(bounds.position.x, bounds.position.y);
-        let (main_length, anti_length) = self.axis.canon(bounds.size.width, bounds.size.height);
+        let (main_axis_pos, cross_axis_pos) = self.axis.canon(bounds.position.x, bounds.position.y);
+        let (main_length, cross_length) = self.axis.canon(bounds.size.width, bounds.size.height);
 
-        let guide_anti_axis_pos = anti_axis_pos + anti_length as i32 / 2;
+        let guide_cross_axis_pos = cross_axis_pos + cross_length as i32 / 2;
 
-        let guide_start_pos = self.axis.canon(main_axis_pos, guide_anti_axis_pos);
+        let guide_start_pos = self.axis.canon(main_axis_pos, guide_cross_axis_pos);
         let guide_start = Point::new(guide_start_pos.0, guide_start_pos.1);
 
         let guide_end_pos =
-            self.axis.canon(main_axis_pos + main_length as i32, guide_anti_axis_pos);
+            self.axis.canon(main_axis_pos + main_length as i32, guide_cross_axis_pos);
         let guide_end = Point::new(guide_end_pos.0, guide_end_pos.1);
 
         // TODO: Style for guide
@@ -268,14 +268,14 @@ where
 
         // let knob_size = Size::new_equal(bounds.size.width.min(bounds.size.height));
         let knob_size = Size::new_equal(5);
-        // let (knob_center_main, knob_center_anti) = self.axis.canon(
+        // let (knob_center_main, knob_center_cross) = self.axis.canon(
         //     main_axis_pos + knob_size.width as i32 / 2,
-        //     anti_axis_pos + knob_size.height as i32 / 2,
+        //     cross_axis_pos + knob_size.height as i32 / 2,
         // );
 
         let knob_shift_offset = self.value as u32 * main_length / u8::MAX as u32;
-        let (knob_main_axis_pos, knob_anti_axis_pos) =
-            self.axis.canon(main_axis_pos + knob_shift_offset as i32, guide_anti_axis_pos);
+        let (knob_main_axis_pos, knob_cross_axis_pos) =
+            self.axis.canon(main_axis_pos + knob_shift_offset as i32, guide_cross_axis_pos);
 
         let knob_background = if state.is_active {
             R::Color::default_foreground()
@@ -286,7 +286,7 @@ where
         let knob = Block {
             border: Border { color: R::Color::default_foreground(), width: 1, radius: 0.into() },
             rect: Rectangle::with_center(
-                Point::new(knob_main_axis_pos, knob_anti_axis_pos),
+                Point::new(knob_main_axis_pos, knob_cross_axis_pos),
                 knob_size.into(),
             ),
             background: knob_background,

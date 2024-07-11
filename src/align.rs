@@ -8,10 +8,10 @@ pub enum Axis {
 }
 
 impl Axis {
-    pub fn canon<T>(&self, main: T, anti: T) -> (T, T) {
+    pub fn canon<T>(&self, main: T, cross: T) -> (T, T) {
         match self {
-            Axis::X => (main, anti),
-            Axis::Y => (anti, main),
+            Axis::X => (main, cross),
+            Axis::Y => (cross, main),
         }
     }
 
@@ -22,7 +22,7 @@ impl Axis {
         }
     }
 
-    pub fn size_anti<T>(&self, size: Size<T>) -> T {
+    pub fn size_cross<T>(&self, size: Size<T>) -> T {
         match self {
             Axis::X => size.height,
             Axis::Y => size.width,

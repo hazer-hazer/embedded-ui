@@ -235,7 +235,7 @@ impl<'a> Layout<'a> {
             .limit_height(size.height)
             .shrink(padding);
         let total_gap = gap * children.len().saturating_sub(1) as u32;
-        let max_anti = axis.size_anti(limits.max());
+        let max_cross = axis.size_cross(limits.max());
 
         let mut layout_children = Vec::with_capacity(children.len());
         layout_children.resize(children.len(), LayoutNode::default());
@@ -243,10 +243,10 @@ impl<'a> Layout<'a> {
         let mut total_main_divs = 0;
 
         let mut free_main = axis.size_main(limits.max()).saturating_sub(total_gap);
-        let mut free_anti = match axis {
+        let mut free_cross = match axis {
             Axis::X if size.width == Length::Shrink => 0,
             Axis::Y if size.height == Length::Shrink => 0,
-            _ => max_anti,
+            _ => max_cross,
         };
 
         // Calculate non-auto-sized children (main axis length is not Length::Fill or
@@ -259,7 +259,7 @@ impl<'a> Layout<'a> {
                     layout_children[i] = child.layout(ctx, child_state, styler, &limits, viewport);
                 },
                 Position::Relative => {
-                    let (fill_main_div, fill_anti_div) = {
+                    let (fill_main_div, fill_cross_div) = {
                         let size = child.size();
                         axis.canon(size.width.div_factor(), size.height.div_factor())
                     };
@@ -267,7 +267,7 @@ impl<'a> Layout<'a> {
                     if fill_main_div == 0 {
                         let (max_width, max_height) = axis.canon(
                             free_main,
-                            if fill_anti_div == 0 { max_anti } else { free_anti },
+                            if fill_cross_div == 0 { max_cross } else { free_cross },
                         );
 
                         let child_limits =
@@ -278,7 +278,7 @@ impl<'a> Layout<'a> {
                         let size = layout.size();
 
                         free_main -= axis.size_main(size);
-                        free_anti = free_anti.max(axis.size_anti(size));
+                        free_cross = free_cross.max(axis.size_cross(size));
 
                         layout_children[i] = layout;
                     } else {
@@ -307,7 +307,7 @@ impl<'a> Layout<'a> {
             children.iter().enumerate().zip(state_tree.children.iter_mut())
         {
             if let Position::Relative = child.position() {
-                let (fill_main_div, fill_anti_div) = {
+                let (fill_main_div, fill_cross_div) = {
                     let size = child.size();
 
                     axis.canon(size.width.div_factor(), size.height.div_factor())
@@ -329,7 +329,7 @@ impl<'a> Layout<'a> {
 
                     let (min_width, min_height) = axis.canon(min_main, 0);
                     let (max_width, max_height) =
-                        axis.canon(max_main, if fill_anti_div == 0 { max_anti } else { free_anti });
+                        axis.canon(max_main, if fill_cross_div == 0 { max_cross } else { free_cross });
 
                     let child_limits = Limits::new(
                         Size::new(min_width, min_height),
@@ -337,13 +337,13 @@ impl<'a> Layout<'a> {
                     );
 
                     let layout = child.layout(ctx, child_state, styler, &child_limits, viewport);
-                    free_anti = free_anti.max(axis.size_anti(layout.size()));
+                    free_cross = free_cross.max(axis.size_cross(layout.size()));
                     layout_children[i] = layout;
                 }
             }
         }
 
-        let (main_padding, anti_padding) = axis.canon(padding.left, padding.right);
+        let (main_padding, cross_padding) = axis.canon(padding.left, padding.right);
         let mut main_offset = main_padding;
 
         for (i, node) in layout_children.iter_mut().enumerate() {
@@ -352,12 +352,12 @@ impl<'a> Layout<'a> {
                     main_offset += gap;
                 }
 
-                let (x, y) = axis.canon(main_offset as i32, anti_padding as i32);
+                let (x, y) = axis.canon(main_offset as i32, cross_padding as i32);
                 node.move_mut(Point::new(x, y));
 
                 match axis {
-                    Axis::X => node.align_mut(align, Alignment::Start, Size::new(0, free_anti)),
-                    Axis::Y => node.align_mut(Alignment::Start, align, Size::new(free_anti, 0)),
+                    Axis::X => node.align_mut(align, Alignment::Start, Size::new(0, free_cross)),
+                    Axis::Y => node.align_mut(Alignment::Start, align, Size::new(free_cross, 0)),
                 };
 
                 let size = node.size();
@@ -366,7 +366,7 @@ impl<'a> Layout<'a> {
             }
         }
 
-        let (content_width, content_height) = axis.canon(main_offset - main_padding, free_anti);
+        let (content_width, content_height) = axis.canon(main_offset - main_padding, free_cross);
         let size =
             limits.resolve_size(size.width, size.height, Size::new(content_width, content_height));
 
