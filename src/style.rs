@@ -11,7 +11,7 @@ pub trait Styler<C: UiColor>:
 }
 
 /**
- * 
+ *
  */
 macro_rules! component_style {
     ($vis: vis $name: ident $(: $styler: ident ($status: ty))? {

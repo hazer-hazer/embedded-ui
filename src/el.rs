@@ -73,8 +73,9 @@ impl<'a, Message, R: Renderer, E: Event, S> Widget<Message, R, E, S> for El<'a, 
         renderer: &mut R,
         styler: &S,
         layout: Layout,
+        viewport: &Viewport,
     ) {
-        self.widget.draw(ctx, state_tree, renderer, styler, layout)
+        self.widget.draw(ctx, state_tree, renderer, styler, layout, viewport)
     }
 
     fn on_event(

@@ -5,7 +5,7 @@ use embedded_graphics::{
     pixelcolor::BinaryColor,
 };
 use embedded_graphics_simulator::{
-    sdl2::{self, MouseButton},
+    sdl2::{self, Keycode, MouseButton},
     OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_ui::{
@@ -41,6 +41,20 @@ impl TryFrom<embedded_graphics_simulator::SimulatorEvent> for Event {
 
     fn try_from(value: embedded_graphics_simulator::SimulatorEvent) -> Result<Self, Self::Error> {
         match value {
+            embedded_graphics_simulator::SimulatorEvent::KeyDown { keycode, .. } => match keycode {
+                Keycode::Space | Keycode::Return | Keycode::Return2 => {
+                    Ok(Event::MainEncoderButtonDown)
+                },
+                _ => Err(()),
+            },
+            embedded_graphics_simulator::SimulatorEvent::KeyUp { keycode, .. } => match keycode {
+                Keycode::Left | Keycode::Up => Ok(Event::MainEncoderRotation(-1)),
+                Keycode::Right | Keycode::Down => Ok(Event::MainEncoderRotation(1)),
+                Keycode::Space | Keycode::Return | Keycode::Return2 => {
+                    Ok(Event::MainEncoderButtonUp)
+                },
+                _ => Err(()),
+            },
             embedded_graphics_simulator::SimulatorEvent::MouseWheel { scroll_delta, direction } => {
                 let dir = match direction {
                     sdl2::MouseWheelDirection::Normal => 1,
@@ -52,17 +66,15 @@ impl TryFrom<embedded_graphics_simulator::SimulatorEvent> for Event {
 
                 let offset = scroll_delta.y * dir;
 
-                println!("Offset encoder: {offset}");
-
                 Ok(Event::MainEncoderRotation(offset))
             },
             embedded_graphics_simulator::SimulatorEvent::MouseButtonDown { mouse_btn, .. }
-                if mouse_btn == MouseButton::Middle =>
+                if mouse_btn == MouseButton::Middle || mouse_btn == MouseButton::Left =>
             {
                 Ok(Event::MainEncoderButtonDown)
             },
             embedded_graphics_simulator::SimulatorEvent::MouseButtonUp { mouse_btn, .. }
-                if mouse_btn == MouseButton::Middle =>
+                if mouse_btn == MouseButton::Middle || mouse_btn == MouseButton::Left =>
             {
                 Ok(Event::MainEncoderButtonUp)
             },
@@ -117,22 +129,6 @@ enum Message {
     KnobChange(u8),
 }
 
-// struct Sandbox {
-//     knob_value: u8,
-// }
-
-// impl Sandbox {
-//     fn update(&mut self, message: Message) {
-//         match message {
-//             Message::Focus(id) => ui.focus(id),
-//             Message::KnobChange(value) => {
-//                 self.knob_value = value;
-//             },
-//             Message::None => {},
-//         }
-//     }
-// }
-
 fn main() {
     let output_settings = OutputSettingsBuilder::new()
         .theme(embedded_graphics_simulator::BinaryColorTheme::OledWhite)
@@ -142,12 +138,11 @@ fn main() {
 
     let mut window = Window::new("TEST", &output_settings);
 
-    let mut display = SimulatorDisplay::<BinaryColor>::new(Size::new(128, 32));
+    let mut display = SimulatorDisplay::<BinaryColor>::new(Size::new(128, 64));
 
-    // I don't certainly know why, but display must be drawn at least once before event fetching. Otherwise SDL2 will panic :(
+    // I don't certainly know why, but display must be drawn at least once before
+    // event fetching. Otherwise SDL2 will panic :(
     window.update(&display);
-
-    // let header_line = h_div().padding(0);
 
     let knob_value = Value::dynamic(0u8);
 
@@ -199,7 +194,7 @@ fn main() {
         while let Some(message) = ui.deque_message() {
             match message {
                 Message::Focus(id) => ui.focus(id),
-                Message::KnobChange(value) => {},
+                Message::KnobChange(_value) => {},
                 Message::None => {},
             }
         }

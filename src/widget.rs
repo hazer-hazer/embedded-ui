@@ -1,8 +1,7 @@
-
 use alloc::vec::Vec;
 
 use crate::{
-    el::{ElId},
+    el::ElId,
     event::{Event, EventResponse, Propagate},
     layout::{Layout, LayoutNode, Limits, Position, Viewport},
     render::Renderer,
@@ -42,6 +41,7 @@ where
         renderer: &mut R,
         styler: &S,
         layout: Layout,
+        viewport: &Viewport,
     );
 
     fn on_event(

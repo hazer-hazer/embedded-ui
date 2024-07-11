@@ -49,7 +49,7 @@ impl<Message> UiCtx<Message> {
 pub struct UI<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> {
     root: El<'a, Message, R, E, S>,
     root_node: LayoutNode,
-    // viewport_size: Size,
+    viewport_size: Size,
     root_state: StateNode,
     styler: S,
     // events: Vec<E>,
@@ -74,7 +74,7 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
         Self {
             root,
             root_node,
-            // viewport_size,
+            viewport_size,
             root_state,
             // events: Vec::new(),
             styler: Default::default(),
@@ -151,6 +151,7 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
             renderer,
             &self.styler,
             Layout::new(&self.root_node),
+            &Viewport { size: self.viewport_size },
         );
     }
 }

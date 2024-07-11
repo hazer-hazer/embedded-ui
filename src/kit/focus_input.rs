@@ -93,22 +93,22 @@
 //     }
 
 //     // Helpers //
-//     fn status<E: Event>(&self, ctx: &UiCtx<Message>, state: &FocusInputState) -> FocusInputStatus {
-//         match (UiCtx::is_focused::<R, E, S>(&ctx, self), state) {
-//             (_, FocusInputState { is_active: true, .. }) => FocusInputStatus::Active,
-//             (_, FocusInputState { is_pressed: true, .. }) => FocusInputStatus::Pressed,
-//             (true, FocusInputState { is_active: false, is_pressed: false }) => {
-//                 FocusInputStatus::Focused
-//             },
-//             (false, FocusInputState { is_active: false, is_pressed: false }) => {
-//                 FocusInputStatus::Normal
+//     fn status<E: Event>(&self, ctx: &UiCtx<Message>, state: &FocusInputState)
+// -> FocusInputStatus {         match (UiCtx::is_focused::<R, E, S>(&ctx,
+// self), state) {             (_, FocusInputState { is_active: true, .. }) =>
+// FocusInputStatus::Active,             (_, FocusInputState { is_pressed: true,
+// .. }) => FocusInputStatus::Pressed,             (true, FocusInputState {
+// is_active: false, is_pressed: false }) => {                 
+// FocusInputStatus::Focused             },
+//             (false, FocusInputState { is_active: false, is_pressed: false })
+// => {                 FocusInputStatus::Normal
 //             },
 //         }
 //     }
 // }
 
-// impl<'a, Message, R, E, S> Widget<Message, R, E, S> for FocusInput<'a, Message, R, S>
-// where
+// impl<'a, Message, R, E, S> Widget<Message, R, E, S> for FocusInput<'a,
+// Message, R, S> where
 //     R: Renderer,
 //     E: Event,
 //     S: FocusInputStyler<R::Color>,
@@ -142,9 +142,8 @@
 //         ctx: &mut UiCtx<Message>,
 //         event: E,
 //         state: &mut crate::state::StateNode,
-//     ) -> crate::event::EventResponse<E> {
-//         let focused = ctx.is_focused::<R, E, S>(self);
-//         let current_state = *state.get::<FocusInputState>();
+//     ) -> crate::event::EventResponse<E> { let focused = ctx.is_focused::<R,
+//       E, S>(self); let current_state = *state.get::<FocusInputState>();
 
 //         if current_state.is_active {
 //             if let Some(offset) = event.as_input_letter_scroll() {
@@ -152,20 +151,23 @@
 //                     // self.value.get_mut().
 //                 }
 
-//                 let prev_char = self.value.get().chars().nth(self.position).unwrap_or(' ');
+//                 let prev_char =
+// self.value.get().chars().nth(self.position).unwrap_or(' ');
 
 //                 const CHAR_ASCII_RANGE: Range<u8> = 32..127;
 //                 const ALPHABET_SIZE: i32 =
-//                     CHAR_ASCII_RANGE.end as i32 - CHAR_ASCII_RANGE.start as i32;
+//                     CHAR_ASCII_RANGE.end as i32 - CHAR_ASCII_RANGE.start as
+// i32;
 
-//                 let new_char = ((prev_char as i32 + offset % ALPHABET_SIZE + ALPHABET_SIZE)
-//                     % ALPHABET_SIZE) as u8 as char;
+//                 let new_char = ((prev_char as i32 + offset % ALPHABET_SIZE +
+// ALPHABET_SIZE)                     % ALPHABET_SIZE) as u8 as char;
 
 //                 self.value.get_mut()[self.position] = new_char;
 
 //                 if prev_char != new_char {
 //                     if let Some(on_change) = self.on_change.as_ref() {
-//                         ctx.publish((on_change)(&String::from_iter(self.value.get().iter())))
+//                         
+// ctx.publish((on_change)(&String::from_iter(self.value.get().iter())))
 //                     }
 //                 }
 
@@ -210,10 +212,9 @@
 //         state: &mut crate::state::StateNode,
 //         styler: &S,
 //         limits: &crate::layout::Limits,
-//     ) -> crate::layout::LayoutNode {
-//         Layout::sized(limits, self.size, |limits| {
-//             limits.resolve_size(self.size.width, self.size.height, Size::zero())
-//         })
+//     ) -> crate::layout::LayoutNode { Layout::sized(limits, self.size,
+//       |limits| { limits.resolve_size(self.size.width, self.size.height,
+//       Size::zero()) })
 //     }
 
 //     fn draw(
@@ -223,9 +224,8 @@
 //         renderer: &mut R,
 //         styler: &S,
 //         layout: crate::layout::Layout,
-//     ) {
-//         let state = state.get::<FocusInputState>();
-//         let style = styler.style(&self.class, self.status::<E>(ctx, state));
+//     ) { let state = state.get::<FocusInputState>(); let style =
+//       styler.style(&self.class, self.status::<E>(ctx, state));
 
 //         let bounds = layout.bounds();
 

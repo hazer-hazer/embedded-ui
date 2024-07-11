@@ -124,6 +124,7 @@ where
         renderer: &mut R,
         _styler: &S,
         layout: crate::layout::Layout,
+        _viewport: &Viewport,
     ) {
         let bounds = layout.bounds();
 

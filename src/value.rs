@@ -78,8 +78,9 @@ where
         renderer: &mut R,
         styler: &S,
         layout: crate::layout::Layout,
+        viewport: &Viewport,
     ) {
-        self.get().draw(ctx, state, renderer, styler, layout)
+        self.get().draw(ctx, state, renderer, styler, layout, viewport)
     }
 }
 

@@ -33,7 +33,8 @@ pub enum ButtonStatus {
     // Hovered,
 }
 
-// pub type ButtonStyleFn<'a, C> = Box<dyn Fn(ButtonStatus) -> ButtonStyle<C> + 'a>;
+// pub type ButtonStyleFn<'a, C> = Box<dyn Fn(ButtonStatus) -> ButtonStyle<C> +
+// 'a>;
 
 component_style! {
     pub ButtonStyle: ButtonStyler(ButtonStatus) {
@@ -161,7 +162,8 @@ where
         match self.content.on_event(ctx, event.clone(), &mut state.children[0])? {
             Propagate::Ignored => match event.as_common() {
                 Some(common) => match common {
-                    // Tell parent that this child is the currently focused so parent can use it as an offset of focus
+                    // Tell parent that this child is the currently focused so parent can use it as
+                    // an offset of focus
                     CommonEvent::FocusMove(_) if ctx.is_focused(self) => {
                         Propagate::BubbleUp(self.id, event).into()
                     },
@@ -234,6 +236,7 @@ where
         renderer: &mut R,
         styler: &S,
         layout: Layout,
+        viewport: &Viewport,
     ) {
         let bounds = layout.bounds();
 
@@ -251,6 +254,7 @@ where
             renderer,
             styler,
             layout.children().next().unwrap(),
+            viewport,
         )
     }
 }

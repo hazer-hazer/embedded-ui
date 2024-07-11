@@ -80,6 +80,10 @@ where
         Renderer::block(self.layer(), block)
     }
 
+    fn default_font() -> crate::font::Font {
+        Canvas::<C>::default_font()
+    }
+
     fn mono_text<'a>(&mut self, text: embedded_text::TextBox<'a, MonoTextStyle<'a, Self::Color>>) {
         Renderer::mono_text(self.layer(), text)
     }

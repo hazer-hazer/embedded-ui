@@ -231,6 +231,7 @@ where
         renderer: &mut R,
         styler: &S,
         layout: crate::layout::Layout,
+        _viewport: &Viewport,
     ) {
         let style = styler.style(&self.class, self.status::<E>(ctx, state));
 
@@ -248,7 +249,8 @@ where
             background: style.background,
         });
 
-        // TODO: WTF. Just finally add compound type `AxisData` for such calculations, looks buggy asf
+        // TODO: WTF. Just finally add compound type `AxisData` for such calculations,
+        // looks buggy asf
         let (main_axis_pos, anti_axis_pos) = self.axis.canon(bounds.position.x, bounds.position.y);
         let (main_length, anti_length) = self.axis.canon(bounds.size.width, bounds.size.height);
 

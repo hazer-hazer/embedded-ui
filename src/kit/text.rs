@@ -1,14 +1,15 @@
 use alloc::string::ToString as _;
 use core::{fmt::Display, marker::PhantomData};
 
-use embedded_graphics::mono_font::{MonoTextStyle, MonoTextStyleBuilder};
+use embedded_graphics::mono_font::MonoTextStyleBuilder;
 use embedded_text::{style::TextBoxStyleBuilder, TextBox};
 
 use crate::{
     align::{HorizontalAlign, VerticalAlign},
+    color::UiColor,
     el::El,
     event::Event,
-    font::Font,
+    font::{Font, FontSize},
     layout::{Layout, Viewport},
     render::Renderer,
     size::{Length, Size},
@@ -17,8 +18,6 @@ use crate::{
     value::Value,
     widget::Widget,
 };
-
-use crate::color::UiColor;
 
 #[derive(Clone, Copy, Debug)]
 pub enum LineHeight {
@@ -61,12 +60,13 @@ where
     content: Value<T>,
     marker: PhantomData<&'a str>,
 
-    // style: TextStyle<R::Color>,
     align: HorizontalAlign,
     vertical_align: VerticalAlign,
     line_height: LineHeight,
     text_color: R::Color,
     font: Font,
+
+    font_size: FontSize,
 
     /// Precomputed size, does not need to be set by user
     size: Size<Length>,
@@ -74,8 +74,6 @@ where
 
 impl<'a, T: Display, R: Renderer> Text<'a, T, R> {
     pub fn new(content: Value<T>) -> Self {
-        let font = Font::default();
-
         Self {
             content,
             marker: PhantomData,
@@ -83,7 +81,9 @@ impl<'a, T: Display, R: Renderer> Text<'a, T, R> {
             line_height: LineHeight::default(),
             align: HorizontalAlign::Center,
             vertical_align: VerticalAlign::Center,
-            font,
+            font: R::default_font(),
+            font_size: FontSize::Relative(1.0),
+            // TODO: Should be computed by text size?
             size: Size::fill(),
         }
     }
@@ -108,16 +108,13 @@ impl<'a, T: Display, R: Renderer> Text<'a, T, R> {
         self
     }
 
-    pub fn update(&mut self, new_value: T) {
-        *self.content.get_mut() = new_value;
+    pub fn font_size(mut self, font_size: impl Into<FontSize>) -> Self {
+        self.font_size = font_size.into();
+        self
     }
 
-    fn char_style(&self) -> MonoTextStyle<'static, R::Color> {
-        match &self.font {
-            Font::Mono(mono) => {
-                MonoTextStyleBuilder::new().font(&mono).text_color(self.text_color).build()
-            },
-        }
+    pub fn update(&mut self, new_value: T) {
+        *self.content.get_mut() = new_value;
     }
 }
 
@@ -147,7 +144,8 @@ where
         viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
         Layout::sized(limits, self.size, crate::layout::Position::Relative, viewport, |limits| {
-            let text_size = self.font.measure_text_size(&self.content.get().to_string());
+            let text_size =
+                self.font.to_real(viewport).measure_text_size(&self.content.get().to_string());
             limits.resolve_size(self.size.width, self.size.height, text_size)
         })
     }
@@ -159,11 +157,13 @@ where
         renderer: &mut R,
         _styler: &S,
         layout: Layout,
+        viewport: &Viewport,
     ) {
+        let real_font = self.font.to_real(viewport);
         renderer.mono_text(TextBox::with_textbox_style(
             &self.content.get().to_string(),
             layout.bounds().into(),
-            self.char_style(),
+            MonoTextStyleBuilder::new().font(&real_font.font()).text_color(self.text_color).build(),
             TextBoxStyleBuilder::new()
                 .alignment(self.align.into())
                 .vertical_alignment(self.vertical_align.into())

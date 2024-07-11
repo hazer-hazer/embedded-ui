@@ -12,7 +12,10 @@ pub mod logger {
         };
     }
 
+    #[allow(unused)]
     pub(crate) use debug;
+
+    #[allow(unused)]
     pub(crate) use warning;
 }
 
@@ -30,19 +33,26 @@ pub mod logger {
         };
     }
 
+    #[allow(unused)]
     pub(crate) use debug;
+
+    #[allow(unused)]
     pub(crate) use warning;
 }
 
 #[cfg(all(not(feature = "std"), not(feature = "defmt")))]
 pub mod logger {
     macro_rules! debug {
-        ($($args: expr),* $(,)?) => {};
+        ($($args:expr),* $(,)?) => {};
     }
 
     macro_rules! warning {
-        ($($args: expr),* $(,)?) => {};
+        ($($args:expr),* $(,)?) => {};
     }
 
+    #[allow(unused)]
+    pub(crate) use debug;
+
+    #[allow(unused)]
     pub(crate) use warning;
 }

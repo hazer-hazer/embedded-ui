@@ -1,4 +1,3 @@
-
 use embedded_graphics::{
     geometry::Point,
     image::{Image, ImageRaw},
@@ -10,13 +9,14 @@ use embedded_graphics::{
     },
     Pixel,
 };
+use embedded_graphics_core::draw_target::DrawTarget;
 use embedded_graphics_core::Drawable;
-use embedded_graphics_core::{draw_target::DrawTarget};
 use embedded_text::TextBox;
 
 use crate::{
     block::Block,
     color::UiColor,
+    font::{Font, FontFamily, FontStyle},
 };
 
 pub trait Renderer {
@@ -65,7 +65,11 @@ pub trait Renderer {
     // High-level primitives //
     fn block(&mut self, block: Block<Self::Color>);
 
+    // Text //
+    fn default_font() -> Font;
     fn mono_text<'a>(&mut self, text: TextBox<'a, MonoTextStyle<'a, Self::Color>>);
+
+    // Images //
     fn image<'a>(&mut self, image: Image<'a, ImageRaw<'a, Self::Color>>)
     where
         RawDataSlice<'a, <Self::Color as PixelColor>::Raw, BigEndian>:
@@ -92,6 +96,13 @@ impl Renderer for NullRenderer {
 
     fn block(&mut self, _block: Block<Self::Color>) {}
 
+    fn default_font() -> Font {
+        Font {
+            family: crate::font::FontFamily::Mono,
+            size: crate::font::FontSize::Relative(1.0),
+            style: FontStyle::Normal,
+        }
+    }
     fn mono_text<'a>(&mut self, _text: TextBox<'a, MonoTextStyle<'a, Self::Color>>) {}
     fn image<'a>(&mut self, _image: Image<'a, ImageRaw<'a, Self::Color>>)
     where
@@ -150,6 +161,14 @@ where
             self,
         )
         .unwrap();
+    }
+
+    fn default_font() -> Font {
+        Font {
+            family: FontFamily::Mono,
+            size: crate::font::FontSize::Relative(1.0),
+            style: FontStyle::Normal,
+        }
     }
 
     fn mono_text(&mut self, text: TextBox<'_, MonoTextStyle<'_, Self::Color>>) {

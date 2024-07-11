@@ -294,6 +294,7 @@ where
         renderer: &mut R,
         styler: &S,
         layout: crate::layout::Layout,
+        viewport: &Viewport,
     ) {
         let state = state_tree.get::<KnobState>();
         let status = self.status(ctx, state);
@@ -305,7 +306,8 @@ where
 
         let center = bounds.center();
 
-        // TODO: Fix stroke drawing, offset by half of the stroke so it goes on outer bound of arc
+        // TODO: Fix stroke drawing, offset by half of the stroke so it goes on outer
+        // bound of arc
 
         // Center circle
         renderer.circle(
@@ -320,6 +322,7 @@ where
                 renderer,
                 styler,
                 layout.children().next().unwrap(),
+                viewport,
             );
         }
 

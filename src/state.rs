@@ -6,7 +6,8 @@ use core::{
 
 use crate::{event::Event, render::Renderer, widget::Widget};
 
-// TODO: Not just any, but specific "State" trait with Default, etc.??? Is it possible
+// TODO: Not just any, but specific "State" trait with Default, etc.??? Is it
+// possible
 
 pub enum State {
     None,

@@ -99,7 +99,8 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Linear<'a, Messa
     //     }
 
     //     let new_focused_child =
-    //         self.children.iter().filter_map(|child| child.id()).nth(new_focus_index as usize);
+    //         self.children.iter().filter_map(|child|
+    // child.id()).nth(new_focus_index as usize);
 
     //     if let Some(new_focused_child) = new_focused_child {
     //         FocusResult::Child(new_focused_child)
@@ -137,7 +138,7 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
         for (child, child_state) in self.children.iter_mut().zip(state.children.iter_mut()) {
             match child.on_event(ctx, event.clone(), child_state)? {
                 Propagate::Ignored => {},
-                bubbled @ Propagate::BubbleUp(_, _) => return bubbled.into(),
+                bubbled @ Propagate::BubbleUp(..) => return bubbled.into(),
             }
         }
 
@@ -175,12 +176,13 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
         renderer: &mut R,
         styler: &S,
         layout: crate::layout::Layout,
+        viewport: &Viewport,
     ) {
         // TODO: Draw only children inside viewport?
         for ((child, child_state), child_layout) in
             self.children.iter().zip(state.children.iter_mut()).zip(layout.children())
         {
-            child.draw(ctx, child_state, renderer, styler, child_layout);
+            child.draw(ctx, child_state, renderer, styler, child_layout, viewport);
         }
     }
 }

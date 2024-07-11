@@ -249,7 +249,8 @@ impl<'a> Layout<'a> {
             _ => max_anti,
         };
 
-        // Calculate non-auto-sized children (main axis length is not Length::Fill or Length::Div)
+        // Calculate non-auto-sized children (main axis length is not Length::Fill or
+        // Length::Div)
         for ((i, child), child_state) in
             children.iter().enumerate().zip(state_tree.children.iter_mut())
         {

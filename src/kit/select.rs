@@ -1,7 +1,4 @@
-use alloc::{
-    boxed::Box,
-    vec::{self, Vec},
-};
+use alloc::{boxed::Box, vec::Vec};
 use embedded_graphics::geometry::Point;
 
 use crate::{
@@ -40,7 +37,8 @@ pub enum SelectStatus {
     Focused,
 }
 
-// pub type SelectStyleFn<'a, C> = Box<dyn Fn(SelectStatus) -> SelectStyle<C> + 'a>;
+// pub type SelectStyleFn<'a, C> = Box<dyn Fn(SelectStatus) -> SelectStyle<C> +
+// 'a>;
 
 component_style! {
     pub SelectStyle: SelectStyler(SelectStatus) {
@@ -108,8 +106,8 @@ where
 //     T: IntoIterator<Item = El<'a, Message, R, E, S>>,
 // {
 //     fn from(value: T) -> Self {
-//         Self::new_inner(value.into_iter().enumerate().map(Into::into).collect())
-//     }
+//         Self::new_inner(value.into_iter().enumerate().map(Into::into).
+// collect())     }
 // }
 
 // impl<'a, Message, R, E, S, T, V> From<T> for Select<'a, Message, R, E, S, V>
@@ -245,8 +243,9 @@ where
 
     fn tree_ids(&self) -> Vec<crate::el::ElId> {
         vec![self.id]
-        // TODO: Maybe Select should hide ids of its children or we might fail on focusing them
-        // self.options.iter().map(|option| option.tree_ids()).flatten().collect()
+        // TODO: Maybe Select should hide ids of its children or we might fail
+        // on focusing them self.options.iter().map(|option|
+        // option.tree_ids()).flatten().collect()
     }
 
     fn size(&self) -> Size<Length> {
@@ -342,8 +341,8 @@ where
 
         //     // Reserve some space for arrows on the sides
         //     let shrink_by_arrows = limits.max_square() * 2;
-        //     self.options[self.chosen].layout(ctx, state, styler, &limits.shrink(shrink_by_arrows))
-        // })
+        //     self.options[self.chosen].layout(ctx, state, styler,
+        // &limits.shrink(shrink_by_arrows)) })
 
         let style = styler.style(&self.class, self.status(ctx, state));
 
@@ -378,6 +377,7 @@ where
         renderer: &mut R,
         styler: &S,
         layout: crate::layout::Layout,
+        viewport: &Viewport,
     ) {
         let bounds = layout.bounds();
         let icons_limits = Limits::new(Size::zero(), Size::new_equal(bounds.size.height));
@@ -404,6 +404,7 @@ where
                     bounds.position + Point::new(style.border.width as i32, icons_vertical_center),
                     &icons_node,
                 ),
+                viewport,
             );
         }
 
@@ -413,6 +414,7 @@ where
             renderer,
             styler,
             layout.children().next().unwrap(),
+            viewport,
         );
 
         if self.cycle || self.chosen != self.options.len() - 1 {
@@ -432,6 +434,7 @@ where
                         ),
                     &icons_node,
                 ),
+                viewport,
             );
         }
     }

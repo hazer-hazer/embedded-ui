@@ -226,6 +226,7 @@ where
         renderer: &mut R,
         styler: &S,
         layout: crate::layout::Layout,
+        viewport: &Viewport,
     ) {
         let style = styler.style(&self.class, self.status::<E>(ctx, state));
         let state = state.get::<CheckboxState>();
@@ -246,6 +247,7 @@ where
                 renderer,
                 styler,
                 layout.children().next().unwrap(),
+                viewport,
             )
         }
     }

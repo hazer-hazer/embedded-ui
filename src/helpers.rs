@@ -8,7 +8,7 @@ use crate::{
         checkbox::{Checkbox, CheckboxStyler},
         divider::Divider,
         knob::{Knob, KnobStyler, KnobValue},
-        select::{Select, SelectOption, SelectStyler},
+        select::{Select, SelectStyler},
         slider::{Slider, SliderPosition, SliderStyler},
         text::Text,
     },
