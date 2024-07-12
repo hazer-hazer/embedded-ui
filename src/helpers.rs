@@ -73,19 +73,18 @@ pub fn select_keyed<'a, Message: Clone, R: Renderer, E: Event, S: SelectStyler<R
 pub fn slider_v<'a, Message: Clone, R: Renderer, S: SliderStyler<R::Color>>(
     on_change: impl (Fn(SliderPosition) -> Message) + 'a,
 ) -> Slider<'a, Message, R, S> {
-    Slider::new(crate::align::Axis::Y, on_change)
+    Slider::new(crate::axis::Axis::Y, on_change)
 }
 
 pub fn slider_h<'a, Message: Clone, R: Renderer, S: SliderStyler<R::Color>>(
     on_change: impl (Fn(SliderPosition) -> Message) + 'a,
 ) -> Slider<'a, Message, R, S> {
-    Slider::new(crate::align::Axis::X, on_change)
+    Slider::new(crate::axis::Axis::X, on_change)
 }
 
-// pub fn knob<'a, Message: Clone, R: Renderer, E: Event, S: KnobStyler<R::Color>>(
-//     on_change: impl (Fn(u8) -> Message) + 'a,
-// ) -> Knob<'a, Message, R, E, S> {
-//     Knob::new(on_change)
+// pub fn knob<'a, Message: Clone, R: Renderer, E: Event, S:
+// KnobStyler<R::Color>>(     on_change: impl (Fn(u8) -> Message) + 'a,
+// ) -> Knob<'a, Message, R, E, S> { Knob::new(on_change)
 // }
 
 pub fn knob<'a, Message: Clone, R: Renderer, E: Event, S: KnobStyler<R::Color>>(

@@ -2,7 +2,8 @@ use alloc::vec::Vec;
 use embedded_graphics::geometry::Point;
 
 use crate::{
-    align::{Alignment, Axis},
+    align::Alignment,
+    axis::{Axial, Axis},
     el::El,
     event::Event,
     padding::Padding,
@@ -235,14 +236,14 @@ impl<'a> Layout<'a> {
             .limit_height(size.height)
             .shrink(padding);
         let total_gap = gap * children.len().saturating_sub(1) as u32;
-        let max_cross = axis.size_cross(limits.max());
+        let max_cross = limits.max().cross_for(axis);
 
         let mut layout_children = Vec::with_capacity(children.len());
         layout_children.resize(children.len(), LayoutNode::default());
 
         let mut total_main_divs = 0;
 
-        let mut free_main = axis.size_main(limits.max()).saturating_sub(total_gap);
+        let mut free_main = limits.max().main_for(axis).saturating_sub(total_gap);
         let mut free_cross = match axis {
             Axis::X if size.width == Length::Shrink => 0,
             Axis::Y if size.height == Length::Shrink => 0,
@@ -277,8 +278,8 @@ impl<'a> Layout<'a> {
                             child.layout(ctx, child_state, styler, &child_limits, viewport);
                         let size = layout.size();
 
-                        free_main -= axis.size_main(size);
-                        free_cross = free_cross.max(axis.size_cross(size));
+                        free_main -= size.main_for(axis);
+                        free_cross = free_cross.max(size.cross_for(axis));
 
                         layout_children[i] = layout;
                     } else {
@@ -328,8 +329,8 @@ impl<'a> Layout<'a> {
                     let min_main = 0;
 
                     let (min_width, min_height) = axis.canon(min_main, 0);
-                    let (max_width, max_height) =
-                        axis.canon(max_main, if fill_cross_div == 0 { max_cross } else { free_cross });
+                    let (max_width, max_height) = axis
+                        .canon(max_main, if fill_cross_div == 0 { max_cross } else { free_cross });
 
                     let child_limits = Limits::new(
                         Size::new(min_width, min_height),
@@ -337,7 +338,7 @@ impl<'a> Layout<'a> {
                     );
 
                     let layout = child.layout(ctx, child_state, styler, &child_limits, viewport);
-                    free_cross = free_cross.max(axis.size_cross(layout.size()));
+                    free_cross = free_cross.max(layout.size().cross_for(axis));
                     layout_children[i] = layout;
                 }
             }
@@ -362,7 +363,7 @@ impl<'a> Layout<'a> {
 
                 let size = node.size();
 
-                main_offset += axis.size_main(size);
+                main_offset += size.main_for(axis);
             }
         }
 

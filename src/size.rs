@@ -2,7 +2,7 @@ use core::ops::{Add, Div, Sub};
 
 use embedded_graphics::{geometry::Point, primitives::Rectangle, transform::Transform};
 
-use crate::align::Axis;
+use crate::axis::Axis;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "defmt", derive(::defmt::Format))]

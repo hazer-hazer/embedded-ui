@@ -2,7 +2,7 @@ use core::ops::{Add, Sub};
 
 use embedded_graphics::geometry::Point;
 
-use crate::{align::Axis, size::Size};
+use crate::{axis::Axis, size::Size};
 
 #[derive(Clone, Copy, Default)]
 pub struct Padding {

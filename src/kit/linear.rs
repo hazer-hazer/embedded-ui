@@ -3,7 +3,8 @@ use core::marker::PhantomData;
 use alloc::vec::Vec;
 
 use crate::{
-    align::{Alignment, Axis},
+    align::Alignment,
+    axis::Axis,
     el::{El, ElId},
     event::{Event, EventResponse, Propagate},
     layout::{Layout, Viewport},

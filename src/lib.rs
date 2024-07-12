@@ -23,6 +23,7 @@ pub mod style;
 pub mod ui;
 pub mod value;
 pub mod widget;
+pub mod axis;
 
 // TODO: Feature to switch to fixed-sized heapless
 #[macro_use]
