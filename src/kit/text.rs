@@ -11,9 +11,12 @@ use crate::{
     event::Event,
     font::{Font, FontSize},
     layout::{Layout, Viewport},
+    palette::PaletteColor,
     render::Renderer,
     size::{Length, Size},
     state::StateNode,
+    style::component_style,
+    theme::Theme,
     ui::UiCtx,
     value::Value,
     widget::Widget,
@@ -52,10 +55,28 @@ impl From<f32> for LineHeight {
     }
 }
 
-pub struct Text<'a, T, R>
+#[derive(Clone, Copy)]
+pub enum TextStatus {
+    Normal,
+}
+
+pub fn default<C: PaletteColor>(theme: &Theme<C>, _status: TextStatus) -> TextStyle<C> {
+    let palette = theme.palette();
+    TextStyle { background: palette.background, text_color: palette.foreground }
+}
+
+component_style! {
+    pub TextStyle: TextStyler(TextStatus) default {default} {
+        background: background,
+        text_color: color,
+    }
+}
+
+pub struct Text<'a, T, R, S>
 where
     R: Renderer,
     T: Display,
+    S: TextStyler<R::Color>,
 {
     content: Value<T>,
     marker: PhantomData<&'a str>,
@@ -63,8 +84,9 @@ where
     align: HorizontalAlign,
     vertical_align: VerticalAlign,
     line_height: LineHeight,
-    text_color: R::Color,
     font: Font,
+
+    class: S::Class<'a>,
 
     font_size: FontSize,
 
@@ -72,25 +94,25 @@ where
     size: Size<Length>,
 }
 
-impl<'a, T: Display, R: Renderer> Text<'a, T, R> {
+impl<'a, T, R, S> Text<'a, T, R, S>
+where
+    T: Display,
+    R: Renderer,
+    S: TextStyler<R::Color>,
+{
     pub fn new(content: Value<T>) -> Self {
         Self {
             content,
             marker: PhantomData,
-            text_color: R::Color::default_foreground(),
             line_height: LineHeight::default(),
             align: HorizontalAlign::Center,
             vertical_align: VerticalAlign::Center,
             font: R::default_font(),
+            class: S::default(),
             font_size: FontSize::Relative(1.0),
             // TODO: Should be computed by text size?
             size: Size::fill(),
         }
-    }
-
-    pub fn text_color(mut self, text_color: R::Color) -> Self {
-        self.text_color = text_color;
-        self
     }
 
     pub fn align(mut self, align: HorizontalAlign) -> Self {
@@ -118,10 +140,11 @@ impl<'a, T: Display, R: Renderer> Text<'a, T, R> {
     }
 }
 
-impl<'a, T, Message, R, E: Event, S> Widget<Message, R, E, S> for Text<'a, T, R>
+impl<'a, T, Message, R, E: Event, S> Widget<Message, R, E, S> for Text<'a, T, R, S>
 where
     T: Display,
     R: Renderer,
+    S: TextStyler<R::Color>,
 {
     fn id(&self) -> Option<crate::el::ElId> {
         None
@@ -155,15 +178,27 @@ where
         _ctx: &mut UiCtx<Message>,
         _state_tree: &mut StateNode,
         renderer: &mut R,
-        _styler: &S,
+        styler: &S,
         layout: Layout,
         viewport: &Viewport,
     ) {
+        let style = styler.style(&self.class, TextStatus::Normal);
+
         let real_font = self.font.to_real(viewport);
+        let mono_text_style = {
+            let base = MonoTextStyleBuilder::new()
+                .font(&real_font.font())
+                .text_color(style.text_color)
+                // .background_color(style.background)
+                .build();
+
+            base
+        };
+
         renderer.mono_text(TextBox::with_textbox_style(
             &self.content.get().to_string(),
             layout.bounds().into(),
-            MonoTextStyleBuilder::new().font(&real_font.font()).text_color(self.text_color).build(),
+            mono_text_style,
             TextBoxStyleBuilder::new()
                 .alignment(self.align.into())
                 .vertical_alignment(self.vertical_align.into())
@@ -173,10 +208,11 @@ where
     }
 }
 
-impl<'a, T, R> From<Value<T>> for Text<'a, T, R>
+impl<'a, T, R, S> From<Value<T>> for Text<'a, T, R, S>
 where
     T: Display + 'a,
     R: Renderer,
+    S: TextStyler<R::Color>,
 {
     fn from(value: Value<T>) -> Self {
         Text::new(value)
@@ -189,10 +225,11 @@ where
 //     }
 // }
 
-impl<'a, T, R: Renderer> From<T> for Text<'a, T, R>
+impl<'a, T, R: Renderer, S> From<T> for Text<'a, T, R, S>
 where
-    R: Renderer,
     T: Display + 'a,
+    R: Renderer,
+    S: TextStyler<R::Color>,
 {
     fn from(value: T) -> Self {
         Text::new(Value::new(value))
@@ -204,7 +241,7 @@ where
     Message: 'a,
     R: Renderer + 'a,
     E: Event + 'a,
-    S: 'a,
+    S: TextStyler<R::Color> + 'a,
 {
     fn from(value: &'a str) -> Self {
         Text::new(Value::new(value)).into()
@@ -216,22 +253,22 @@ where
     Message: 'a,
     R: Renderer + 'a,
     E: Event + 'a,
-    S: 'a,
+    S: TextStyler<R::Color> + 'a,
 {
     fn from(value: alloc::string::String) -> Self {
         Text::new(Value::new(value)).into()
     }
 }
 
-impl<'a, T, Message, R, E, S> From<Text<'a, T, R>> for El<'a, Message, R, E, S>
+impl<'a, T, Message, R, E, S> From<Text<'a, T, R, S>> for El<'a, Message, R, E, S>
 where
     T: Display + 'a,
     Message: 'a,
     R: Renderer + 'a,
     E: Event + 'a,
-    S: 'a,
+    S: TextStyler<R::Color> + 'a,
 {
-    fn from(value: Text<'a, T, R>) -> Self {
+    fn from(value: Text<'a, T, R, S>) -> Self {
         Self::new(value)
     }
 }

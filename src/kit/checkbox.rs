@@ -2,15 +2,18 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use embedded_graphics::primitives::Rectangle;
 
+use crate::color::UiColor;
 use crate::el::{El, ElId};
 use crate::event::{Capture, CommonEvent, Event, Propagate};
 use crate::icons::IconKind;
 use crate::layout::{Layout, Viewport};
 use crate::padding::Padding;
+use crate::palette::PaletteColor;
 use crate::render::Renderer;
 use crate::size::{Length, Size};
 use crate::state::{State, StateNode, StateTag};
 use crate::style::component_style;
+use crate::theme::Theme;
 use crate::ui::UiCtx;
 use crate::widget::Widget;
 
@@ -46,9 +49,23 @@ pub enum CheckboxStatus {
 }
 
 component_style! {
-    pub CheckboxStyle: CheckboxStyler(CheckboxStatus) {
+    pub CheckboxStyle: CheckboxStyler(CheckboxStatus) default {primary} {
         background: background,
         border: border,
+    }
+}
+
+pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: CheckboxStatus) -> CheckboxStyle<C> {
+    let palette = theme.palette();
+    let base = CheckboxStyle::new(&palette)
+        .background(palette.background)
+        .border_color(palette.foreground);
+
+    match status {
+        CheckboxStatus::Normal => base.border_width(1).border_radius(0),
+        CheckboxStatus::Pressed => base.border_width(2).border_radius(5),
+        CheckboxStatus::Focused => base.border_width(1).border_radius(3),
+        CheckboxStatus::Checked => base.border_width(1).border_radius(0),
     }
 }
 

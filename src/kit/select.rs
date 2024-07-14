@@ -3,15 +3,18 @@ use embedded_graphics::geometry::Point;
 
 use crate::{
     block::Block,
+    color::UiColor,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
     icons::IconKind,
     layout::{Layout, LayoutNode, Limits, Viewport},
     padding::Padding,
+    palette::PaletteColor,
     render::Renderer,
     size::{Length, Size},
     state::{State, StateNode, StateTag},
     style::component_style,
+    theme::Theme,
     ui::UiCtx,
     widget::Widget,
 };
@@ -41,9 +44,23 @@ pub enum SelectStatus {
 // 'a>;
 
 component_style! {
-    pub SelectStyle: SelectStyler(SelectStatus) {
+    pub SelectStyle: SelectStyler(SelectStatus) default {primary} {
         background: background,
         border: border,
+    }
+}
+
+pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: SelectStatus) -> SelectStyle<C> {
+    let palette = theme.palette();
+    let base =
+        SelectStyle::new(&palette).background(palette.background).border_color(palette.background);
+
+    match status {
+        SelectStatus::Normal => base.border_width(1).border_radius(0),
+        SelectStatus::Pressed | SelectStatus::Focused => {
+            base.border_color(palette.primary).border_width(1).border_radius(0)
+        },
+        SelectStatus::Active => base.border_color(palette.primary).border_width(1).border_radius(5),
     }
 }
 

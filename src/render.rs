@@ -23,7 +23,7 @@ pub trait Renderer {
     type Color: UiColor + Copy;
 
     // Renderer info
-    fn clear(&mut self);
+    fn clear(&mut self, color: Self::Color);
 
     fn z_index(&self) -> i32 {
         0
@@ -87,7 +87,7 @@ pub struct NullRenderer;
 impl Renderer for NullRenderer {
     type Color = BinaryColor;
 
-    fn clear(&mut self) {}
+    fn clear(&mut self, _color: Self::Color) {}
 
     fn pixel(&mut self, _point: Point, _color: Self::Color) {}
     fn line(&mut self, _from: Point, _to: Point, _color: Self::Color, _width: u32) {}
@@ -119,8 +119,8 @@ where
 {
     type Color = C;
 
-    fn clear(&mut self) {
-        self.clear(Self::Color::default_background()).unwrap()
+    fn clear(&mut self, color: Self::Color) {
+        self.clear(color).unwrap()
     }
 
     fn pixel(&mut self, point: Point, color: Self::Color) {
@@ -150,7 +150,7 @@ where
     {
         RoundedRectangle::new(
             block.rect,
-            block.border.radius.resolve_for_size(block.rect.size.into()).into(),
+            block.border.radius.into_corner_radii(block.rect.size.into()),
         )
         .draw_styled(
             &PrimitiveStyleBuilder::new()

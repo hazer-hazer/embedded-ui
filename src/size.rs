@@ -1,4 +1,4 @@
-use core::ops::{Add, Div, Sub};
+use core::ops::{Add, Div, Mul, Sub};
 
 use embedded_graphics::{geometry::Point, primitives::Rectangle, transform::Transform};
 
@@ -146,6 +146,22 @@ impl Div<u32> for Size<u32> {
 
     fn div(self, rhs: u32) -> Self::Output {
         Self::new(self.width / rhs, self.height / rhs)
+    }
+}
+
+impl Mul<f32> for Size<u32> {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self::new((self.width as f32 * rhs) as u32, (self.height as f32 * rhs) as u32)
+    }
+}
+
+impl Mul<Size<f32>> for Size<u32> {
+    type Output = Self;
+
+    fn mul(self, rhs: Size<f32>) -> Self::Output {
+        Self::new((self.width as f32 * rhs.width) as u32, (self.height as f32 * rhs.height) as u32)
     }
 }
 

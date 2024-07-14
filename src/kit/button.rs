@@ -1,14 +1,17 @@
 use crate::{
     align::Alignment,
     block::Block,
+    color::UiColor,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, EventResponse, Propagate},
     layout::{Layout, Viewport},
     padding::Padding,
+    palette::PaletteColor,
     render::Renderer,
     size::{Length, Size},
     state::{self, StateNode, StateTag},
     style::component_style,
+    theme::Theme,
     ui::UiCtx,
     widget::Widget,
 };
@@ -37,9 +40,23 @@ pub enum ButtonStatus {
 // 'a>;
 
 component_style! {
-    pub ButtonStyle: ButtonStyler(ButtonStatus) {
+    pub ButtonStyle: ButtonStyler(ButtonStatus) default {primary} {
         background: background,
         border: border,
+    }
+}
+
+pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: ButtonStatus) -> ButtonStyle<C> {
+    let palette = theme.palette();
+    let base = ButtonStyle::new(&palette)
+        .background(palette.primary)
+        .border_color(palette.selection_background)
+        .border_width(0);
+
+    match status {
+        crate::kit::button::ButtonStatus::Normal => base.border_radius(2),
+        crate::kit::button::ButtonStatus::Focused => base.border_width(1).border_radius(5),
+        crate::kit::button::ButtonStatus::Pressed => base.border_width(2).border_radius(7),
     }
 }
 

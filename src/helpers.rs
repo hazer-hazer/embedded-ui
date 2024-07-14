@@ -10,7 +10,7 @@ use crate::{
         knob::{Knob, KnobStyler, KnobValue},
         select::{Select, SelectStyler},
         slider::{Slider, SliderPosition, SliderStyler},
-        text::Text,
+        text::{Text, TextStyler},
     },
     render::Renderer,
     value::Value,
@@ -22,7 +22,9 @@ pub fn button<'a, Message: Clone, R: Renderer, E: Event, S: ButtonStyler<R::Colo
     Button::new(content)
 }
 
-pub fn text<'a, T: Display, R: Renderer>(content: impl Into<Text<'a, T, R>>) -> Text<'a, T, R> {
+pub fn text<'a, T: Display, R: Renderer, S: TextStyler<R::Color>>(
+    content: impl Into<Text<'a, T, R, S>>,
+) -> Text<'a, T, R, S> {
     content.into()
 }
 

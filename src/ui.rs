@@ -1,14 +1,16 @@
 use alloc::collections::VecDeque;
-use embedded_graphics::pixelcolor::BinaryColor;
+use embedded_graphics::pixelcolor::{BinaryColor, Rgb555, Rgb565, Rgb666, Rgb888};
 
 use crate::{
     el::{El, ElId},
     event::{Event, EventStub, Propagate},
     layout::{Layout, LayoutNode, Limits, Viewport},
+    palette::PaletteColor,
     render::Renderer,
     size::Size,
     state::StateNode,
-    style::{monochrome::Monochrome, Styler},
+    style::Styler,
+    theme::Theme,
     widget::Widget,
 };
 
@@ -46,7 +48,13 @@ impl<Message> UiCtx<Message> {
     }
 }
 
-pub struct UI<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> {
+pub struct UI<
+    'a,
+    Message,
+    R: Renderer,
+    E: Event,
+    S: Styler<R::Color> = Theme<<R as Renderer>::Color>,
+> {
     root: El<'a, Message, R, E, S>,
     root_node: LayoutNode,
     viewport_size: Size,
@@ -143,7 +151,7 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
     pub fn draw(&mut self, renderer: &mut R) {
         // FIXME: Performance?
         // TODO: Maybe should clear only root bounds
-        renderer.clear();
+        renderer.clear(self.styler.background());
 
         self.root.draw(
             &mut self.ctx,
@@ -170,12 +178,36 @@ impl<'a, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, (), R, E, S> {
     }
 }
 
-impl<'a, Message, R, E> UI<'a, Message, R, E, Monochrome>
+impl<'a, Message, R: Renderer, E: Event> UI<'a, Message, R, E, Theme<R::Color>>
 where
-    R: Renderer<Color = BinaryColor>,
-    E: Event,
+    <R as Renderer>::Color: PaletteColor + 'static,
 {
-    pub fn monochrome(self) -> Self {
+    pub fn theme(mut self, theme: Theme<R::Color>) -> Self {
+        self.styler = theme;
         self
     }
+}
+
+macro_rules! renderer_colors {
+    ($($method:ident : $color_ty:ty),*) => {
+        $(
+            impl<'a, Message, R, E> UI<'a, Message, R, E>
+            where
+                R: Renderer<Color = $color_ty>,
+                E: Event,
+            {
+                pub fn $method(self) -> Self {
+                    self
+                }
+            }
+        )*
+    };
+}
+
+renderer_colors! {
+    monochrome: BinaryColor,
+    rgb555: Rgb555,
+    rgb565: Rgb565,
+    rgb666: Rgb666,
+    rgb888: Rgb888
 }

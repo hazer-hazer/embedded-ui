@@ -1,5 +1,3 @@
-pub mod monochrome;
-
 use crate::{
     color::UiColor,
     kit::{button::ButtonStyler, select::SelectStyler, slider::SliderStyler},
@@ -8,13 +6,14 @@ use crate::{
 pub trait Styler<C: UiColor>:
     ButtonStyler<C> + SelectStyler<C> + SliderStyler<C> + Default
 {
+    fn background(&self) -> C;
 }
 
 /**
  *
  */
 macro_rules! component_style {
-    ($vis: vis $name: ident $(: $styler: ident ($status: ty))? {
+    ($vis: vis $name: ident $(: $styler: ident ($status: ty) default {$default: expr})? {
         $($prop: ident: $prop_kind: ident $({
             $($method: ident: $method_kind: ident),* $(,)?
         })?),* $(,)?
@@ -26,6 +25,18 @@ macro_rules! component_style {
                 fn default<'a>() -> Self::Class<'a>;
                 fn style(&self, class: &Self::Class<'_>, status: $status) -> $name<C>;
             }
+
+            impl<C: crate::palette::PaletteColor + 'static> $styler<C> for crate::theme::Theme<C> {
+                type Class<'a> = alloc::boxed::Box<dyn Fn(&crate::theme::Theme<C>, $status) -> $name<C> + 'a>;
+
+                fn default<'a>() -> Self::Class<'a> {
+                    alloc::boxed::Box::new($default)
+                }
+
+                fn style(&self, class: &Self::Class<'_>, status: $status) -> $name<C> {
+                    class(self, status)
+                }
+            }
         )?
 
         $vis struct $name<C: $crate::color::UiColor> {
@@ -33,9 +44,9 @@ macro_rules! component_style {
         }
 
         impl<C: $crate::color::UiColor> $name<C> {
-            pub fn new() -> Self {
+            pub fn new(palette: &$crate::palette::Palette<C>) -> Self {
                 Self {
-                    $($prop: $crate::style::component_style!(@init $prop_kind)),*
+                    $($prop: $crate::style::component_style!(@init $prop_kind palette)),*
                 }
             }
 
@@ -62,19 +73,19 @@ macro_rules! component_style {
     };
 
     // Constructor //
-    (@init background) => {
-        C::default_background()
+    (@init background $palette: ident) => {
+        $palette.background
     };
 
-    (@init border) => {
+    (@init border $palette: ident) => {
         $crate::block::Border::new()
     };
 
-    (@init color) => {
-        C::default_foreground()
+    (@init color $palette: ident) => {
+        $palette.foreground
     };
 
-    (@init width) => {
+    (@init width $palette: ident) => {
         // TODO: Defaults
         1
     };

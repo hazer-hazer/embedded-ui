@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, vec::Vec};
-use embedded_graphics::{geometry::Point, primitives::Rectangle};
+use embedded_graphics::primitives::Rectangle;
 
 use crate::{
     axis::{Axial, Axis},
@@ -8,10 +8,12 @@ use crate::{
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
     layout::{Layout, Viewport},
+    palette::PaletteColor,
     render::Renderer,
     size::{Length, Size},
     state::{State, StateNode, StateTag},
     style::component_style,
+    theme::Theme,
     ui::UiCtx,
     widget::Widget,
 };
@@ -37,9 +39,26 @@ pub enum SliderStatus {
 }
 
 component_style! {
-    pub SliderStyle: SliderStyler(SliderStatus) {
+    pub SliderStyle: SliderStyler(SliderStatus) default {primary} {
         background: background,
         border: border,
+    }
+}
+
+pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: SliderStatus) -> SliderStyle<C> {
+    let palette = theme.palette();
+    let base =
+        SliderStyle::new(&palette).background(palette.background).border_color(palette.background);
+
+    match status {
+        SliderStatus::Normal => base.border_width(1).border_radius(0),
+        SliderStatus::Focused => {
+            base.border_color(palette.primary).border_width(1).border_radius(5)
+        },
+        SliderStatus::Active => base.border_width(1).border_radius(0),
+        SliderStatus::Pressed => {
+            base.border_color(palette.primary).border_width(2).border_radius(5)
+        },
     }
 }
 

@@ -43,8 +43,8 @@ where
 {
     type Color = C;
 
-    fn clear(&mut self) {
-        Renderer::clear(self.layer());
+    fn clear(&mut self, color: Self::Color) {
+        Renderer::clear(self.layer(), color);
     }
 
     fn with_z_index(&mut self, z_index: i32, draw: impl Fn(&mut Self)) {

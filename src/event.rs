@@ -101,24 +101,6 @@ impl From<CommonEvent> for EventStub {
     }
 }
 
-// pub struct EventHandler<E: Event, H: FnOnce(E) -> EventResponse> {
-//     handler: H,
-//     // TODO: Can I get rid of this marker?
-//     marker: PhantomData<E>,
-// }
-
-// impl<E: Event, H> From<H> for EventHandler<E, H>
-// where
-//     H: FnOnce(E) -> EventResponse,
-// {
-//     fn from(value: H) -> Self {
-//         EventHandler {
-//             handler: value,
-//             marker: PhantomData,
-//         }
-//     }
-// }
-
 pub trait Controls<E: Event> {
     // TODO: Pass state to event collector of platform. Is should include:
     //  - Focus target (widget id). For example, encoder click in common case is FocusClick, but on other page its logic differs

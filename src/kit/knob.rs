@@ -5,14 +5,17 @@ use embedded_graphics::{
 };
 
 use crate::{
+    color::UiColor,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
     layout::{Layout, LayoutNode, Viewport},
     padding::Padding,
+    palette::PaletteColor,
     render::Renderer,
     size::{Length, Size},
     state::{State, StateTag},
     style::component_style,
+    theme::Theme,
     ui::UiCtx,
     value::Value,
     widget::Widget,
@@ -43,12 +46,27 @@ pub enum KnobStatus {
 // - Color of track (not filled track)
 // - Center color instead of background
 component_style! {
-    pub KnobStyle: KnobStyler(KnobStatus) {
+    pub KnobStyle: KnobStyler(KnobStatus) default {primary} {
         // background: background,
         center_color: color,
         color: color,
         track_color: color,
         track_width: width,
+    }
+}
+
+pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: KnobStatus) -> KnobStyle<C> {
+    let palette = theme.palette();
+    let base = KnobStyle::new(&palette)
+        .center_color(palette.background)
+        .color(palette.primary)
+        .track_color(palette.background);
+
+    match status {
+        KnobStatus::Normal => base.track_width(3),
+        KnobStatus::Focused => base.track_width(4),
+        KnobStatus::Pressed => base.track_width(3),
+        KnobStatus::Active => base.track_width(3),
     }
 }
 

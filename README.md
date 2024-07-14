@@ -175,6 +175,7 @@ I see it's better to just walk through this checklist for `YourComponent` (requi
   - Date/time picker
   - Dropdown
   - Tree (tree structure representation)
+  - Roller (see [LVGL widget](https://docs.lvgl.io/master/widgets/roller.html))
 - Complex special effects:
   - Image in background, border, etc.
   - Shadow (yeah, what about shadows on 128x32 monochrome display lol?)

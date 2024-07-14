@@ -1,8 +1,12 @@
-use std::process::exit;
+use std::{process::exit, thread, time::Duration};
 
 use embedded_graphics::{
-    geometry::{Dimensions, Size},
-    pixelcolor::BinaryColor,
+    geometry::{Dimensions, Point, Size},
+    pixelcolor::{Rgb888, RgbColor},
+    primitives::{
+        CornerRadii, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, RoundedRectangle,
+        StyledDrawable,
+    },
 };
 use embedded_graphics_simulator::{
     sdl2::{self, Keycode, MouseButton},
@@ -14,7 +18,10 @@ use embedded_ui::{
     event::CommonEvent,
     helpers::{button, select, text},
     kit::knob::Knob,
+    render::Renderer,
     row,
+    size::Length,
+    theme::Theme,
     ui::UI,
     value::Value,
 };
@@ -130,15 +137,11 @@ enum Message {
 }
 
 fn main() {
-    let output_settings = OutputSettingsBuilder::new()
-        .theme(embedded_graphics_simulator::BinaryColorTheme::OledWhite)
-        .pixel_spacing(0)
-        .scale(4)
-        .build();
+    let output_settings = OutputSettingsBuilder::new().scale(2).build();
 
     let mut window = Window::new("TEST", &output_settings);
 
-    let mut display = SimulatorDisplay::<BinaryColor>::new(Size::new(128, 64));
+    let mut display = SimulatorDisplay::<Rgb888>::new(Size::new(480, 270));
 
     // I don't certainly know why, but display must be drawn at least once before
     // event fetching. Otherwise SDL2 will panic :(
@@ -147,7 +150,7 @@ fn main() {
     let knob_value = Value::dynamic(0u8);
 
     let col = row![
-        col![text("OSC1"), button("TYPE"), button("SYNC"), button("EDIT")],
+        col![text("OSC1"), button("TYPE"), button("SYNC"), button("EDIT")].gap(1),
         // col![text("OSC2"), button("TYPE"), button("SYNC"), button("EDIT")],
         // col![text("OSC3"), header_line, button("TYPE"), button("SYNC"), button("EDIT")],
         // col![
@@ -184,7 +187,7 @@ fn main() {
         col![Knob::new(knob_value.clone()), text(knob_value.clone())]
     ];
 
-    let mut ui = UI::new(col, display.bounding_box().size.into()).monochrome();
+    let mut ui = UI::new(col, display.bounding_box().size.into()).rgb888().theme(Theme::AyuLight);
 
     ui.auto_focus();
 
@@ -200,6 +203,25 @@ fn main() {
         }
 
         ui.draw(&mut display);
+
+        // display
+        //     .bounding_box()
+        //     .draw_styled(&PrimitiveStyle::with_fill(Rgb888::WHITE), &mut display)
+        //     .unwrap();
+        // RoundedRectangle::new(
+        //     Rectangle::new(Point::new(300, 50), Size::new(100, 50)),
+        //     CornerRadii::new(Size::new_equal(5)),
+        // )
+        // .draw_styled(
+        //     &PrimitiveStyleBuilder::new()
+        //         .stroke_color(RgbColor::BLACK)
+        //         .stroke_width(1)
+        //         .fill_color(Rgb888::BLACK)
+        //         .build(),
+        //     &mut display,
+        // )
+        // .unwrap();
+
         window.update(&display);
     }
 }
