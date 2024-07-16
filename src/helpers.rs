@@ -1,15 +1,17 @@
 use core::fmt::Display;
 
 use crate::{
+    axis::Axis,
     el::El,
     event::Event,
     kit::{
+        bar::{Bar, BarStyler},
         button::{Button, ButtonStyler},
         checkbox::{Checkbox, CheckboxStyler},
         divider::Divider,
         icon::IconStyler,
         knob::{Knob, KnobStyler, KnobValue},
-        select::{Select, SelectStyler},
+        select::{Select, SelectOption, SelectStyler},
         slider::{Slider, SliderPosition, SliderStyler},
         text::{Text, TextStyler},
     },
@@ -65,22 +67,48 @@ where
     Checkbox::new(on_change)
 }
 
-pub fn select<'a, Message: Clone, R: Renderer, E: Event, S>(
-    options: impl IntoIterator<Item = impl Into<El<'a, Message, R, E, S>>>,
-) -> Select<'a, Message, R, E, S, usize>
+pub fn select_h<
+    'a,
+    Message: Clone,
+    R: Renderer,
+    E: Event,
+    S,
+    O: SelectOption<'a, Message, R, E, S>,
+>(
+    options: impl Iterator<Item = O>,
+) -> Select<'a, Message, R, E, S, O>
 where
     S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
 {
-    Select::new(options.into_iter().map(Into::into).enumerate())
+    Select::horizontal(options)
 }
 
-pub fn select_keyed<'a, Message: Clone, R: Renderer, E: Event, S, V>(
+pub fn select_v<'a, Message: Clone, R: Renderer, E: Event, S, O>(
+    options: impl Iterator<Item = O>,
+) -> Select<'a, Message, R, E, S, O>
+where
+    S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
+    O: SelectOption<'a, Message, R, E, S>,
+{
+    Select::vertical(options)
+}
+
+pub fn select_h_keyed<'a, Message: Clone, R: Renderer, E: Event, S, V>(
+    options: impl Iterator<Item = (V, )>,
+) -> Select<'a, Message, R, E, S, (V, El<'a, Message, R, E, S>)>
+where
+    S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
+{
+    Select::horizontal(options.into_iter().map(|(value, el)| (value, el.into())))
+}
+
+pub fn select_v_keyed<'a, Message: Clone, R: Renderer, E: Event, S, V>(
     options: impl IntoIterator<Item = (V, impl Into<El<'a, Message, R, E, S>>)>,
 ) -> Select<'a, Message, R, E, S, V>
 where
     S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
 {
-    Select::new(options.into_iter().map(|(value, el)| (value, el.into())))
+    Select::vertical(options.into_iter().map(|(value, el)| (value, el.into())))
 }
 
 pub fn slider_v<'a, Message: Clone, R: Renderer, S: SliderStyler<R::Color>>(
@@ -104,4 +132,12 @@ pub fn knob<'a, Message: Clone, R: Renderer, E: Event, S: KnobStyler<R::Color>>(
     value: impl Into<Value<KnobValue>>,
 ) -> Knob<'a, Message, R, E, S> {
     Knob::new(value.into())
+}
+
+pub fn bar_h<'a, R: Renderer, S: BarStyler<R::Color>>() -> Bar<'a, R, S> {
+    Bar::horizontal()
+}
+
+pub fn bar_v<'a, R: Renderer, S: BarStyler<R::Color>>() -> Bar<'a, R, S> {
+    Bar::vertical()
 }

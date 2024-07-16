@@ -1,7 +1,8 @@
 use alloc::{boxed::Box, vec::Vec};
-use embedded_graphics::geometry::Point;
+use embedded_graphics::{geometry::Point, primitives::Rectangle};
 
 use crate::{
+    axis::{Axial, Axis},
     block::Block,
     color::UiColor,
     el::{El, ElId},
@@ -20,7 +21,10 @@ use crate::{
     widget::Widget,
 };
 
-use super::icon::{Icon, IconStyler};
+use super::{
+    icon::{Icon, IconStyler},
+    text::{Text, TextStyler},
+};
 
 pub struct SelectState {
     is_pressed: bool,
@@ -47,13 +51,22 @@ component_style! {
     pub SelectStyle: SelectStyler(SelectStatus) default {primary} {
         background: background,
         border: border,
+        selected_background: background,
+        selected_border: border {
+            selected_border_color: border_color,
+            selected_border_width: border_width,
+            selected_border_radius: border_radius,
+        },
     }
 }
 
 pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: SelectStatus) -> SelectStyle<C> {
     let palette = theme.palette();
-    let base =
-        SelectStyle::new(&palette).background(palette.background).border_color(palette.background);
+    let base = SelectStyle::new(&palette)
+        .background(palette.background)
+        .border_color(palette.background)
+        .selected_background(palette.primary)
+        .selected_border_width(0);
 
     match status {
         SelectStatus { pressed: true, active: _, focused: _ } => {
@@ -69,124 +82,127 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: SelectStatus) -> Selec
     }
 }
 
-pub struct SelectOption<'a, Message, R, E, S, V>
+// pub struct SelectOption<'a, Message, R, E, S, V>
+// where
+//     R: Renderer,
+//     E: Event,
+//     S: SelectStyler<R::Color>,
+// {
+//     value: V,
+//     el: El<'a, Message, R, E, S>,
+// }
+
+// impl<'a, Message, R, E, S, V> SelectOption<'a, Message, R, E, S, V>
+// where
+//     R: Renderer,
+//     E: Event,
+//     S: SelectStyler<R::Color>,
+// {
+//     fn new(value: V, el: El<'a, Message, R, E, S>) -> Self {
+//         Self { value, el }
+//     }
+
+//     fn el(&self) -> &El<'a, Message, R, E, S> {
+//         &self.el
+//     }
+// }
+
+// impl<'a, Message, R, E, S, V, T> From<T> for SelectOption<'a, Message, R, E,
+// S, V> where
+//     R: Renderer,
+//     E: Event,
+//     S: SelectStyler<R::Color>,
+//     T: Into<(V, El<'a, Message, R, E, S>)>,
+// {
+//     fn from(value: T) -> Self {
+//         let (value, el) = value.into();
+//         Self::new(value, el)
+//     }
+// }
+
+pub trait SelectOption<'a, Message, R, E, S>
 where
     R: Renderer,
     E: Event,
-    S: SelectStyler<R::Color>,
 {
-    value: V,
-    el: El<'a, Message, R, E, S>,
+    type Value: Copy;
+
+    fn into_el(self) -> El<'a, Message, R, E, S>;
+    fn value(&self) -> Self::Value;
 }
 
-impl<'a, Message, R, E, S, V> SelectOption<'a, Message, R, E, S, V>
+impl<'a, Message, R, E, S, V: Copy> SelectOption<'a, Message, R, E, S> for (V, &'a str)
 where
-    R: Renderer,
-    E: Event,
-    S: SelectStyler<R::Color>,
+    Message: 'a,
+    R: Renderer + 'a,
+    E: Event + 'a,
+    S: TextStyler<R::Color> + 'a,
 {
-    pub fn new(value: V, el: El<'a, Message, R, E, S>) -> Self {
-        Self { value, el }
+    type Value = V;
+
+    fn into_el(self) -> El<'a, Message, R, E, S> {
+        self.1.into()
+    }
+
+    fn value(&self) -> Self::Value {
+        self.0
     }
 }
 
-impl<'a, Message, R, E, S, V, T> From<T> for SelectOption<'a, Message, R, E, S, V>
+pub struct Select<'a, Message, R, E, S, O>
 where
     R: Renderer,
     E: Event,
     S: SelectStyler<R::Color>,
-    T: Into<(V, El<'a, Message, R, E, S>)>,
-{
-    fn from(value: T) -> Self {
-        let (value, el) = value.into();
-        Self::new(value, el)
-    }
-}
-
-pub struct Select<'a, Message, R, E, S, V>
-where
-    R: Renderer,
-    E: Event,
-    S: SelectStyler<R::Color>,
+    O: SelectOption<'a, Message, R, E, S>,
 {
     id: ElId,
     size: Size<Length>,
-    icon_left: IconKind,
-    icon_right: IconKind,
-    options: Vec<SelectOption<'a, Message, R, E, S, V>>,
+    icon_prev: IconKind,
+    icon_next: IconKind,
+    option_els: Vec<El<'a, Message, R, E, S>>,
+    option_values: Vec<O::Value>,
     chosen: usize,
-    on_change: Option<Box<dyn Fn(&V) -> Message + 'a>>,
+    on_change: Option<Box<dyn Fn(&O::Value) -> Message + 'a>>,
     class: S::Class<'a>,
     cycle: bool,
+    axis: Axis,
 }
 
-// impl<'a, Message, R, E, S, T> From<T> for Select<'a, Message, R, E, S, usize>
-// where
-//     R: Renderer,
-//     E: Event,
-//     S: SelectStyler<R::Color>,
-//     T: IntoIterator<Item = El<'a, Message, R, E, S>>,
-// {
-//     fn from(value: T) -> Self {
-//         Self::new_inner(value.into_iter().enumerate().map(Into::into).
-// collect())     }
-// }
-
-// impl<'a, Message, R, E, S, T, V> From<T> for Select<'a, Message, R, E, S, V>
-// where
-//     R: Renderer,
-//     E: Event,
-//     S: SelectStyler<R::Color>,
-//     T: IntoIterator<Item = (V, El<'a, Message, R, E, S>)>,
-// {
-//     fn from(value: T) -> Self {
-//         Self::new_inner(value.into_iter().map(Into::into).collect())
-//     }
-// }
-
-// impl<'a, Message, R, E, S, T, V> From<T> for Select<'a, Message, R, E, S, V>
-// where
-//     R: Renderer,
-//     E: Event,
-//     S: SelectStyler<R::Color>,
-//     T: IntoIterator<Item = SelectOption<'a, Message, R, E, S, V>>,
-// {
-//     fn from(value: T) -> Self {
-//         Self::new_inner(value.into_iter().collect())
-//     }
-// }
-
-// impl<'a, Message, R, E, S, V> Select<'a, Message, R, E, S, V>
-// where
-//     R: Renderer,
-//     E: Event,
-//     S: SelectStyler<R::Color>,
-// {
-//     pub fn new_keyed(options: Vec<(V, El<'a, Message, R, E, S>)>) -> Self {
-//         Self::new_inner(options.into_iter().map(Into::into).collect())
-//     }
-// }
-
-impl<'a, Message, R, E, S, V> Select<'a, Message, R, E, S, V>
+impl<'a, Message, R, E, S, O> Select<'a, Message, R, E, S, O>
 where
     R: Renderer,
     E: Event,
     S: SelectStyler<R::Color> + IconStyler<R::Color>,
+    O: SelectOption<'a, Message, R, E, S>,
 {
-    pub fn new(
-        options: impl Iterator<Item = impl Into<SelectOption<'a, Message, R, E, S, V>>>,
-    ) -> Self {
+    pub fn new(axis: Axis, options: impl Iterator<Item = O>) -> Self {
+        let (icon_prev, icon_next) = Self::icons_by_axis(axis);
+
+        let (option_values, option_els) =
+            options.map(|option| (option.value(), option.into_el())).unzip();
+
         Self {
             id: ElId::unique(),
             size: Size::fill(),
-            icon_left: IconKind::ArrowLeft,
-            icon_right: IconKind::ArrowRight,
-            options: options.into_iter().map(Into::into).collect(),
+            icon_prev,
+            icon_next,
+            option_els,
+            option_values,
             chosen: 0,
             on_change: None,
             class: <S as SelectStyler<R::Color>>::default(),
             cycle: false,
+            axis,
         }
+    }
+
+    pub fn horizontal(options: impl Iterator<Item = O>) -> Self {
+        Self::new(Axis::X, options)
+    }
+
+    pub fn vertical(options: impl Iterator<Item = O>) -> Self {
+        Self::new(Axis::Y, options)
     }
 
     pub fn initial(mut self, index: impl Into<usize>) -> Self {
@@ -196,7 +212,7 @@ where
 
     pub fn on_change<F>(mut self, on_change: F) -> Self
     where
-        F: Fn(&V) -> Message + 'a,
+        F: Fn(&O::Value) -> Message + 'a,
     {
         self.on_change = Some(Box::new(on_change));
         self
@@ -217,19 +233,30 @@ where
         self
     }
 
-    pub fn icon_left(mut self, icon_left: IconKind) -> Self {
-        self.icon_left = icon_left;
+    pub fn icon_prev(mut self, icon_prev: IconKind) -> Self {
+        self.icon_prev = icon_prev;
         self
     }
 
-    pub fn icon_right(mut self, icon_right: IconKind) -> Self {
-        self.icon_right = icon_right;
+    pub fn icon_next(mut self, icon_next: IconKind) -> Self {
+        self.icon_next = icon_next;
         self
     }
 
     // Helpers //
-    fn current(&self) -> &SelectOption<'a, Message, R, E, S, V> {
-        &self.options[self.chosen]
+    fn icons_by_axis(axis: Axis) -> (IconKind, IconKind) {
+        match axis {
+            Axis::X => (IconKind::ArrowLeft, IconKind::ArrowRight),
+            Axis::Y => (IconKind::ArrowUp, IconKind::ArrowDown),
+        }
+    }
+
+    fn current_value(&self) -> &O::Value {
+        &self.option_values[self.chosen]
+    }
+
+    fn current_el(&self) -> &El<'a, Message, R, E, S> {
+        &self.option_els[self.chosen]
     }
 
     fn arrow_icon_size(&self, viewport: &Viewport) -> u32 {
@@ -247,11 +274,12 @@ where
     }
 }
 
-impl<'a, Message, R, E, S, V> Widget<Message, R, E, S> for Select<'a, Message, R, E, S, V>
+impl<'a, Message, R, E, S, O> Widget<Message, R, E, S> for Select<'a, Message, R, E, S, O>
 where
     R: Renderer,
     E: Event,
     S: SelectStyler<R::Color> + IconStyler<R::Color>,
+    O: SelectOption<'a, Message, R, E, S>,
 {
     fn id(&self) -> Option<crate::el::ElId> {
         Some(self.id)
@@ -278,7 +306,7 @@ where
 
     fn state_children(&self) -> Vec<StateNode> {
         // TODO: Do we need to tell about children?
-        vec![StateNode::new(&self.current().el)]
+        vec![StateNode::new(self.current_el())]
     }
 
     fn on_event(
@@ -296,16 +324,16 @@ where
             if focused && current_state.is_active {
                 let prev = self.chosen;
                 if self.cycle {
-                    let len = self.options.len() as i32;
+                    let len = self.option_els.len() as i32;
                     self.chosen = ((self.chosen as i32 + offset % len + len) % len) as usize;
                 } else {
                     self.chosen = (self.chosen as i32 + offset)
-                        .clamp(0, self.options.len() as i32 - 1)
+                        .clamp(0, self.option_els.len() as i32 - 1)
                         as usize;
                 }
                 if let Some(on_change) = self.on_change.as_ref() {
                     if prev != self.chosen {
-                        ctx.publish((on_change)(&self.current().value));
+                        ctx.publish((on_change)(self.current_value()));
                     }
                 }
                 return Capture::Captured.into();
@@ -352,38 +380,46 @@ where
         limits: &crate::layout::Limits,
         viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
-        // Layout::container(limits, self.size.width, self.size.height, |limits| {
-        //     // TODO: Use real icons layouts to be accurate?
-
-        //     // Reserve some space for arrows on the sides
-        //     let shrink_by_arrows = limits.max_square() * 2;
-        //     self.options[self.chosen].layout(ctx, state, styler,
-        // &limits.shrink(shrink_by_arrows)) })
-
         let style = SelectStyler::style(styler, &self.class, self.status(ctx, state));
 
-        // TODO: Smarter icon size
         let padding_for_icons = self.arrow_icon_size(viewport);
 
-        Layout::container(
-            limits,
-            self.size,
-            crate::layout::Position::Relative,
-            viewport,
-            Padding::new_axis(0, padding_for_icons),
-            style.border.width,
-            crate::align::Alignment::Center,
-            crate::align::Alignment::Center,
-            |limits| {
-                self.options[self.chosen].el.layout(
-                    ctx,
-                    &mut state.children[0],
-                    styler,
-                    limits,
-                    viewport,
-                )
-            },
-        )
+        Layout::sized(limits, self.size, self.position(), viewport, |limits| limits.max())
+
+        // Layout::flex(
+        //     ctx,
+        //     state,
+        //     styler,
+        //     self.axis,
+        //     limits,
+        //     self.size,
+        //     crate::layout::Position::Relative,
+        //     viewport,
+        //     Padding::zero(),
+        //     1,
+        //     crate::align::Alignment::Center,
+        //     self.current_siblings().as_slice(),
+        // )
+
+        // Layout::container(
+        //     limits,
+        //     self.size,
+        //     crate::layout::Position::Relative,
+        //     viewport,
+        //     self.axis.canon::<Padding>(0, padding_for_icons),
+        //     style.border.width,
+        //     crate::align::Alignment::Center,
+        //     crate::align::Alignment::Center,
+        //     |limits| {
+        //         self.options[self.chosen].el.layout(
+        //             ctx,
+        //             &mut state.children[0],
+        //             styler,
+        //             limits,
+        //             viewport,
+        //         )
+        //     },
+        // )
     }
 
     fn draw(
@@ -397,55 +433,67 @@ where
     ) {
         let bounds = layout.bounds();
         let icons_node = LayoutNode::new(self.arrow_icon_size(viewport).into());
-        let icons_vertical_center =
-            bounds.size.height as i32 / 2 - icons_node.size().height as i32 / 2;
+        let icons_cross_center = bounds.size.cross_for(self.axis) as i32 / 2
+            - icons_node.size().cross_for(self.axis) as i32 / 2;
 
         let style = SelectStyler::style(styler, &self.class, self.status(ctx, state));
 
         renderer.block(Block {
             border: style.border,
             rect: bounds.into(),
-            background: style.background,
+            background: style.selected_background,
         });
 
         if self.cycle || self.chosen != 0 {
             Widget::<Message, R, E, S>::draw(
-                &Icon::new(self.icon_left),
-                ctx,
-                &mut StateNode::stateless(),
-                renderer,
-                styler,
-                Layout::with_offset(
-                    bounds.position + Point::new(style.border.width as i32, icons_vertical_center),
-                    &icons_node,
-                ),
-                viewport,
-            );
-        }
-
-        self.current().el.draw(
-            ctx,
-            &mut state.children[0],
-            renderer,
-            styler,
-            layout.children().next().unwrap(),
-            viewport,
-        );
-
-        if self.cycle || self.chosen != self.options.len() - 1 {
-            Widget::<Message, R, E, S>::draw(
-                &Icon::new(self.icon_right),
+                &Icon::new(self.icon_prev),
                 ctx,
                 &mut StateNode::stateless(),
                 renderer,
                 styler,
                 Layout::with_offset(
                     bounds.position
-                        + Point::new(
-                            bounds.size.width as i32
-                                - icons_node.size().width as i32
+                        + self.axis.canon::<Point>(style.border.width as i32, icons_cross_center),
+                    &icons_node,
+                ),
+                viewport,
+            );
+        }
+
+        let value_layout = layout.children().next().unwrap();
+
+        renderer.block(Block {
+            border: style.selected_border,
+            rect: Into::<Rectangle>::into(value_layout.bounds()).resized(
+                (value_layout.bounds().size - 1).into(),
+                embedded_graphics::geometry::AnchorPoint::Center,
+            ),
+            background: style.background,
+        });
+
+        self.current_el().draw(
+            ctx,
+            &mut state.children[0],
+            renderer,
+            styler,
+            value_layout,
+            viewport,
+        );
+
+        if self.cycle || self.chosen != self.option_els.len() - 1 {
+            Widget::<Message, R, E, S>::draw(
+                &Icon::new(self.icon_next),
+                ctx,
+                &mut StateNode::stateless(),
+                renderer,
+                styler,
+                Layout::with_offset(
+                    bounds.position
+                        + self.axis.canon::<Point>(
+                            bounds.size.main_for(self.axis) as i32
+                                - icons_node.size().main_for(self.axis) as i32
                                 - style.border.width as i32,
-                            icons_vertical_center,
+                            icons_cross_center,
                         ),
                     &icons_node,
                 ),
@@ -455,16 +503,16 @@ where
     }
 }
 
-impl<'a, Message, R, E, S, V> From<Select<'a, Message, R, E, S, V>> for El<'a, Message, R, E, S>
+impl<'a, Message, R, E, S, O> From<Select<'a, Message, R, E, S, O>> for El<'a, Message, R, E, S>
 where
     Message: Clone + 'a,
     R: Renderer + 'a,
     E: Event + 'a,
     S: 'a,
     S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
-    V: 'a,
+    O: SelectOption<'a, Message, R, E, S> + 'a,
 {
-    fn from(value: Select<'a, Message, R, E, S, V>) -> Self {
+    fn from(value: Select<'a, Message, R, E, S, O>) -> Self {
         El::new(value)
     }
 }

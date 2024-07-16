@@ -98,20 +98,21 @@ impl BorderRadius {
 //     }
 // }
 
-impl From<u32> for BorderRadius {
-    fn from(value: u32) -> Self {
-        Self::new_equal(Radius::SizeEqual(value))
+impl<T> From<T> for BorderRadius
+where
+    T: Into<Radius>,
+{
+    fn from(value: T) -> Self {
+        Self::new_equal(value.into())
     }
 }
 
-impl From<[u32; 4]> for BorderRadius {
-    fn from(value: [u32; 4]) -> Self {
-        Self::new(
-            Radius::SizeEqual(value[0]),
-            Radius::SizeEqual(value[1]),
-            Radius::SizeEqual(value[2]),
-            Radius::SizeEqual(value[3]),
-        )
+impl<T> From<[T; 4]> for BorderRadius
+where
+    T: Into<Radius> + Copy,
+{
+    fn from(value: [T; 4]) -> Self {
+        Self::new(value[0].into(), value[1].into(), value[2].into(), value[3].into())
     }
 }
 
@@ -142,6 +143,25 @@ impl<C: UiColor> Copy for Border<C> {}
 impl<C: UiColor> Border<C> {
     pub fn new() -> Self {
         Self { color: C::default_foreground(), width: 1, radius: BorderRadius::default() }
+    }
+
+    pub fn zero() -> Self {
+        Self { color: C::default_foreground(), width: 0, radius: 0.into() }
+    }
+
+    pub fn color(mut self, color: impl Into<C>) -> Self {
+        self.color = color.into();
+        self
+    }
+
+    pub fn width(mut self, width: u32) -> Self {
+        self.width = width;
+        self
+    }
+
+    pub fn radius(mut self, radius: impl Into<BorderRadius>) -> Self {
+        self.radius = radius.into();
+        self
     }
 }
 

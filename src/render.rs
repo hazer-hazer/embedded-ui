@@ -148,19 +148,17 @@ where
     where
         Self: Sized,
     {
-        RoundedRectangle::new(
-            block.rect,
-            block.border.radius.into_corner_radii(block.rect.size.into()),
-        )
-        .draw_styled(
-            &PrimitiveStyleBuilder::new()
-                .fill_color(block.background)
-                .stroke_color(block.border.color)
-                .stroke_width(block.border.width)
-                .build(),
-            self,
-        )
-        .unwrap();
+        let corner_radii = block.border.radius.into_corner_radii(block.rect.size.into());
+        RoundedRectangle::new(block.rect, corner_radii)
+            .draw_styled(
+                &PrimitiveStyleBuilder::new()
+                    .fill_color(block.background)
+                    .stroke_color(block.border.color)
+                    .stroke_width(block.border.width)
+                    .build(),
+                self,
+            )
+            .unwrap();
     }
 
     fn default_font() -> Font {

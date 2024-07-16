@@ -436,6 +436,13 @@ impl Limits {
         }
     }
 
+    pub fn limit_axis(self, axis: Axis, length: impl Into<Length>) -> Self {
+        match axis {
+            Axis::X => self.limit_width(length),
+            Axis::Y => self.limit_height(length),
+        }
+    }
+
     pub fn shrink(self, by: impl Into<Size>) -> Self {
         let by = by.into();
 

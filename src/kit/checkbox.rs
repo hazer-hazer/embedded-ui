@@ -19,13 +19,6 @@ use crate::widget::Widget;
 
 use super::icon::{Icon, IconStyler};
 
-// #[derive(Clone, Copy)]
-// pub enum CheckboxSign {
-//     Check,
-//     Dot,
-//     Cross,
-// }
-
 #[derive(Clone, Copy)]
 pub struct CheckboxState {
     is_pressed: bool,
@@ -99,11 +92,6 @@ where
             // color: R::Color::default_foreground(),
         }
     }
-
-    // pub fn sign(mut self, sign: CheckboxSign) -> Self {
-    //     self.sign = sign;
-    //     self
-    // }
 
     pub fn icon(mut self, icon: IconKind) -> Self {
         self.check_icon = Icon::new(icon);

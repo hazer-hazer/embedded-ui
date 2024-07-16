@@ -12,17 +12,17 @@ use embedded_graphics_simulator::{
     sdl2::{self, Keycode, MouseButton},
     OutputSettingsBuilder, SimulatorDisplay, Window,
 };
-use embedded_ui::theme::Theme;
 use embedded_ui::{
     col,
     el::ElId,
     event::CommonEvent,
-    helpers::{button, select, text},
+    helpers::{button, select_h, select_v, text},
     kit::knob::Knob,
     row,
     ui::UI,
     value::Value,
 };
+use embedded_ui::{helpers::bar_v, theme::Theme};
 
 #[derive(Clone, Copy, Debug)]
 enum Event {
@@ -181,7 +181,7 @@ fn main() {
         //         })
         //     ],
         // ],
-        col![select(["1", "2", "3"]).cycle(true)],
+        col![select_v(["1", "2", "3"]).cycle(true), row![bar_v()].padding(5)],
         col![Knob::new(knob_value.clone()), text(knob_value.clone())]
     ];
 

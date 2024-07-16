@@ -27,8 +27,6 @@ impl Default for ButtonState {
     }
 }
 
-// TODO: Multi-status
-
 #[derive(Clone, Copy)]
 pub struct ButtonStatus {
     focused: bool,
