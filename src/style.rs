@@ -13,7 +13,7 @@ pub trait Styler<C: UiColor>:
  *
  */
 macro_rules! component_style {
-    ($vis: vis $name: ident $(: $styler: ident ($status: ty) default {$default: expr})? {
+    ($(#[$meta:meta])? $vis: vis $name: ident $(: $styler: ident ($status: ty) default {$default: expr})? {
         $($prop: ident: $prop_kind: ident $({
             $($method: ident: $method_kind: ident),* $(,)?
         })?),* $(,)?

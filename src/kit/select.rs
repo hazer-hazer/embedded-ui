@@ -6,6 +6,7 @@ use crate::{
     color::UiColor,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
+    font::FontSize,
     icons::IconKind,
     layout::{Layout, LayoutNode, Limits, Viewport},
     padding::Padding,
@@ -19,7 +20,7 @@ use crate::{
     widget::Widget,
 };
 
-use super::icon::Icon;
+use super::icon::{Icon, IconStyler};
 
 pub struct SelectState {
     is_pressed: bool,
@@ -33,11 +34,10 @@ impl Default for SelectState {
 }
 
 #[derive(Clone, Copy)]
-pub enum SelectStatus {
-    Normal,
-    Active,
-    Pressed,
-    Focused,
+pub struct SelectStatus {
+    active: bool,
+    pressed: bool,
+    focused: bool,
 }
 
 // pub type SelectStyleFn<'a, C> = Box<dyn Fn(SelectStatus) -> SelectStyle<C> +
@@ -56,11 +56,16 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: SelectStatus) -> Selec
         SelectStyle::new(&palette).background(palette.background).border_color(palette.background);
 
     match status {
-        SelectStatus::Normal => base.border_width(1).border_radius(0),
-        SelectStatus::Pressed | SelectStatus::Focused => {
-            base.border_color(palette.primary).border_width(1).border_radius(0)
+        SelectStatus { pressed: true, active: _, focused: _ } => {
+            base.border_color(palette.selection_background).border_width(2).border_radius(3)
         },
-        SelectStatus::Active => base.border_color(palette.primary).border_width(1).border_radius(5),
+        SelectStatus { active: true, pressed: false, focused: _ } => {
+            base.border_color(palette.selection_background).border_width(1).border_radius(5)
+        },
+        SelectStatus { active: false, pressed: false, focused: true } => {
+            base.border_color(palette.selection_background).border_width(1).border_radius(0)
+        },
+        SelectStatus { .. } => base.border_width(1).border_radius(0),
     }
 }
 
@@ -166,7 +171,7 @@ impl<'a, Message, R, E, S, V> Select<'a, Message, R, E, S, V>
 where
     R: Renderer,
     E: Event,
-    S: SelectStyler<R::Color>,
+    S: SelectStyler<R::Color> + IconStyler<R::Color>,
 {
     pub fn new(
         options: impl Iterator<Item = impl Into<SelectOption<'a, Message, R, E, S, V>>>,
@@ -179,7 +184,7 @@ where
             options: options.into_iter().map(Into::into).collect(),
             chosen: 0,
             on_change: None,
-            class: S::default(),
+            class: <S as SelectStyler<R::Color>>::default(),
             cycle: false,
         }
     }
@@ -227,24 +232,18 @@ where
         &self.options[self.chosen]
     }
 
-    fn arrow_icon_size(&self, _limits: &Limits) -> u32 {
-        // limits.max().height
-        // TODO
-        5
+    fn arrow_icon_size(&self, viewport: &Viewport) -> u32 {
+        FontSize::Relative(1.0).to_real(viewport)
     }
 
     fn status(&self, ctx: &UiCtx<Message>, state: &StateNode) -> SelectStatus {
-        match state.get::<SelectState>() {
-            SelectState { is_active: true, .. } => return SelectStatus::Active,
-            SelectState { is_pressed: true, .. } => return SelectStatus::Pressed,
-            SelectState { is_pressed: false, is_active: false } => {},
-        }
+        let state = state.get::<SelectState>();
 
-        if ctx.is_focused(self) {
-            return SelectStatus::Focused;
+        SelectStatus {
+            active: state.is_active,
+            pressed: state.is_pressed,
+            focused: ctx.is_focused(self),
         }
-
-        SelectStatus::Normal
     }
 }
 
@@ -252,7 +251,7 @@ impl<'a, Message, R, E, S, V> Widget<Message, R, E, S> for Select<'a, Message, R
 where
     R: Renderer,
     E: Event,
-    S: SelectStyler<R::Color>,
+    S: SelectStyler<R::Color> + IconStyler<R::Color>,
 {
     fn id(&self) -> Option<crate::el::ElId> {
         Some(self.id)
@@ -361,10 +360,10 @@ where
         //     self.options[self.chosen].layout(ctx, state, styler,
         // &limits.shrink(shrink_by_arrows)) })
 
-        let style = styler.style(&self.class, self.status(ctx, state));
+        let style = SelectStyler::style(styler, &self.class, self.status(ctx, state));
 
         // TODO: Smarter icon size
-        let padding_for_icons = self.arrow_icon_size(limits);
+        let padding_for_icons = self.arrow_icon_size(viewport);
 
         Layout::container(
             limits,
@@ -397,12 +396,11 @@ where
         viewport: &Viewport,
     ) {
         let bounds = layout.bounds();
-        let icons_limits = Limits::new(Size::zero(), Size::new_equal(bounds.size.height));
-        let icons_node = LayoutNode::new(self.arrow_icon_size(&icons_limits).into());
+        let icons_node = LayoutNode::new(self.arrow_icon_size(viewport).into());
         let icons_vertical_center =
             bounds.size.height as i32 / 2 - icons_node.size().height as i32 / 2;
 
-        let style = styler.style(&self.class, self.status(ctx, state));
+        let style = SelectStyler::style(styler, &self.class, self.status(ctx, state));
 
         renderer.block(Block {
             border: style.border,
@@ -463,7 +461,7 @@ where
     R: Renderer + 'a,
     E: Event + 'a,
     S: 'a,
-    S: SelectStyler<R::Color> + 'a,
+    S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
     V: 'a,
 {
     fn from(value: Select<'a, Message, R, E, S, V>) -> Self {

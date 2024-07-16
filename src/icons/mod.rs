@@ -1,4 +1,7 @@
 pub mod icons5;
+pub mod icons6;
+pub mod icons7;
+pub mod icons8;
 
 use crate::render::Renderer;
 
@@ -67,12 +70,16 @@ pub enum IconKind {
 
     // Math //
     Plus,
+    FullWidthPlus,
+    SquaredPlus,
     Minus,
     SquareBrackets,
     SmallPlus,
     SmallCross,
     LineV,
+    LineH,
     Equal,
+    FullWidthEqual,
 
     // Music //
     MusicNote,
@@ -105,12 +112,16 @@ pub enum IconKind {
     BorderH,
     OutlinedDot,
     Human,
+    Portrait,
     Translucent,
     Building,
     Interconnection,
     Jar,
     Tare,
     Ladder,
+    Window,
+    Crop,
+    Lattice,
 
     Ascent,
     Descent,
@@ -141,6 +152,7 @@ pub enum IconKind {
     NodeAngle,
     NodeH,
     NodeAll,
+    NodeNone,
 
     // Hardware //
     Power,

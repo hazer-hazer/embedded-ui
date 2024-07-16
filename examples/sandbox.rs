@@ -12,16 +12,14 @@ use embedded_graphics_simulator::{
     sdl2::{self, Keycode, MouseButton},
     OutputSettingsBuilder, SimulatorDisplay, Window,
 };
+use embedded_ui::theme::Theme;
 use embedded_ui::{
     col,
     el::ElId,
     event::CommonEvent,
     helpers::{button, select, text},
     kit::knob::Knob,
-    render::Renderer,
     row,
-    size::Length,
-    theme::Theme,
     ui::UI,
     value::Value,
 };

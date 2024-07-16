@@ -7,6 +7,7 @@ use crate::{
         button::{Button, ButtonStyler},
         checkbox::{Checkbox, CheckboxStyler},
         divider::Divider,
+        icon::IconStyler,
         knob::{Knob, KnobStyler, KnobValue},
         select::{Select, SelectStyler},
         slider::{Slider, SliderPosition, SliderStyler},
@@ -54,21 +55,31 @@ macro_rules! row {
 
 pub use row;
 
-pub fn checkbox<'a, Message, R: Renderer, S: CheckboxStyler<R::Color>>(
+pub fn checkbox<'a, Message, R, S>(
     on_change: impl (Fn(bool) -> Message) + 'a,
-) -> Checkbox<'a, Message, R, S> {
+) -> Checkbox<'a, Message, R, S>
+where
+    R: Renderer + 'a,
+    S: CheckboxStyler<R::Color> + IconStyler<R::Color> + 'a,
+{
     Checkbox::new(on_change)
 }
 
-pub fn select<'a, Message: Clone, R: Renderer, E: Event, S: SelectStyler<R::Color>>(
+pub fn select<'a, Message: Clone, R: Renderer, E: Event, S>(
     options: impl IntoIterator<Item = impl Into<El<'a, Message, R, E, S>>>,
-) -> Select<'a, Message, R, E, S, usize> {
+) -> Select<'a, Message, R, E, S, usize>
+where
+    S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
+{
     Select::new(options.into_iter().map(Into::into).enumerate())
 }
 
-pub fn select_keyed<'a, Message: Clone, R: Renderer, E: Event, S: SelectStyler<R::Color>, V>(
+pub fn select_keyed<'a, Message: Clone, R: Renderer, E: Event, S, V>(
     options: impl IntoIterator<Item = (V, impl Into<El<'a, Message, R, E, S>>)>,
-) -> Select<'a, Message, R, E, S, V> {
+) -> Select<'a, Message, R, E, S, V>
+where
+    S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
+{
     Select::new(options.into_iter().map(|(value, el)| (value, el.into())))
 }
 

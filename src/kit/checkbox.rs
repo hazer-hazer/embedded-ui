@@ -17,7 +17,7 @@ use crate::theme::Theme;
 use crate::ui::UiCtx;
 use crate::widget::Widget;
 
-use super::icon::Icon;
+use super::icon::{Icon, IconStyler};
 
 // #[derive(Clone, Copy)]
 // pub enum CheckboxSign {
@@ -72,19 +72,19 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: CheckboxStatus) -> Che
 pub struct Checkbox<'a, Message, R, S>
 where
     R: Renderer,
-    S: CheckboxStyler<R::Color>,
+    S: CheckboxStyler<R::Color> + IconStyler<R::Color>,
 {
     id: ElId,
-    check_icon: Icon<R>,
+    check_icon: Icon<'a, R, S>,
     size: Size<Length>,
     on_change: Box<dyn Fn(bool) -> Message + 'a>,
-    class: S::Class<'a>,
+    class: <S as CheckboxStyler<R::Color>>::Class<'a>,
 }
 
 impl<'a, Message, R, S> Checkbox<'a, Message, R, S>
 where
-    R: Renderer,
-    S: CheckboxStyler<R::Color>,
+    R: Renderer + 'a,
+    S: CheckboxStyler<R::Color> + IconStyler<R::Color> + 'a,
 {
     pub fn new<F>(on_change: F) -> Self
     where
@@ -95,7 +95,7 @@ where
             check_icon: Icon::new(crate::icons::IconKind::Check),
             size: Size::fill(),
             on_change: Box::new(on_change),
-            class: S::default(),
+            class: <S as CheckboxStyler<R::Color>>::default(),
             // color: R::Color::default_foreground(),
         }
     }
@@ -121,7 +121,7 @@ where
     }
 
     // Helpers //
-    fn status<E: Event>(&self, ctx: &UiCtx<Message>, state: &StateNode) -> CheckboxStatus {
+    fn status<E: Event + 'a>(&self, ctx: &UiCtx<Message>, state: &StateNode) -> CheckboxStatus {
         let focused = UiCtx::is_focused::<R, E, S>(&ctx, self);
         match (state.get::<CheckboxState>(), focused) {
             (CheckboxState { is_pressed: true, .. }, _) => CheckboxStatus::Pressed,
@@ -134,9 +134,9 @@ where
 
 impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Checkbox<'a, Message, R, S>
 where
-    R: Renderer,
-    E: Event,
-    S: CheckboxStyler<R::Color>,
+    R: Renderer + 'a,
+    E: Event + 'a,
+    S: CheckboxStyler<R::Color> + IconStyler<R::Color> + 'a,
 {
     fn id(&self) -> Option<crate::el::ElId> {
         Some(self.id)
@@ -245,7 +245,7 @@ where
         layout: crate::layout::Layout,
         viewport: &Viewport,
     ) {
-        let style = styler.style(&self.class, self.status::<E>(ctx, state));
+        let style = CheckboxStyler::style(styler, &self.class, self.status::<E>(ctx, state));
         let state = state.get::<CheckboxState>();
 
         let bounds = layout.bounds();
@@ -275,7 +275,7 @@ where
     Message: 'a,
     R: Renderer + 'a,
     E: Event + 'a,
-    S: CheckboxStyler<R::Color> + 'a,
+    S: CheckboxStyler<R::Color> + IconStyler<R::Color> + 'a,
 {
     fn from(value: Checkbox<'a, Message, R, S>) -> Self {
         Self::new(value)

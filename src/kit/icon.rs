@@ -4,10 +4,16 @@ use embedded_graphics::pixelcolor::raw::{BigEndian, RawData, RawU1};
 
 use crate::el::El;
 use crate::icons::icons5::Icons5;
+use crate::icons::icons6::Icons6;
+use crate::icons::icons7::Icons7;
+use crate::icons::icons8::Icons8;
 use crate::icons::{IconData, IconKind, IconSet};
 use crate::layout::{LayoutNode, Limits, Viewport};
 use crate::log::logger::warning;
+use crate::palette::PaletteColor;
 use crate::size::Length;
+use crate::style::{component_style, Styler};
+use crate::theme::Theme;
 use crate::{color::UiColor, event::Event, render::Renderer, size::Size, widget::Widget};
 
 pub struct IconPicker;
@@ -15,7 +21,10 @@ pub struct IconPicker;
 impl IconPicker {
     pub fn by_size(&self, size: u32, kind: IconKind) -> Option<IconData> {
         match size {
-            5.. => Icons5.pick(kind),
+            5 => Icons5.pick(kind),
+            6 => Icons6.pick(kind),
+            7 => Icons7.pick(kind),
+            8 => Icons8.pick(kind),
             _ => None,
         }
     }
@@ -23,7 +32,7 @@ impl IconPicker {
     pub fn flex_size(&self, length: Length, limits: &Limits) -> u32 {
         let fit_square = limits.resolve_square(length);
         match fit_square {
-            5.. => 5,
+            size @ (5 | 6 | 7 | 8..) => size,
             _ => 0,
         }
     }
@@ -34,45 +43,44 @@ impl IconPicker {
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct Icon<R>
+pub struct IconStatus;
+
+pub fn default<C: PaletteColor>(theme: &Theme<C>, _status: IconStatus) -> IconStyle<C> {
+    let palette = theme.palette();
+    let base = IconStyle::new(&palette).background(palette.background).color(palette.foreground);
+    base
+}
+
+component_style! {
+    pub IconStyle: IconStyler(IconStatus) default {default} {
+        background: background,
+        color: color,
+    }
+}
+
+pub struct Icon<'a, R, S>
 where
     R: Renderer,
+    S: IconStyler<R::Color>,
 {
     size: Length,
     kind: IconKind,
-    color: R::Color,
-    background: R::Color,
+    class: S::Class<'a>,
 }
 
-impl<R> Icon<R>
+impl<'a, R, S> Icon<'a, R, S>
 where
     R: Renderer,
+    S: IconStyler<R::Color>,
 {
     pub fn new(kind: IconKind) -> Self {
         // assert_eq!((size * size).div_ceil(8) as usize, data.len());
 
-        Self {
-            size: Length::Fill,
-            kind,
-            color: R::Color::default_foreground(),
-            background: R::Color::default_background(),
-        }
+        Self { size: Length::Fill, kind, class: S::default() }
     }
 
-    pub fn color(mut self, color: impl Into<R::Color>) -> Self {
-        self.color = color.into();
-        self
-    }
-
-    pub fn background(mut self, background: impl Into<R::Color>) -> Self {
-        self.background = background.into();
-        self
-    }
-
-    pub fn invert(mut self) -> Self {
-        self.color = self.background;
-        self.background = self.color;
+    pub fn style(mut self, class: S::Class<'a>) -> Self {
+        self.class = class;
         self
     }
 
@@ -80,20 +88,13 @@ where
         self.size = size.into();
         self
     }
-
-    pub fn do_invert(self, invert: bool) -> Self {
-        if invert {
-            self.invert()
-        } else {
-            self
-        }
-    }
 }
 
-impl<Message, R, E, S> Widget<Message, R, E, S> for Icon<R>
+impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Icon<'a, R, S>
 where
-    R: Renderer,
-    E: Event,
+    R: Renderer + 'a,
+    E: Event + 'a,
+    S: IconStyler<R::Color> + 'a,
 {
     fn id(&self) -> Option<crate::el::ElId> {
         None
@@ -125,7 +126,7 @@ where
         _ctx: &mut crate::ui::UiCtx<Message>,
         _state: &mut crate::state::StateNode,
         renderer: &mut R,
-        _styler: &S,
+        styler: &S,
         layout: crate::layout::Layout,
         _viewport: &Viewport,
     ) {
@@ -134,6 +135,8 @@ where
         let icon = IconPicker.by_size(bounds_size, self.kind);
 
         // TODO: Warn that icon cannot be drawn because no fitted options found
+
+        let style = styler.style(&self.class, IconStatus);
 
         if let Some(icon) = icon {
             let icon_size = icon.size;
@@ -159,8 +162,8 @@ where
                 let point = Point::new(x as i32, y as i32) + icon_position;
 
                 let color = match bit.into_inner() {
-                    0 => self.background,
-                    1 => self.color,
+                    0 => style.background,
+                    1 => style.color,
                     _ => unreachable!(),
                 };
 
@@ -176,14 +179,14 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> From<Icon<R>> for El<'a, Message, R, E, S>
+impl<'a, Message, R, E, S> From<Icon<'a, R, S>> for El<'a, Message, R, E, S>
 where
     Message: 'a,
     R: Renderer + 'a,
     E: Event + 'a,
-    S: 'a,
+    S: IconStyler<R::Color> + 'a,
 {
-    fn from(value: Icon<R>) -> Self {
+    fn from(value: Icon<'a, R, S>) -> Self {
         Self::new(value)
     }
 }
@@ -193,15 +196,15 @@ where
     Message: 'a,
     R: Renderer + 'a,
     E: Event + 'a,
-    S: 'a,
+    S: IconStyler<R::Color> + 'a,
 {
     fn from(value: IconKind) -> Self {
         El::new(Icon::new(value))
     }
 }
 
-impl<R: Renderer> Into<Icon<R>> for IconKind {
-    fn into(self) -> Icon<R> {
+impl<'a, R: Renderer, S: IconStyler<R::Color>> Into<Icon<'a, R, S>> for IconKind {
+    fn into(self) -> Icon<'a, R, S> {
         Icon::new(self)
     }
 }

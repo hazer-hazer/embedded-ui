@@ -27,11 +27,12 @@ impl Default for ButtonState {
     }
 }
 
+// TODO: Multi-status
+
 #[derive(Clone, Copy)]
-pub enum ButtonStatus {
-    Normal,
-    Focused,
-    Pressed,
+pub struct ButtonStatus {
+    focused: bool,
+    pressed: bool,
     // Disabled,
     // Hovered,
 }
@@ -54,9 +55,13 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: ButtonStatus) -> Butto
         .border_width(0);
 
     match status {
-        crate::kit::button::ButtonStatus::Normal => base.border_radius(2),
-        crate::kit::button::ButtonStatus::Focused => base.border_width(1).border_radius(5),
-        crate::kit::button::ButtonStatus::Pressed => base.border_width(2).border_radius(7),
+        crate::kit::button::ButtonStatus { pressed: true, focused: _ } => {
+            base.border_width(2).border_radius(7)
+        },
+        crate::kit::button::ButtonStatus { focused: true, pressed: false } => {
+            base.border_width(1).border_radius(5)
+        },
+        crate::kit::button::ButtonStatus { .. } => base.border_radius(2),
     }
 }
 
@@ -127,12 +132,9 @@ where
     }
 
     fn status(&self, ctx: &UiCtx<Message>, state: &mut StateNode) -> ButtonStatus {
-        if state.get::<ButtonState>().is_pressed {
-            ButtonStatus::Pressed
-        } else if ctx.is_focused(self) {
-            ButtonStatus::Focused
-        } else {
-            ButtonStatus::Normal
+        ButtonStatus {
+            focused: ctx.is_focused(self),
+            pressed: state.get::<ButtonState>().is_pressed,
         }
     }
 }

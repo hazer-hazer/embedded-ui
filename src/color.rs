@@ -1,3 +1,5 @@
+use core::fmt::Display;
+
 use embedded_graphics::{
     pixelcolor::{raw::RawU32, BinaryColor, Rgb555, Rgb565, Rgb666, Rgb888, RgbColor},
     prelude::RawData,
@@ -89,7 +91,6 @@ macro_rules! impl_rgb_colors {
 impl_rgb_colors!(Rgb555, Rgb565, Rgb666, Rgb888);
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 
 pub struct Rgba(u32);
 
@@ -111,7 +112,7 @@ impl Rgba {
     }
 
     pub const fn new_hex_rgb(rgb: u32) -> Self {
-        Self(rgb << 8 & 0xff)
+        Self(rgb << 8 | 0xff)
     }
 
     pub const fn r(self) -> u8 {
@@ -144,6 +145,19 @@ impl Rgba {
 
     pub const fn into_rgb888(self) -> Rgb888 {
         Rgb888::new(self.r(), self.g(), self.b())
+    }
+}
+
+#[cfg(feature = "defmt")]
+impl defmt::Format for Rgba {
+    fn format(&self, fmt: defmt::Formatter) {
+        defmt::write!(fmt, "{:X}", self.0)
+    }
+}
+
+impl Display for Rgba {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:X}", self.0)
     }
 }
 
