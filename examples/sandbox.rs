@@ -180,7 +180,6 @@ fn main() {
         //             Message::None
         //         })
         //     ],
-        // ],
         col![select_v(["1", "2", "3"]).cycle(true), row![bar_v()].padding(5)],
         col![Knob::new(knob_value.clone()), text(knob_value.clone())]
     ];

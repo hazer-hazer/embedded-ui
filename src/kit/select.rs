@@ -120,67 +120,60 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: SelectStatus) -> Selec
 //     }
 // }
 
-pub trait SelectOption<'a, Message, R, E, S>
+pub struct SelectOption<'a, Message, R, E, S, V>
 where
     R: Renderer,
     E: Event,
 {
-    type Value: Copy;
-
-    fn into_el(self) -> El<'a, Message, R, E, S>;
-    fn value(&self) -> Self::Value;
+    value: V,
+    el: El<'a, Message, R, E, S>,
 }
 
-impl<'a, Message, R, E, S, V: Copy> SelectOption<'a, Message, R, E, S> for (V, &'a str)
+impl<'a, Message, R, E, S, V, L> From<(V, L)> for SelectOption<'a, Message, R, E, S, V>
 where
-    Message: 'a,
-    R: Renderer + 'a,
-    E: Event + 'a,
-    S: TextStyler<R::Color> + 'a,
+    R: Renderer,
+    E: Event,
+    L: Into<El<'a, Message, R, E, S>>,
 {
-    type Value = V;
-
-    fn into_el(self) -> El<'a, Message, R, E, S> {
-        self.1.into()
-    }
-
-    fn value(&self) -> Self::Value {
-        self.0
+    fn from(value: (V, L)) -> Self {
+        Self { value: value.0, el: value.1.into() }
     }
 }
 
-pub struct Select<'a, Message, R, E, S, O>
+pub struct Select<'a, Message, R, E, S, V>
 where
     R: Renderer,
     E: Event,
     S: SelectStyler<R::Color>,
-    O: SelectOption<'a, Message, R, E, S>,
 {
     id: ElId,
     size: Size<Length>,
     icon_prev: IconKind,
     icon_next: IconKind,
     option_els: Vec<El<'a, Message, R, E, S>>,
-    option_values: Vec<O::Value>,
+    option_values: Vec<V>,
     chosen: usize,
-    on_change: Option<Box<dyn Fn(&O::Value) -> Message + 'a>>,
+    on_change: Option<Box<dyn Fn(&V) -> Message + 'a>>,
     class: S::Class<'a>,
     cycle: bool,
     axis: Axis,
+    show_siblings: usize,
 }
 
-impl<'a, Message, R, E, S, O> Select<'a, Message, R, E, S, O>
+impl<'a, Message, R, E, S, V> Select<'a, Message, R, E, S, V>
 where
     R: Renderer,
     E: Event,
     S: SelectStyler<R::Color> + IconStyler<R::Color>,
-    O: SelectOption<'a, Message, R, E, S>,
 {
-    pub fn new(axis: Axis, options: impl Iterator<Item = O>) -> Self {
+    pub fn new(
+        axis: Axis,
+        options: impl Iterator<Item = impl Into<SelectOption<'a, Message, R, E, S, V>>>,
+    ) -> Self {
         let (icon_prev, icon_next) = Self::icons_by_axis(axis);
 
         let (option_values, option_els) =
-            options.map(|option| (option.value(), option.into_el())).unzip();
+            options.map(Into::into).map(|option| (option.value, option.el)).unzip();
 
         Self {
             id: ElId::unique(),
@@ -194,14 +187,19 @@ where
             class: <S as SelectStyler<R::Color>>::default(),
             cycle: false,
             axis,
+            show_siblings: 1,
         }
     }
 
-    pub fn horizontal(options: impl Iterator<Item = O>) -> Self {
+    pub fn horizontal(
+        options: impl Iterator<Item = impl Into<SelectOption<'a, Message, R, E, S, V>>>,
+    ) -> Self {
         Self::new(Axis::X, options)
     }
 
-    pub fn vertical(options: impl Iterator<Item = O>) -> Self {
+    pub fn vertical(
+        options: impl Iterator<Item = impl Into<SelectOption<'a, Message, R, E, S, V>>>,
+    ) -> Self {
         Self::new(Axis::Y, options)
     }
 
@@ -212,7 +210,7 @@ where
 
     pub fn on_change<F>(mut self, on_change: F) -> Self
     where
-        F: Fn(&O::Value) -> Message + 'a,
+        F: Fn(&V) -> Message + 'a,
     {
         self.on_change = Some(Box::new(on_change));
         self
@@ -251,12 +249,18 @@ where
         }
     }
 
-    fn current_value(&self) -> &O::Value {
+    fn current_value(&self) -> &V {
         &self.option_values[self.chosen]
     }
 
     fn current_el(&self) -> &El<'a, Message, R, E, S> {
         &self.option_els[self.chosen]
+    }
+
+    fn current_siblings(&self) -> &[El<'a, Message, R, E, S>] {
+        let siblings_aside = self.show_siblings / 2;
+        &self.option_els[self.chosen.checked_sub(siblings_aside).unwrap_or(0)
+            ..self.chosen.checked_add(1).unwrap_or(usize::MAX)]
     }
 
     fn arrow_icon_size(&self, viewport: &Viewport) -> u32 {
@@ -274,12 +278,11 @@ where
     }
 }
 
-impl<'a, Message, R, E, S, O> Widget<Message, R, E, S> for Select<'a, Message, R, E, S, O>
+impl<'a, Message, R, E, S, V> Widget<Message, R, E, S> for Select<'a, Message, R, E, S, V>
 where
     R: Renderer,
     E: Event,
     S: SelectStyler<R::Color> + IconStyler<R::Color>,
-    O: SelectOption<'a, Message, R, E, S>,
 {
     fn id(&self) -> Option<crate::el::ElId> {
         Some(self.id)
@@ -380,26 +383,25 @@ where
         limits: &crate::layout::Limits,
         viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
-        let style = SelectStyler::style(styler, &self.class, self.status(ctx, state));
+        // let style = SelectStyler::style(styler, &self.class, self.status(ctx,
+        // state));
 
         let padding_for_icons = self.arrow_icon_size(viewport);
 
-        Layout::sized(limits, self.size, self.position(), viewport, |limits| limits.max())
-
-        // Layout::flex(
-        //     ctx,
-        //     state,
-        //     styler,
-        //     self.axis,
-        //     limits,
-        //     self.size,
-        //     crate::layout::Position::Relative,
-        //     viewport,
-        //     Padding::zero(),
-        //     1,
-        //     crate::align::Alignment::Center,
-        //     self.current_siblings().as_slice(),
-        // )
+        Layout::flex(
+            ctx,
+            state,
+            styler,
+            self.axis,
+            limits,
+            self.size,
+            crate::layout::Position::Relative,
+            viewport,
+            self.axis.canon::<Padding>(0, padding_for_icons),
+            5,
+            crate::align::Alignment::Center,
+            self.current_siblings(),
+        )
 
         // Layout::container(
         //     limits,
@@ -441,7 +443,7 @@ where
         renderer.block(Block {
             border: style.border,
             rect: bounds.into(),
-            background: style.selected_background,
+            background: style.background,
         });
 
         if self.cycle || self.chosen != 0 {
@@ -465,10 +467,10 @@ where
         renderer.block(Block {
             border: style.selected_border,
             rect: Into::<Rectangle>::into(value_layout.bounds()).resized(
-                (value_layout.bounds().size - 1).into(),
+                value_layout.bounds().size.into(),
                 embedded_graphics::geometry::AnchorPoint::Center,
             ),
-            background: style.background,
+            background: style.selected_background,
         });
 
         self.current_el().draw(
@@ -508,9 +510,8 @@ where
     Message: Clone + 'a,
     R: Renderer + 'a,
     E: Event + 'a,
-    S: 'a,
     S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
-    O: SelectOption<'a, Message, R, E, S> + 'a,
+    O: 'a,
 {
     fn from(value: Select<'a, Message, R, E, S, O>) -> Self {
         El::new(value)
