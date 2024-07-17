@@ -1,4 +1,4 @@
-use core::fmt::Display;
+use core::{borrow::Borrow, fmt::Display};
 
 use crate::{
     axis::Axis,
@@ -11,7 +11,7 @@ use crate::{
         divider::Divider,
         icon::IconStyler,
         knob::{Knob, KnobStyler, KnobValue},
-        select::{Select, SelectOption, SelectStyler},
+        select::{Select, SelectStyler},
         slider::{Slider, SliderPosition, SliderStyler},
         text::{Text, TextStyler},
     },
@@ -46,6 +46,7 @@ macro_rules! col {
     ];
 }
 
+use alloc::string::ToString;
 pub use col;
 
 #[macro_export]
@@ -67,41 +68,45 @@ where
     Checkbox::new(on_change)
 }
 
-pub fn select_h<'a, Message: Clone, R: Renderer, E: Event, S>(
-    options: impl IntoIterator<Item = impl Into<El<'a, Message, R, E, S>>>,
-) -> Select<'a, Message, R, E, S, usize>
+pub fn select_h<'a, Message: Clone, R: Renderer, S, O, L>(
+    options: L,
+) -> Select<'a, Message, R, S, O, L>
 where
     S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
+    O: ToString,
+    L: Borrow<[O]>,
 {
-    Select::horizontal(options.into_iter().enumerate())
+    Select::horizontal(options)
 }
 
-pub fn select_v<'a, Message: Clone, R: Renderer, E: Event, S>(
-    options: impl IntoIterator<Item = impl Into<El<'a, Message, R, E, S>>>,
-) -> Select<'a, Message, R, E, S, usize>
+pub fn select_v<'a, Message: Clone, R: Renderer, S, O, L>(
+    options: L,
+) -> Select<'a, Message, R, S, O, L>
 where
     S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
+    O: ToString,
+    L: Borrow<[O]>,
 {
-    Select::vertical(options.into_iter().enumerate())
+    Select::vertical(options)
 }
 
-pub fn select_h_keyed<'a, Message: Clone, R: Renderer, E: Event, S, V>(
-    options: impl IntoIterator<Item = impl Into<SelectOption<'a, Message, R, E, S, V>>>,
-) -> Select<'a, Message, R, E, S, V>
-where
-    S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
-{
-    Select::horizontal(options.into_iter())
-}
+// pub fn select_h_keyed<'a, Message: Clone, R: Renderer, E: Event, S, V>(
+//     options: impl IntoIterator<Item = impl Into<SelectOption<'a, Message, R,
+// E, S, V>>>, ) -> Select<'a, Message, R, E, S, V>
+// where
+//     S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
+// {
+//     Select::horizontal(options.into_iter())
+// }
 
-pub fn select_v_keyed<'a, Message: Clone, R: Renderer, E: Event, S, V>(
-    options: impl IntoIterator<Item = impl Into<SelectOption<'a, Message, R, E, S, V>>>,
-) -> Select<'a, Message, R, E, S, V>
-where
-    S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
-{
-    Select::vertical(options.into_iter())
-}
+// pub fn select_v_keyed<'a, Message: Clone, R: Renderer, E: Event, S, V>(
+//     options: impl IntoIterator<Item = impl Into<SelectOption<'a, Message, R,
+// E, S, V>>>, ) -> Select<'a, Message, R, E, S, V>
+// where
+//     S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
+// {
+//     Select::vertical(options.into_iter())
+// }
 
 pub fn slider_v<'a, Message: Clone, R: Renderer, S: SliderStyler<R::Color>>(
     on_change: impl (Fn(SliderPosition) -> Message) + 'a,

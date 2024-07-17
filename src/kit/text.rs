@@ -185,15 +185,11 @@ where
         let style = styler.style(&self.class, TextStatus::Normal);
 
         let real_font = self.font.to_real(viewport);
-        let mono_text_style = {
-            let base = MonoTextStyleBuilder::new()
-                .font(&real_font.font())
-                .text_color(style.text_color)
-                // .background_color(style.background)
-                .build();
-
-            base
-        };
+        let mono_text_style = MonoTextStyleBuilder::new()
+            .font(&real_font.font())
+            .text_color(style.text_color)
+            // .background_color(style.background)
+            .build();
 
         renderer.mono_text(TextBox::with_textbox_style(
             &self.content.get().to_string(),
