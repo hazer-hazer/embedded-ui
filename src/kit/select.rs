@@ -104,6 +104,7 @@ where
     class: S::Class<'a>,
     cycle: bool,
     axis: Axis,
+    font: Font,
     show_siblings: usize,
 }
 
@@ -128,6 +129,7 @@ where
             class: <S as SelectStyler<R::Color>>::default(),
             cycle: false,
             axis,
+            font: R::default_font(),
             show_siblings: 1,
         }
     }
@@ -428,18 +430,24 @@ where
             background: style.selected_background,
         });
 
+        let real_font = self.font.to_real(viewport);
+
+        let text_style = MonoTextStyleBuilder::new()
+            .font(real_font.font())
+            .text_color(style.selected_foreground)
+            .build();
+
+        let text_box_style = TextBoxStyleBuilder::new()
+            .alignment(embedded_text::alignment::HorizontalAlignment::Center)
+            .vertical_alignment(embedded_text::alignment::VerticalAlignment::Middle)
+            .line_height(embedded_graphics::text::LineHeight::Percent(100))
+            .build();
+
         renderer.mono_text(TextBox::with_textbox_style(
             &self.options.borrow()[self.chosen].to_string(),
             value_layout.bounds().into(),
-            MonoTextStyleBuilder::new()
-                .font(R::default_font().to_real(viewport).font())
-                .text_color(style.selected_foreground)
-                .build(),
-            TextBoxStyleBuilder::new()
-                .alignment(embedded_text::alignment::HorizontalAlignment::Center)
-                .vertical_alignment(embedded_text::alignment::VerticalAlignment::Middle)
-                .line_height(embedded_graphics::text::LineHeight::Percent(100))
-                .build(),
+            text_style,
+            text_box_style,
         ));
 
         // renderer.block(Block {

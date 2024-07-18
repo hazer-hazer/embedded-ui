@@ -1,11 +1,12 @@
 use embedded_graphics::{
     geometry::Point,
     image::{Image, ImageRaw},
-    iterator::raw::RawDataSlice,
+    iterator::{raw::RawDataSlice, PixelIteratorExt},
     mono_font::MonoTextStyle,
     pixelcolor::{raw::BigEndian, BinaryColor, PixelColor},
     primitives::{
-        Arc, Circle, Line, PrimitiveStyle, PrimitiveStyleBuilder, RoundedRectangle, StyledDrawable,
+        Arc, Circle, Line, Primitive, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle,
+        RoundedRectangle, StyledDrawable,
     },
     Pixel,
 };
@@ -21,6 +22,7 @@ use crate::{
 
 pub trait Renderer {
     type Color: UiColor + Copy;
+    type Pixel;
 
     // Renderer info
     fn clear(&mut self, color: Self::Color);
@@ -55,22 +57,48 @@ pub trait Renderer {
     }
 
     // Primitives //
-    fn pixel(&mut self, point: Point, color: Self::Color);
-    fn line(&mut self, start: Point, end: Point, color: Self::Color, width: u32);
+    fn pixel(&mut self, pixel: Self::Pixel);
+    fn clipped_pixel_iter(
+        &mut self,
+        clip_box: Rectangle,
+        pixels: impl Iterator<Item = Self::Pixel>,
+    );
+
+    fn line(
+        &mut self,
+        start: Point,
+        end: Point,
+        color: Self::Color,
+        width: u32,
+    ) -> impl Iterator<Item = Self::Pixel>;
 
     // TODO: Own Arc, Circle and Sector structs might be needed
-    fn arc(&mut self, arc: Arc, style: PrimitiveStyle<Self::Color>);
-    fn circle(&mut self, circle: Circle, style: PrimitiveStyle<Self::Color>);
+    fn arc(
+        &mut self,
+        arc: Arc,
+        style: PrimitiveStyle<Self::Color>,
+    ) -> impl Iterator<Item = Self::Pixel>;
+    fn circle(
+        &mut self,
+        circle: Circle,
+        style: PrimitiveStyle<Self::Color>,
+    ) -> impl Iterator<Item = Self::Pixel>;
 
     // High-level primitives //
-    fn block(&mut self, block: Block<Self::Color>);
+    fn block(&mut self, block: Block<Self::Color>) -> impl Iterator<Item = Self::Pixel>;
 
     // Text //
     fn default_font() -> Font;
-    fn mono_text<'a>(&mut self, text: TextBox<'a, MonoTextStyle<'a, Self::Color>>);
+    fn mono_text<'a>(
+        &mut self,
+        text: TextBox<'a, MonoTextStyle<'a, Self::Color>>,
+    ) -> impl Iterator<Item = Self::Pixel>;
 
     // Images //
-    fn image<'a>(&mut self, image: Image<'a, ImageRaw<'a, Self::Color>>)
+    fn image<'a>(
+        &mut self,
+        image: Image<'a, ImageRaw<'a, Self::Color>>,
+    ) -> impl Iterator<Item = Self::Pixel>
     where
         RawDataSlice<'a, <Self::Color as PixelColor>::Raw, BigEndian>:
             IntoIterator<Item = <Self::Color as PixelColor>::Raw>;
@@ -86,15 +114,44 @@ pub struct NullRenderer;
 
 impl Renderer for NullRenderer {
     type Color = BinaryColor;
+    type Pixel = Pixel<Self::Color>;
 
     fn clear(&mut self, _color: Self::Color) {}
 
-    fn pixel(&mut self, _point: Point, _color: Self::Color) {}
-    fn line(&mut self, _from: Point, _to: Point, _color: Self::Color, _width: u32) {}
-    fn arc(&mut self, _arc: Arc, _style: PrimitiveStyle<Self::Color>) {}
-    fn circle(&mut self, _circle: Circle, _style: PrimitiveStyle<Self::Color>) {}
+    fn clipped_pixel_iter(
+        &mut self,
+        _clip_box: Rectangle,
+        _pixels: impl Iterator<Item = Pixel<Self::Color>>,
+    ) {
+    }
+    fn pixel(&mut self, _pixel: Pixel<Self::Color>) {}
+    fn line(
+        &mut self,
+        _from: Point,
+        _to: Point,
+        _color: Self::Color,
+        _width: u32,
+    ) -> impl Iterator<Item = Self::Pixel> {
+        core::iter::empty()
+    }
+    fn arc(
+        &mut self,
+        _arc: Arc,
+        _style: PrimitiveStyle<Self::Color>,
+    ) -> impl Iterator<Item = Self::Pixel> {
+        core::iter::empty()
+    }
+    fn circle(
+        &mut self,
+        _circle: Circle,
+        _style: PrimitiveStyle<Self::Color>,
+    ) -> impl Iterator<Item = Self::Pixel> {
+        core::iter::empty()
+    }
 
-    fn block(&mut self, _block: Block<Self::Color>) {}
+    fn block(&mut self, _block: Block<Self::Color>) -> impl Iterator<Item = Self::Pixel> {
+        core::iter::empty()
+    }
 
     fn default_font() -> Font {
         Font {
@@ -103,12 +160,21 @@ impl Renderer for NullRenderer {
             style: FontStyle::Normal,
         }
     }
-    fn mono_text<'a>(&mut self, _text: TextBox<'a, MonoTextStyle<'a, Self::Color>>) {}
-    fn image<'a>(&mut self, _image: Image<'a, ImageRaw<'a, Self::Color>>)
+    fn mono_text<'a>(
+        &mut self,
+        _text: TextBox<'a, MonoTextStyle<'a, Self::Color>>,
+    ) -> impl Iterator<Item = Self::Pixel> {
+        core::iter::empty()
+    }
+    fn image<'a>(
+        &mut self,
+        _image: Image<'a, ImageRaw<'a, Self::Color>>,
+    ) -> impl Iterator<Item = Self::Pixel>
     where
         RawDataSlice<'a, <Self::Color as PixelColor>::Raw, BigEndian>:
             IntoIterator<Item = <Self::Color as PixelColor>::Raw>,
     {
+        core::iter::empty()
     }
 }
 
@@ -118,47 +184,68 @@ where
     D::Error: core::fmt::Debug,
 {
     type Color = C;
+    type Pixel = Pixel<Self::Color>;
 
     fn clear(&mut self, color: Self::Color) {
         self.clear(color).unwrap()
     }
 
-    fn pixel(&mut self, point: Point, color: Self::Color) {
-        Pixel(point, color).draw(self).unwrap();
+    fn clipped_pixel_iter(
+        &mut self,
+        clip_box: Rectangle,
+        pixels: impl Iterator<Item = Pixel<Self::Color>>,
+    ) {
+        pixels.filter(|pixel| clip_box.contains(pixel.0)).draw(self).unwrap();
     }
 
-    fn line(&mut self, start: Point, end: Point, color: Self::Color, width: u32) {
+    fn pixel(&mut self, pixel: Pixel<Self::Color>) {
+        pixel.draw(self).unwrap();
+    }
+
+    fn line(
+        &mut self,
+        start: Point,
+        end: Point,
+        color: Self::Color,
+        width: u32,
+    ) -> impl Iterator<Item = Self::Pixel> {
         Line::new(start, end)
-            .draw_styled(
-                &PrimitiveStyleBuilder::new().stroke_width(width).stroke_color(color).build(),
-                self,
+            .into_styled(
+                PrimitiveStyleBuilder::new().stroke_width(width).stroke_color(color).build(),
             )
-            .unwrap();
+            .pixels()
     }
 
-    fn arc(&mut self, arc: Arc, style: PrimitiveStyle<Self::Color>) {
-        arc.draw_styled(&style, self).unwrap();
+    fn arc(
+        &mut self,
+        arc: Arc,
+        style: PrimitiveStyle<Self::Color>,
+    ) -> impl Iterator<Item = Self::Pixel> {
+        arc.into_styled(style).pixels()
     }
 
-    fn circle(&mut self, circle: Circle, style: PrimitiveStyle<Self::Color>) {
-        circle.draw_styled(&style, self).unwrap();
+    fn circle(
+        &mut self,
+        circle: Circle,
+        style: PrimitiveStyle<Self::Color>,
+    ) -> impl Iterator<Item = Self::Pixel> {
+        circle.into_styled(style).pixels()
     }
 
-    fn block(&mut self, block: Block<Self::Color>)
+    fn block(&mut self, block: Block<Self::Color>) -> impl Iterator<Item = Self::Pixel>
     where
         Self: Sized,
     {
         let corner_radii = block.border.radius.into_corner_radii(block.rect.size.into());
         RoundedRectangle::new(block.rect, corner_radii)
-            .draw_styled(
-                &PrimitiveStyleBuilder::new()
+            .into_styled(
+                PrimitiveStyleBuilder::new()
                     .fill_color(block.background)
                     .stroke_color(block.border.color)
                     .stroke_width(block.border.width)
                     .build(),
-                self,
             )
-            .unwrap();
+            .pixels()
     }
 
     fn default_font() -> Font {
@@ -169,11 +256,17 @@ where
         }
     }
 
-    fn mono_text(&mut self, text: TextBox<'_, MonoTextStyle<'_, Self::Color>>) {
+    fn mono_text(
+        &mut self,
+        text: TextBox<'_, MonoTextStyle<'_, Self::Color>>,
+    ) -> impl Iterator<Item = Self::Pixel> {
         text.draw(self).unwrap();
     }
 
-    fn image<'a>(&mut self, image: Image<'a, ImageRaw<'a, Self::Color>>)
+    fn image<'a>(
+        &mut self,
+        image: Image<'a, ImageRaw<'a, Self::Color>>,
+    ) -> impl Iterator<Item = Self::Pixel>
     where
         RawDataSlice<'a, <Self::Color as PixelColor>::Raw, BigEndian>:
             IntoIterator<Item = <Self::Color as PixelColor>::Raw>,
