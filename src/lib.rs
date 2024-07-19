@@ -11,7 +11,7 @@ pub mod focus;
 pub mod font;
 pub mod helpers;
 pub mod icons;
-pub mod kit;
+pub mod widgets;
 mod layer;
 pub mod layout;
 mod log;

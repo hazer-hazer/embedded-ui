@@ -1,10 +1,9 @@
 use core::{borrow::Borrow, fmt::Display};
 
 use crate::{
-    axis::Axis,
     el::El,
     event::Event,
-    kit::{
+    widgets::{
         bar::{Bar, BarStyler},
         button::{Button, ButtonStyler},
         checkbox::{Checkbox, CheckboxStyler},

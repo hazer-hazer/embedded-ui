@@ -2,23 +2,22 @@ use core::borrow::Borrow;
 
 use alloc::{
     boxed::Box,
-    string::{String, ToString},
+    string::ToString,
     vec::Vec,
 };
 use embedded_graphics::{
-    geometry::Point, mono_font::MonoTextStyleBuilder, primitives::Rectangle, transform::Transform,
+    geometry::Point, mono_font::MonoTextStyleBuilder, transform::Transform,
 };
 use embedded_text::{style::TextBoxStyleBuilder, TextBox};
 
 use crate::{
     axis::{Axial, Axis},
-    block::Block,
-    color::UiColor,
+    block::{Block, BoxModel},
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
     font::{Font, FontSize},
     icons::IconKind,
-    layout::{Layout, LayoutNode, Limits, Viewport},
+    layout::{Layout, LayoutNode, Viewport},
     padding::Padding,
     palette::PaletteColor,
     render::Renderer,
@@ -290,7 +289,7 @@ where
         // option.tree_ids()).flatten().collect()
     }
 
-    fn size(&self) -> Size<Length> {
+    fn size(&self, _viewport: &Viewport) -> Size<Length> {
         self.size
     }
 
@@ -401,8 +400,9 @@ where
             self.size,
             crate::layout::Position::Relative,
             viewport,
-            self.axis.canon::<Padding>(padding_for_icons, 0),
-            style.border.width,
+            BoxModel::new()
+                .padding(self.axis.canon::<Padding>(padding_for_icons, 0))
+                .border(style.border.width),
             crate::align::Alignment::Center,
             crate::align::Alignment::Center,
             |limits| {
@@ -427,9 +427,9 @@ where
         viewport: &Viewport,
     ) {
         let bounds = layout.bounds();
-        let icons_node = LayoutNode::new(self.arrow_icon_size(viewport).into());
-        let icons_cross_center = bounds.size.cross_for(self.axis) as i32 / 2
-            - icons_node.size().cross_for(self.axis) as i32 / 2;
+        let icon_node = LayoutNode::childless(self.arrow_icon_size(viewport).into());
+        let icon_cross_center = bounds.size.cross_for(self.axis) as i32 / 2
+            - icon_node.size().cross_for(self.axis) as i32 / 2;
 
         let style = SelectStyler::style(styler, &self.class, self.status::<E>(ctx, state));
 
@@ -448,8 +448,8 @@ where
                 styler,
                 Layout::with_offset(
                     bounds.top_left
-                        + self.axis.canon::<Point>(style.border.width as i32, icons_cross_center),
-                    &icons_node,
+                        + self.axis.canon::<Point>(style.border.width as i32, icon_cross_center),
+                    &icon_node,
                 ),
                 viewport,
             );
@@ -466,11 +466,11 @@ where
                     bounds.top_left
                         + self.axis.canon::<Point>(
                             bounds.size.main_for(self.axis) as i32
-                                - icons_node.size().main_for(self.axis) as i32
+                                - icon_node.size().main_for(self.axis) as i32
                                 - style.border.width as i32,
-                            icons_cross_center,
+                            icon_cross_center,
                         ),
-                    &icons_node,
+                    &icon_node,
                 ),
                 viewport,
             );

@@ -4,6 +4,8 @@ use embedded_graphics::geometry::Point;
 
 use crate::{axis::Axis, size::Size};
 
+// TODO: Outline -- outer bounds border that does not take any space
+
 #[derive(Clone, Copy, Default)]
 pub struct Padding {
     pub left: u32,

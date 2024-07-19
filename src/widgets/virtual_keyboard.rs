@@ -67,7 +67,7 @@
 //         vec![]
 //     }
 
-//     fn size(&self) -> Size<Length> {
+//     fn size(&self, viewport: &Viewport) -> Size<Length> {
 //         Size::fill()
 //     }
 

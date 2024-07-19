@@ -1,7 +1,6 @@
 use crate::{
     align::Alignment,
-    block::Block,
-    color::UiColor,
+    block::{Block, BoxModel},
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, EventResponse, Propagate},
     layout::{Layout, Viewport},
@@ -53,13 +52,13 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: ButtonStatus) -> Butto
         .border_width(0);
 
     match status {
-        crate::kit::button::ButtonStatus { pressed: true, focused: _ } => {
+        crate::widgets::button::ButtonStatus { pressed: true, focused: _ } => {
             base.border_width(2).border_radius(7).background(palette.background)
         },
-        crate::kit::button::ButtonStatus { focused: true, pressed: false } => {
+        crate::widgets::button::ButtonStatus { focused: true, pressed: false } => {
             base.border_width(1).border_radius(5)
         },
-        crate::kit::button::ButtonStatus { .. } => base.border_radius(2),
+        crate::widgets::button::ButtonStatus { .. } => base.border_radius(2),
     }
 }
 
@@ -154,7 +153,7 @@ where
         ids
     }
 
-    fn size(&self) -> Size<Length> {
+    fn size(&self, _viewport: &Viewport) -> Size<Length> {
         self.size
     }
 
@@ -238,8 +237,7 @@ where
             self.size,
             crate::layout::Position::Relative,
             viewport,
-            self.padding,
-            style.border.width,
+            BoxModel::new().padding(self.padding).border(style.border.width),
             Alignment::Start,
             Alignment::Start,
             |limits| self.content.layout(ctx, &mut state.children[0], styler, limits, viewport),

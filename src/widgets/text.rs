@@ -6,7 +6,6 @@ use embedded_text::{style::TextBoxStyleBuilder, TextBox};
 
 use crate::{
     align::{HorizontalAlign, VerticalAlign},
-    color::UiColor,
     el::El,
     event::Event,
     font::{Font, FontSize},
@@ -154,7 +153,7 @@ where
         vec![]
     }
 
-    fn size(&self) -> Size<Length> {
+    fn size(&self, _viewport: &Viewport) -> Size<Length> {
         self.size.into()
     }
 

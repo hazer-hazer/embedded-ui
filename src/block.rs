@@ -1,8 +1,37 @@
 use embedded_graphics::primitives::{CornerRadii, Rectangle};
 
+use crate::padding::Padding;
 use crate::size::Size;
 
 use crate::color::UiColor;
+
+#[derive(Clone, Copy)]
+pub struct BoxModel {
+    pub margin: Padding,
+    pub border: Padding,
+    pub padding: Padding,
+}
+
+impl BoxModel {
+    pub fn new() -> Self {
+        Self { margin: Padding::zero(), border: Padding::zero(), padding: Padding::zero() }
+    }
+
+    pub fn margin(mut self, margin: impl Into<Padding>) -> Self {
+        self.margin = margin.into();
+        self
+    }
+
+    pub fn border(mut self, border: impl Into<Padding>) -> Self {
+        self.border = border.into();
+        self
+    }
+
+    pub fn padding(mut self, padding: impl Into<Padding>) -> Self {
+        self.padding = padding.into();
+        self
+    }
+}
 
 #[derive(Clone, Copy, Debug)]
 pub enum Radius {

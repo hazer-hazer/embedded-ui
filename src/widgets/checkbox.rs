@@ -2,12 +2,12 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use embedded_graphics::primitives::Rectangle;
 
+use crate::block::BoxModel;
 use crate::el::{El, ElId};
 use crate::event::{Capture, CommonEvent, Event, Propagate};
 use crate::font::FontSize;
 use crate::icons::IconKind;
 use crate::layout::{Layout, Viewport};
-use crate::padding::Padding;
 use crate::palette::PaletteColor;
 use crate::render::Renderer;
 use crate::size::{Length, Size};
@@ -64,6 +64,9 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: CheckboxStatus) -> Che
     }
 }
 
+const PADDING: u32 = 2;
+const BORDER: u32 = 1;
+
 pub struct Checkbox<'a, Message, R, S>
 where
     R: Renderer,
@@ -102,21 +105,16 @@ where
         self
     }
 
-    fn size(&self, viewport: &Viewport) -> Size {
-        self.size.to_real(viewport).into()
+    pub fn size(mut self, font_size: impl Into<FontSize>) -> Self {
+        self.size = font_size.into();
+        self
     }
 
-    // pub fn width(mut self, width: impl Into<Length>) -> Self {
-    //     self.size.width = width.into();
-    //     self
-    // }
-
-    // pub fn height(mut self, height: impl Into<Length>) -> Self {
-    //     self.size.height = height.into();
-    //     self
-    // }
-
     // Helpers //
+    fn outer_size(&self, viewport: &Viewport) -> Size {
+        Size::new_equal(self.size.to_real(viewport) + BORDER + PADDING)
+    }
+
     fn status<E: Event + 'a>(&self, ctx: &UiCtx<Message>, state: &StateNode) -> CheckboxStatus {
         let focused = UiCtx::is_focused::<R, E, S>(&ctx, self);
         match (state.get::<CheckboxState>(), focused) {
@@ -142,9 +140,8 @@ where
         vec![self.id]
     }
 
-    fn size(&self) -> crate::size::Size<crate::size::Length> {
-        // FIXME: Wrong
-        Size::fill()
+    fn size(&self, viewport: &Viewport) -> Size<Length> {
+        self.outer_size(viewport).into()
     }
 
     fn state_tag(&self) -> crate::state::StateTag {
@@ -213,11 +210,10 @@ where
     ) -> crate::layout::LayoutNode {
         Layout::container(
             limits,
-            self.size(viewport),
+            self.outer_size(viewport),
             crate::layout::Position::Relative,
             viewport,
-            Padding::zero(),
-            Padding::new_equal(1),
+            BoxModel::new().border(BORDER).padding(PADDING),
             crate::align::Alignment::Center,
             crate::align::Alignment::Center,
             |limits| {

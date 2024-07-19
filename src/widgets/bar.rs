@@ -7,11 +7,10 @@ use crate::{
     block::{Block, Border},
     el::El,
     event::Event,
-    layout::Layout,
+    layout::{Layout, Viewport},
     palette::PaletteColor,
     render::Renderer,
     size::{Length, Size},
-    state::{State, StateTag},
     style::component_style,
     theme::Theme,
     widget::Widget,
@@ -128,7 +127,7 @@ where
         vec![]
     }
 
-    fn size(&self) -> Size<Length> {
+    fn size(&self, _viewport: &Viewport) -> Size<Length> {
         self.size
     }
 
@@ -159,12 +158,12 @@ where
 
     fn draw(
         &self,
-        ctx: &mut crate::ui::UiCtx<Message>,
-        state: &mut crate::state::StateNode,
+        _ctx: &mut crate::ui::UiCtx<Message>,
+        _state: &mut crate::state::StateNode,
         renderer: &mut R,
         styler: &S,
         layout: crate::layout::Layout,
-        viewport: &crate::layout::Viewport,
+        _viewport: &crate::layout::Viewport,
     ) {
         let bounds = layout.bounds();
 

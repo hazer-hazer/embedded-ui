@@ -4,18 +4,19 @@ use embedded_graphics::pixelcolor::raw::{BigEndian, RawData, RawU1};
 use embedded_graphics::Pixel;
 
 use crate::el::El;
+use crate::font::FontSize;
 use crate::icons::icons5::Icons5;
 use crate::icons::icons6::Icons6;
 use crate::icons::icons7::Icons7;
 use crate::icons::icons8::Icons8;
 use crate::icons::{IconData, IconKind, IconSet};
-use crate::layout::{LayoutNode, Limits, Viewport};
+use crate::layout::{Layout, Limits, Viewport};
 use crate::log::logger::warning;
 use crate::palette::PaletteColor;
-use crate::size::{Length, SizeExt};
-use crate::style::{component_style, Styler};
+use crate::size::{Length, Size, SizeExt};
+use crate::style::component_style;
 use crate::theme::Theme;
-use crate::{color::UiColor, event::Event, render::Renderer, size::Size, widget::Widget};
+use crate::{event::Event, render::Renderer, widget::Widget};
 
 pub struct IconPicker;
 
@@ -64,7 +65,7 @@ where
     R: Renderer,
     S: IconStyler<R::Color>,
 {
-    size: Length,
+    size: FontSize,
     kind: IconKind,
     class: S::Class<'a>,
 }
@@ -77,7 +78,7 @@ where
     pub fn new(kind: IconKind) -> Self {
         // assert_eq!((size * size).div_ceil(8) as usize, data.len());
 
-        Self { size: Length::Fill, kind, class: S::default() }
+        Self { size: FontSize::Relative(1.0), kind, class: S::default() }
     }
 
     pub fn style(mut self, class: S::Class<'a>) -> Self {
@@ -85,8 +86,8 @@ where
         self
     }
 
-    pub fn size(mut self, size: impl Into<Length>) -> Self {
-        self.size = size.into();
+    pub fn size(mut self, font_size: impl Into<FontSize>) -> Self {
+        self.size = font_size.into();
         self
     }
 }
@@ -105,8 +106,8 @@ where
         vec![]
     }
 
-    fn size(&self) -> crate::size::Size<crate::size::Length> {
-        Size::new_equal(self.size)
+    fn size(&self, viewport: &Viewport) -> Size<Length> {
+        Size::new_equal(self.size.to_real(viewport).into())
     }
 
     fn layout(
@@ -115,11 +116,14 @@ where
         _state: &mut crate::state::StateNode,
         _styler: &S,
         limits: &crate::layout::Limits,
-        _viewport: &Viewport,
+        viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
-        let size = Size::new_equal(IconPicker.flex_size(self.size, limits));
+        let icon_size =
+            Size::new_equal(IconPicker.flex_size(self.size.to_real(viewport).into(), limits));
 
-        LayoutNode::new(limits.resolve_size(size.width, size.height, size))
+        Layout::sized(limits, icon_size, crate::layout::Position::Relative, viewport, |limits| {
+            limits.max()
+        })
     }
 
     fn draw(
@@ -134,8 +138,6 @@ where
         let bounds = layout.bounds();
         let bounds_size = bounds.size.max_square();
         let icon = IconPicker.by_size(bounds_size, self.kind);
-
-        // TODO: Warn that icon cannot be drawn because no fitted options found
 
         let style = styler.style(&self.class, IconStatus);
 

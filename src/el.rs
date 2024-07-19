@@ -51,8 +51,8 @@ impl<'a, Message, R: Renderer, E: Event, S> Widget<Message, R, E, S> for El<'a, 
         self.widget.tree_ids()
     }
 
-    fn size(&self) -> Size<Length> {
-        self.widget.size()
+    fn size(&self, viewport: &Viewport) -> Size<Length> {
+        self.widget.size(viewport)
     }
 
     fn layout(

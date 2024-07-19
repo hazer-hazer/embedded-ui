@@ -1,4 +1,3 @@
-use embedded_graphics::pixelcolor::RgbColor;
 
 use crate::{
     color::UiColor,

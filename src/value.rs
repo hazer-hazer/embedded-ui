@@ -56,8 +56,8 @@ where
         self.get().tree_ids()
     }
 
-    fn size(&self) -> crate::size::Size<crate::size::Length> {
-        self.get().size()
+    fn size(&self, viewport: &Viewport) -> crate::size::Size<crate::size::Length> {
+        self.get().size(viewport)
     }
 
     fn layout(

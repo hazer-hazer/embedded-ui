@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 use crate::{
     align::Alignment,
     axis::Axis,
+    block::BoxModel,
     el::{El, ElId},
     event::{Event, EventResponse, Propagate},
     layout::{Layout, Viewport},
@@ -122,7 +123,7 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
         self.children.iter().map(|child| child.tree_ids()).flatten().collect()
     }
 
-    fn size(&self) -> crate::size::Size<Length> {
+    fn size(&self, _viewport: &Viewport) -> crate::size::Size<Length> {
         self.size
     }
 
@@ -163,7 +164,7 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
             self.size,
             crate::layout::Position::Relative,
             viewport,
-            self.padding,
+            BoxModel::new().padding(self.padding),
             self.gap,
             self.align,
             &self.children,

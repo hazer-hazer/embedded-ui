@@ -1,8 +1,8 @@
 use core::ops::{Add, Div, Mul, Sub};
 
-use embedded_graphics::{geometry::Point, primitives::Rectangle, transform::Transform};
+use embedded_graphics::geometry::Point;
 
-use crate::axis::Axis;
+use crate::{axis::Axis, padding::Padding};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "defmt", derive(::defmt::Format))]
@@ -105,6 +105,14 @@ impl From<u32> for Size {
     }
 }
 
+impl Add<Padding> for Size {
+    type Output = Self;
+
+    fn add(self, rhs: Padding) -> Self::Output {
+        self + Into::<Size>::into(rhs)
+    }
+}
+
 impl Add for Size<u32> {
     type Output = Self;
 
@@ -118,6 +126,14 @@ impl Sub for Size<u32> {
 
     fn sub(self, rhs: Self) -> Self::Output {
         Self::new(self.width.saturating_sub(rhs.width), self.height.saturating_sub(rhs.height))
+    }
+}
+
+impl Sub<Padding> for Size {
+    type Output = Self;
+
+    fn sub(self, rhs: Padding) -> Self::Output {
+        self - Into::<Size>::into(rhs)
     }
 }
 
@@ -265,5 +281,22 @@ impl SizeExt for embedded_graphics_core::geometry::Size {
 // impl Into<Rectangle> for Bounds {
 //     fn into(self) -> Rectangle {
 //         Rectangle { top_left: self.position.into(), size: self.size.into() }
+//     }
+// }
+
+// /// Viewport-relative predefined size options
+// #[derive(Clone, Copy)]
+// pub enum UiSize {
+//     Xxs,
+//     Xs,
+//     S,
+//     M,
+//     L,
+//     Xl,
+// }
+
+// impl UiSize {
+//     pub fn for_viewport(self, viewport: &Viewport) -> u32 {
+//         FontSize::base_for_viewport(viewport)
 //     }
 // }

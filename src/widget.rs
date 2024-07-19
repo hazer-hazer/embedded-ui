@@ -21,7 +21,7 @@ where
 {
     fn id(&self) -> Option<ElId>;
     fn tree_ids(&self) -> Vec<ElId>;
-    fn size(&self) -> Size<Length>;
+    fn size(&self, viewport: &Viewport) -> Size<Length>;
     fn position(&self) -> Position {
         Position::Relative
     }

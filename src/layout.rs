@@ -4,6 +4,7 @@ use embedded_graphics::{geometry::Point, primitives::Rectangle};
 use crate::{
     align::Alignment,
     axis::{Axial, Axis},
+    block::BoxModel,
     el::El,
     event::Event,
     padding::Padding,
@@ -28,37 +29,49 @@ pub struct Viewport {
     pub size: Size,
 }
 
+// #[derive(Clone, Copy)]
+// pub struct Margin {
+
+// }
+
 #[derive(Clone)]
 pub struct LayoutNode {
     position: Position,
     bounds: Rectangle,
+    content: Size,
     children: Vec<LayoutNode>,
 }
 
 impl LayoutNode {
-    pub fn new(size: Size) -> Self {
+    pub fn childless(size: Size) -> Self {
         Self {
             position: Position::Relative,
             bounds: Rectangle { top_left: Point::zero(), size: size.into() },
+            content: size,
             children: vec![],
         }
     }
 
-    pub fn with_children(size: Size, children: impl IntoIterator<Item = LayoutNode>) -> Self {
+    pub fn with_children(
+        size: Size,
+        margin: Padding,
+        children: impl IntoIterator<Item = LayoutNode>,
+    ) -> Self {
         Self {
             position: Position::Relative,
             bounds: Rectangle { top_left: Point::zero(), size: size.into() },
+            content: size - margin,
             children: children.into_iter().collect(),
         }
     }
 
-    pub fn absolute(size: Size) -> Self {
-        Self {
-            position: Position::Absolute,
-            bounds: Rectangle { top_left: Point::zero(), size: size.into() },
-            children: vec![],
-        }
-    }
+    // pub fn absolute(size: Size) -> Self {
+    //     Self {
+    //         position: Position::Absolute,
+    //         bounds: Rectangle { top_left: Point::zero(), size: size.into() },
+    //         children: vec![],
+    //     }
+    // }
 
     pub fn position(&self) -> Position {
         self.position
@@ -122,11 +135,9 @@ impl LayoutNode {
 
 impl Default for LayoutNode {
     fn default() -> Self {
-        Self::new(Size::zero())
+        Self::childless(Size::zero())
     }
 }
-
-// TODO: Margin
 
 #[derive(Clone)]
 pub struct Layout<'a> {
@@ -180,7 +191,7 @@ impl<'a> Layout<'a> {
             .limit_height(size.height);
         let content_size = content_limits(&limits);
 
-        LayoutNode::new(limits.resolve_size(size.width, size.height, content_size))
+        LayoutNode::childless(limits.resolve_size(size.width, size.height, content_size))
     }
 
     pub fn container(
@@ -188,16 +199,15 @@ impl<'a> Layout<'a> {
         size: impl Into<Size<Length>>,
         position: Position,
         viewport: &Viewport,
-        padding: impl Into<Padding>,
-        border: impl Into<Padding>,
+        box_model: BoxModel,
         content_align_h: Alignment,
         content_align_v: Alignment,
         content_layout: impl FnOnce(&Limits) -> LayoutNode,
         // place_content: impl FnOnce(LayoutNode, Size) -> LayoutNode,
     ) -> LayoutNode {
         let size = size.into();
-        let padding = padding.into();
-        let border = border.into();
+        let padding = box_model.padding;
+        let border = box_model.border;
 
         let full_padding = padding + border;
 
@@ -213,7 +223,7 @@ impl<'a> Layout<'a> {
 
         let content = content.moved(content_offset).aligned(content_align_h, content_align_v, size);
 
-        LayoutNode::with_children(size.expand(fit_padding), vec![content])
+        LayoutNode::with_children(size.expand(fit_padding), box_model.margin, vec![content])
     }
 
     pub fn flex<Message, R: Renderer, E: Event, S>(
@@ -225,13 +235,13 @@ impl<'a> Layout<'a> {
         size: impl Into<Size<Length>>,
         position: Position,
         viewport: &Viewport,
-        padding: impl Into<Padding>,
+        box_model: BoxModel,
         gap: u32,
         align: Alignment,
         children: &[El<'_, Message, R, E, S>],
     ) -> LayoutNode {
         let size = size.into();
-        let padding = padding.into();
+        let padding = box_model.padding;
 
         let limits = limits
             .for_position(position, viewport)
@@ -264,7 +274,7 @@ impl<'a> Layout<'a> {
                 },
                 Position::Relative => {
                     let (fill_main_div, fill_cross_div) = {
-                        let size = child.size();
+                        let size = child.size(viewport);
                         axis.canon(size.width.div_factor(), size.height.div_factor())
                     };
 
@@ -312,7 +322,7 @@ impl<'a> Layout<'a> {
         {
             if let Position::Relative = child.position() {
                 let (fill_main_div, fill_cross_div) = {
-                    let size = child.size();
+                    let size = child.size(viewport);
 
                     axis.canon(size.width.div_factor(), size.height.div_factor())
                 };
@@ -374,7 +384,7 @@ impl<'a> Layout<'a> {
         let size =
             limits.resolve_size(size.width, size.height, Size::new(content_width, content_height));
 
-        LayoutNode::with_children(size.expand(padding), layout_children)
+        LayoutNode::with_children(size.expand(padding), box_model.margin, layout_children)
     }
 }
 

@@ -1,8 +1,8 @@
 use embedded_graphics::{
-    draw_target::{Clipped, DrawTargetExt},
+    draw_target::DrawTargetExt,
     geometry::Point,
     image::{Image, ImageRaw},
-    iterator::{raw::RawDataSlice, PixelIteratorExt},
+    iterator::raw::RawDataSlice,
     mono_font::MonoTextStyle,
     pixelcolor::{raw::BigEndian, BinaryColor, PixelColor},
     primitives::{

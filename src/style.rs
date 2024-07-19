@@ -1,6 +1,6 @@
 use crate::{
     color::UiColor,
-    kit::{
+    widgets::{
         bar::BarStyler, button::ButtonStyler, checkbox::CheckboxStyler, icon::IconStyler,
         knob::KnobStyler, select::SelectStyler, slider::SliderStyler,
     },

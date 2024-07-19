@@ -5,11 +5,10 @@ use embedded_graphics::{
 };
 
 use crate::{
-    color::UiColor,
+    block::BoxModel,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
     layout::{Layout, LayoutNode, Viewport},
-    padding::Padding,
     palette::PaletteColor,
     render::Renderer,
     size::{Length, Size, SizeExt},
@@ -199,7 +198,7 @@ where
         vec![self.id]
     }
 
-    fn size(&self) -> crate::size::Size<crate::size::Length> {
+    fn size(&self, _viewport: &Viewport) -> crate::size::Size<crate::size::Length> {
         Size::new_equal(self.diameter)
     }
 
@@ -288,15 +287,14 @@ where
             size,
             crate::layout::Position::Relative,
             viewport,
-            Padding::zero(),
-            Padding::zero(),
+            BoxModel::new(),
             crate::align::Alignment::Center,
             crate::align::Alignment::Center,
             |limits| {
                 if let Some(inner) = self.inner.as_ref() {
                     inner.layout(ctx, &mut state.children[0], styler, limits, viewport)
                 } else {
-                    LayoutNode::new(Size::zero())
+                    LayoutNode::childless(Size::zero())
                 }
             },
         )

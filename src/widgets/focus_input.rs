@@ -98,7 +98,7 @@
 // self), state) {             (_, FocusInputState { is_active: true, .. }) =>
 // FocusInputStatus::Active,             (_, FocusInputState { is_pressed: true,
 // .. }) => FocusInputStatus::Pressed,             (true, FocusInputState {
-// is_active: false, is_pressed: false }) => {                 
+// is_active: false, is_pressed: false }) => {
 // FocusInputStatus::Focused             },
 //             (false, FocusInputState { is_active: false, is_pressed: false })
 // => {                 FocusInputStatus::Normal
@@ -121,7 +121,7 @@
 //         vec![self.id]
 //     }
 
-//     fn size(&self) -> Size<Length> {
+//     fn size(&self, viewport: &Viewport) -> Size<Length> {
 //         self.size
 //     }
 
@@ -166,7 +166,7 @@
 
 //                 if prev_char != new_char {
 //                     if let Some(on_change) = self.on_change.as_ref() {
-//                         
+//
 // ctx.publish((on_change)(&String::from_iter(self.value.get().iter())))
 //                     }
 //                 }

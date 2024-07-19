@@ -1,4 +1,4 @@
-use embedded_graphics::pixelcolor::{BinaryColor, Rgb555, Rgb565, Rgb666, Rgb888, RgbColor};
+use embedded_graphics::pixelcolor::{BinaryColor, Rgb555, Rgb565, Rgb666, Rgb888};
 
 use crate::color::{Rgba, UiColor};
 

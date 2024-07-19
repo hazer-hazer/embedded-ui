@@ -1,12 +1,8 @@
-use std::{process::exit, thread, time::Duration};
+use std::process::exit;
 
 use embedded_graphics::{
-    geometry::{Dimensions, Point, Size},
-    pixelcolor::{Rgb888, RgbColor},
-    primitives::{
-        CornerRadii, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, RoundedRectangle,
-        StyledDrawable,
-    },
+    geometry::{Dimensions, Size},
+    pixelcolor::Rgb888,
 };
 use embedded_graphics_simulator::{
     sdl2::{self, Keycode, MouseButton},
@@ -16,9 +12,9 @@ use embedded_ui::{
     col,
     el::ElId,
     event::CommonEvent,
-    helpers::{bar_h, button, checkbox, select_h, select_v, text},
+    helpers::{bar_h, button, checkbox, select_v, text},
     icons::IconKind,
-    kit::knob::Knob,
+    widgets::knob::Knob,
     row,
     ui::UI,
     value::Value,
@@ -194,7 +190,8 @@ fn main() {
                 Message::None
             }),
         ]
-    ];
+    ]
+    .gap(1);
 
     let mut ui = UI::new(col, display.bounding_box().size.into()).rgb888().theme(Theme::AyuLight);
 

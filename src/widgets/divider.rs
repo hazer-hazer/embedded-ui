@@ -69,7 +69,7 @@ where
         vec![]
     }
 
-    fn size(&self) -> crate::size::Size<crate::size::Length> {
+    fn size(&self, _viewport: &Viewport) -> crate::size::Size<crate::size::Length> {
         self.axis.canon(
             Length::Fill,
             Length::Fixed(self.thickness + self.padding.total_axis(self.axis.invert())),

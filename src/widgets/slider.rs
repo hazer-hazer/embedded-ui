@@ -158,7 +158,7 @@ where
         vec![self.id]
     }
 
-    fn size(&self) -> Size<Length> {
+    fn size(&self, _viewport: &Viewport) -> Size<Length> {
         self.size
     }
 
