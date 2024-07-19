@@ -83,12 +83,12 @@ impl Axial for Point {
     type Data = i32;
 
     #[inline]
-    fn x(&self) -> i32 {
+    fn x(&self) -> Self::Data {
         self.x
     }
 
     #[inline]
-    fn y(&self) -> i32 {
+    fn y(&self) -> Self::Data {
         self.y
     }
 
@@ -102,12 +102,31 @@ impl<S: Copy> Axial for Size<S> {
     type Data = S;
 
     #[inline]
-    fn x(&self) -> S {
+    fn x(&self) -> Self::Data {
         self.width
     }
 
     #[inline]
-    fn y(&self) -> S {
+    fn y(&self) -> Self::Data {
+        self.height
+    }
+
+    #[inline]
+    fn new(x: Self::Data, y: Self::Data) -> Self {
+        Self::new(x, y)
+    }
+}
+
+impl Axial for embedded_graphics_core::geometry::Size {
+    type Data = u32;
+
+    #[inline]
+    fn x(&self) -> Self::Data {
+        self.width
+    }
+
+    #[inline]
+    fn y(&self) -> Self::Data {
         self.height
     }
 

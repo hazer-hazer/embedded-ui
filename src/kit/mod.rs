@@ -1,3 +1,4 @@
+pub mod bar;
 pub mod button;
 pub mod checkbox;
 pub mod divider;
@@ -9,5 +10,3 @@ pub mod select;
 pub mod slider;
 pub mod text;
 pub mod virtual_keyboard;
-pub mod bar;
-pub mod roller;

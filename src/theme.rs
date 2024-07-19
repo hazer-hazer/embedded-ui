@@ -26,6 +26,7 @@ impl<C: UiColor> Theme<C>
 where
     C: PaletteColor,
 {
+    #[inline]
     pub fn palette(&self) -> Palette<C> {
         match self {
             Theme::Light => PaletteColor::LIGHT,

@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use embedded_graphics::geometry::Point;
+use embedded_graphics::{geometry::Point, primitives::Rectangle};
 
 use crate::{
     align::Alignment,
@@ -8,7 +8,7 @@ use crate::{
     event::Event,
     padding::Padding,
     render::Renderer,
-    size::{Bounds, Length, Size},
+    size::{Length, Size},
     state::StateNode,
     ui::UiCtx,
     widget::Widget,
@@ -31,7 +31,7 @@ pub struct Viewport {
 #[derive(Clone)]
 pub struct LayoutNode {
     position: Position,
-    bounds: Bounds,
+    bounds: Rectangle,
     children: Vec<LayoutNode>,
 }
 
@@ -39,7 +39,7 @@ impl LayoutNode {
     pub fn new(size: Size) -> Self {
         Self {
             position: Position::Relative,
-            bounds: Bounds { position: Point::zero(), size },
+            bounds: Rectangle { top_left: Point::zero(), size: size.into() },
             children: vec![],
         }
     }
@@ -47,7 +47,7 @@ impl LayoutNode {
     pub fn with_children(size: Size, children: impl IntoIterator<Item = LayoutNode>) -> Self {
         Self {
             position: Position::Relative,
-            bounds: Bounds { position: Point::zero(), size },
+            bounds: Rectangle { top_left: Point::zero(), size: size.into() },
             children: children.into_iter().collect(),
         }
     }
@@ -55,7 +55,7 @@ impl LayoutNode {
     pub fn absolute(size: Size) -> Self {
         Self {
             position: Position::Absolute,
-            bounds: Bounds { position: Point::zero(), size },
+            bounds: Rectangle { top_left: Point::zero(), size: size.into() },
             children: vec![],
         }
     }
@@ -70,7 +70,7 @@ impl LayoutNode {
     }
 
     pub fn move_mut(&mut self, to: impl Into<Point>) -> &mut Self {
-        self.bounds.position = to.into();
+        self.bounds.top_left = to.into();
         self
     }
 
@@ -83,22 +83,22 @@ impl LayoutNode {
         match horizontal {
             Alignment::Start => {},
             Alignment::Center => {
-                self.bounds.position.x +=
+                self.bounds.top_left.x +=
                     (parent_size.width as i32 - self.bounds.size.width as i32) / 2;
             },
             Alignment::End => {
-                self.bounds.position.x += parent_size.width as i32 - self.bounds.size.width as i32;
+                self.bounds.top_left.x += parent_size.width as i32 - self.bounds.size.width as i32;
             },
         }
 
         match vertical {
             Alignment::Start => {},
             Alignment::Center => {
-                self.bounds.position.y +=
+                self.bounds.top_left.y +=
                     (parent_size.height as i32 - self.bounds.size.height as i32) / 2;
             },
             Alignment::End => {
-                self.bounds.position.y += parent_size.width as i32 - self.bounds.size.width as i32;
+                self.bounds.top_left.y += parent_size.width as i32 - self.bounds.size.width as i32;
             },
         }
 
@@ -116,7 +116,7 @@ impl LayoutNode {
     }
 
     pub fn size(&self) -> Size {
-        self.bounds.size
+        self.bounds.size.into()
     }
 }
 
@@ -125,6 +125,8 @@ impl Default for LayoutNode {
         Self::new(Size::zero())
     }
 }
+
+// TODO: Margin
 
 #[derive(Clone)]
 pub struct Layout<'a> {
@@ -135,7 +137,7 @@ pub struct Layout<'a> {
 
 impl<'a> Layout<'a> {
     pub fn new(node: &'a LayoutNode) -> Self {
-        Self { viewport_position: node.bounds.position.into(), node }
+        Self { viewport_position: node.bounds.top_left.into(), node }
     }
 
     pub fn with_offset(offset: Point, node: &'a LayoutNode) -> Self {
@@ -146,7 +148,7 @@ impl<'a> Layout<'a> {
             Position::Absolute => Point::zero(),
         };
 
-        Self { viewport_position: bounds.position + offset, node }
+        Self { viewport_position: bounds.top_left + offset, node }
     }
 
     /// Get iterator of children with offset relative to parent
@@ -158,8 +160,9 @@ impl<'a> Layout<'a> {
     }
 
     /// Bounds in viewport
-    pub fn bounds(&self) -> Bounds {
-        Bounds { position: self.viewport_position, size: self.node.bounds.size }
+    #[inline]
+    pub fn bounds(&self) -> Rectangle {
+        Rectangle { top_left: self.viewport_position, size: self.node.bounds.size }
     }
 
     pub fn sized(
@@ -482,8 +485,8 @@ impl Limits {
     }
 }
 
-impl From<Bounds> for Limits {
-    fn from(value: Bounds) -> Self {
+impl From<Rectangle> for Limits {
+    fn from(value: Rectangle) -> Self {
         Self::new(Size::zero(), value.size.into())
     }
 }

@@ -54,7 +54,7 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: ButtonStatus) -> Butto
 
     match status {
         crate::kit::button::ButtonStatus { pressed: true, focused: _ } => {
-            base.border_width(2).border_radius(7)
+            base.border_width(2).border_radius(7).background(palette.background)
         },
         crate::kit::button::ButtonStatus { focused: true, pressed: false } => {
             base.border_width(1).border_radius(5)

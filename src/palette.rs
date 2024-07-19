@@ -37,9 +37,9 @@ impl PaletteColor for Rgba {
     const AYU_LIGHT: Palette<Self> = Palette {
         background: Self::new_hex_rgb(0xFCFCFC),
         foreground: Self::new_hex_rgb(0x5C6166),
-        selection_background: Self::new_hex_rgb(0x56728F),
+        selection_background: Self::new_hex_rgb(0xD6E4F6),
         selection_foreground: Self::new_hex_rgb(0x5C6166),
-        primary: Self::new_hex_rgb(0xFFAA33),
+        primary: Self::new_hex_rgb(0xF2AE49),
     };
 }
 

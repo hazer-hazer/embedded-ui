@@ -16,7 +16,8 @@ use embedded_ui::{
     col,
     el::ElId,
     event::CommonEvent,
-    helpers::{button, select_h, select_v, text},
+    helpers::{bar_h, button, checkbox, select_h, select_v, text},
+    icons::IconKind,
     kit::knob::Knob,
     row,
     ui::UI,
@@ -180,8 +181,19 @@ fn main() {
         //             Message::None
         //         })
         //     ],
-        col![select_v(["1", "2", "3"]).cycle(true), row![bar_v()].padding(5)],
-        col![Knob::new(knob_value.clone()), text(knob_value.clone())]
+        col![
+            select_v(["one", "two", "three", "four", "five"]).circular(true),
+            row![bar_v().value(0.8), bar_h()].padding(5).gap(5),
+            row![IconKind::SnakeCw]
+        ],
+        col![
+            Knob::new(knob_value.clone()),
+            text(knob_value.clone()),
+            checkbox(|value| {
+                println!("{value}");
+                Message::None
+            }),
+        ]
     ];
 
     let mut ui = UI::new(col, display.bounding_box().size.into()).rgb888().theme(Theme::AyuLight);

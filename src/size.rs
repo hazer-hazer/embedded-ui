@@ -85,10 +85,6 @@ impl Size<u32> {
     pub fn as_fixed_length(self) -> Size<Length> {
         Size::new(Length::Fixed(self.width), Length::Fixed(self.height))
     }
-
-    pub fn max_square(self) -> u32 {
-        self.width.min(self.height)
-    }
 }
 
 impl Add<Size> for Point {
@@ -197,38 +193,77 @@ impl Into<embedded_graphics_core::geometry::Size> for Size {
     }
 }
 
-#[derive(Clone, Copy)]
-#[cfg_attr(feature = "defmt", derive(::defmt::Format))]
-pub struct Bounds {
-    pub position: Point,
-    pub size: Size,
-}
+pub trait SizeExt: Copy {
+    type Data: core::cmp::Ord + core::cmp::Eq;
 
-impl Bounds {
-    pub fn center(&self) -> Point {
-        self.position + self.size / 2
+    fn width(self) -> Self::Data;
+    fn height(self) -> Self::Data;
+
+    fn max_square(self) -> Self::Data {
+        self.width().min(self.height())
     }
 }
 
-impl Transform for Bounds {
-    fn translate(&self, by: Point) -> Self {
-        Self { position: self.position + by, size: self.size }
+impl<S: core::cmp::Ord + core::cmp::Eq + Copy> SizeExt for Size<S> {
+    type Data = S;
+
+    #[inline]
+    fn width(self) -> Self::Data {
+        self.width
     }
 
-    fn translate_mut(&mut self, by: Point) -> &mut Self {
-        self.position += by;
-        self
+    #[inline]
+    fn height(self) -> Self::Data {
+        self.height
     }
 }
 
-impl From<Rectangle> for Bounds {
-    fn from(value: Rectangle) -> Self {
-        Self { position: value.top_left.into(), size: value.size.into() }
+impl SizeExt for embedded_graphics_core::geometry::Size {
+    type Data = u32;
+
+    #[inline]
+    fn width(self) -> Self::Data {
+        self.width
+    }
+
+    #[inline]
+    fn height(self) -> Self::Data {
+        self.height
     }
 }
 
-impl Into<Rectangle> for Bounds {
-    fn into(self) -> Rectangle {
-        Rectangle { top_left: self.position.into(), size: self.size.into() }
-    }
-}
+// #[derive(Clone, Copy)]
+// #[cfg_attr(feature = "defmt", derive(::defmt::Format))]
+// pub struct Bounds {
+//     pub position: Point,
+//     pub size: Size,
+// }
+
+// impl Bounds {
+//     pub fn center(&self) -> Point {
+//         self.position + self.size / 2
+//     }
+// }
+
+// impl Transform for Bounds {
+//     fn translate(&self, by: Point) -> Self {
+//         Self { position: self.position + by, size: self.size }
+//     }
+
+//     fn translate_mut(&mut self, by: Point) -> &mut Self {
+//         self.position += by;
+//         self
+//     }
+// }
+
+// impl From<Rectangle> for Bounds {
+//     fn from(value: Rectangle) -> Self {
+//         Self { position: value.top_left.into(), size: value.size.into() }
+//     }
+// }
+
+// impl Into<Rectangle> for Bounds {
+//     fn into(self) -> Rectangle {
+//         Rectangle { top_left: self.position.into(), size: self.size.into() }
+//     }
+// }

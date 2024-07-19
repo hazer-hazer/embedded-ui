@@ -1,6 +1,7 @@
 use embedded_graphics::geometry::Point;
 use embedded_graphics::iterator::raw::RawDataSlice;
 use embedded_graphics::pixelcolor::raw::{BigEndian, RawData, RawU1};
+use embedded_graphics::Pixel;
 
 use crate::el::El;
 use crate::icons::icons5::Icons5;
@@ -11,7 +12,7 @@ use crate::icons::{IconData, IconKind, IconSet};
 use crate::layout::{LayoutNode, Limits, Viewport};
 use crate::log::logger::warning;
 use crate::palette::PaletteColor;
-use crate::size::Length;
+use crate::size::{Length, SizeExt};
 use crate::style::{component_style, Styler};
 use crate::theme::Theme;
 use crate::{color::UiColor, event::Event, render::Renderer, size::Size, widget::Widget};
@@ -24,7 +25,7 @@ impl IconPicker {
             5 => Icons5.pick(kind),
             6 => Icons6.pick(kind),
             7 => Icons7.pick(kind),
-            8 => Icons8.pick(kind),
+            8.. => Icons8.pick(kind),
             _ => None,
         }
     }
@@ -143,7 +144,7 @@ where
 
             // Align icon to the center of bounds
             // TODO: This may be useless as layout is always of size of the icon
-            let icon_position = bounds.position
+            let icon_position = bounds.top_left
                 + Point::new(bounds.size.width as i32, bounds.size.height as i32) / 2
                 - Point::new_equal(icon_size as i32) / 2;
 
@@ -167,7 +168,7 @@ where
                     _ => unreachable!(),
                 };
 
-                renderer.pixel(point, color);
+                renderer.pixel(Pixel(point, color));
             }
         } else {
             warning!(

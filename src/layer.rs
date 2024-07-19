@@ -60,8 +60,15 @@ where
         self.z_index = prev;
     }
 
-    fn pixel(&mut self, point: Point, color: Self::Color) {
-        Renderer::pixel(self.layer(), point, color);
+    fn clipped(
+        &mut self,
+        bounds: embedded_graphics::primitives::Rectangle,
+    ) -> impl Renderer<Color = Self::Color> {
+        Renderer::clipped(self.layer(), bounds)
+    }
+
+    fn pixel(&mut self, pixel: embedded_graphics::Pixel<Self::Color>) {
+        Renderer::pixel(self.layer(), pixel);
     }
 
     fn line(&mut self, start: Point, end: Point, color: Self::Color, width: u32) {

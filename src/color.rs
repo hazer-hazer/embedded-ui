@@ -100,11 +100,15 @@ impl Rgba {
     pub const TRANSPARENT: Self = Self::new(0, 0, 0, 0);
 
     pub const fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
-        Self((r as u32) << 24 & (g as u32) << 16 & (b as u32) << 8 & a as u32)
+        Self((r as u32) << 24 | (g as u32) << 16 | (b as u32) << 8 | a as u32)
     }
 
     pub const fn new_rgb(r: u8, g: u8, b: u8) -> Self {
         Self::new(r, g, b, 0xff)
+    }
+
+    pub fn from_f32(r: f32, g: f32, b: f32, a: f32) -> Self {
+        Self::new((r * 255.0) as u8, (g * 255.0) as u8, (b * 255.0) as u8, (a * 255.0) as u8)
     }
 
     pub const fn new_hex(rgba: u32) -> Self {
@@ -129,6 +133,22 @@ impl Rgba {
 
     pub const fn a(self) -> u8 {
         self.0 as u8
+    }
+
+    pub fn into_f32(self) -> (f32, f32, f32, f32) {
+        (
+            self.r() as f32 / 255.0,
+            self.g() as f32 / 255.0,
+            self.b() as f32 / 255.0,
+            self.a() as f32 / 255.0,
+        )
+    }
+
+    pub fn into_rgb(self, bg: Self) -> Self {
+        let (r, g, b, a) = self.into_f32();
+        let bg = bg.into_f32();
+        let inv_a = 1.0 - a;
+        Self::from_f32(inv_a * bg.0 + r * a, inv_a * bg.1 + g * a, inv_a * bg.2 + b * a, 1.0)
     }
 
     pub const fn into_rgb555(self) -> Rgb555 {
@@ -157,7 +177,7 @@ impl defmt::Format for Rgba {
 
 impl Display for Rgba {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:X}", self.0)
+        write!(f, "#{:08X}", self.0)
     }
 }
 

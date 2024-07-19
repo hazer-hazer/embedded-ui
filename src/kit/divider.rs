@@ -118,7 +118,7 @@ where
         let bounds = layout.bounds();
 
         let size = bounds.size.into_axial(self.axis);
-        let position = bounds.position.into_axial(self.axis);
+        let position = bounds.top_left.into_axial(self.axis);
         // let start = bounds.position + self.padding.top_left();
         let start =
             self.axis.canon::<Point>(position.main(), position.cross() + (size.cross() / 2) as i32);

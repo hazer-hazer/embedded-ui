@@ -268,7 +268,7 @@ where
             background: style.background,
         });
 
-        let position = bounds.position.into_axial(self.axis);
+        let position = bounds.top_left.into_axial(self.axis);
         let length = bounds.size.into_axial(self.axis);
 
         let guide_cross_axis_pos = position.cross() + (length.cross() / 2) as i32;

@@ -1,7 +1,13 @@
 use core::borrow::Borrow;
 
-use alloc::{boxed::Box, string::ToString, vec::Vec};
-use embedded_graphics::{geometry::Point, mono_font::MonoTextStyleBuilder, primitives::Rectangle};
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+    vec::Vec,
+};
+use embedded_graphics::{
+    geometry::Point, mono_font::MonoTextStyleBuilder, primitives::Rectangle, transform::Transform,
+};
 use embedded_text::{style::TextBoxStyleBuilder, TextBox};
 
 use crate::{
@@ -24,10 +30,7 @@ use crate::{
     widget::Widget,
 };
 
-use super::{
-    icon::{Icon, IconStyler},
-    text::{Text, TextStyler},
-};
+use super::icon::{Icon, IconStyler};
 
 pub struct SelectState {
     is_pressed: bool,
@@ -47,15 +50,15 @@ pub struct SelectStatus {
     focused: bool,
 }
 
-// pub type SelectStyleFn<'a, C> = Box<dyn Fn(SelectStatus) -> SelectStyle<C> +
-// 'a>;
+// TODO: `Empty` slot when options is empty
 
 component_style! {
     pub SelectStyle: SelectStyler(SelectStatus) default {primary} {
         background: background,
         border: border,
+        text_color: color,
         selected_background: background,
-        selected_foreground: color,
+        selected_text_color: color,
         selected_border: border {
             selected_border_color: border_color,
             selected_border_width: border_width,
@@ -69,23 +72,38 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: SelectStatus) -> Selec
     let base = SelectStyle::new(&palette)
         .background(palette.background)
         .border_color(palette.background)
-        .selected_background(palette.primary)
-        .selected_border_width(0)
-        .selected_foreground(palette.foreground);
+        .text_color(palette.foreground)
+        .selected_border_width(1)
+        .selected_border_color(palette.foreground)
+        .selected_border_radius(5)
+        .selected_background(palette.selection_background)
+        .selected_text_color(palette.selection_foreground);
 
     match status {
         SelectStatus { pressed: true, active: _, focused: _ } => {
-            base.border_color(palette.selection_background).border_width(2).border_radius(3)
+            base.border_color(palette.selection_background).border_width(2).border_radius(4)
         },
         SelectStatus { active: true, pressed: false, focused: _ } => {
-            base.border_color(palette.selection_background).border_width(1).border_radius(5)
+            base.border_color(palette.selection_background).border_width(1).border_radius(8)
         },
         SelectStatus { active: false, pressed: false, focused: true } => {
-            base.border_color(palette.selection_background).border_width(1).border_radius(0)
+            base.border_color(palette.selection_background).border_width(1).border_radius(2)
         },
         SelectStatus { .. } => base.border_width(1).border_radius(0),
     }
 }
+
+// trait CheckedClamp: Sized + PartialOrd {
+//     fn checked_clamp(self, min: impl Into<Self>, max: impl Into<Self>) ->
+// Result<Self, ()> {         if self < min.into() {
+//             Err(())
+//         } else if self > max.into() {
+//             Err(())
+//         } else {
+//             Ok(self)
+//         }
+//     }
+// }
 
 pub struct Select<'a, Message, R, S, O, L>
 where
@@ -102,7 +120,7 @@ where
     chosen: usize,
     on_change: Option<Box<dyn Fn(&O) -> Message + 'a>>,
     class: S::Class<'a>,
-    cycle: bool,
+    circular: bool,
     axis: Axis,
     font: Font,
     show_siblings: usize,
@@ -127,7 +145,7 @@ where
             chosen: 0,
             on_change: None,
             class: <S as SelectStyler<R::Color>>::default(),
-            cycle: false,
+            circular: false,
             axis,
             font: R::default_font(),
             show_siblings: 1,
@@ -165,8 +183,8 @@ where
         self
     }
 
-    pub fn cycle(mut self, cycle: bool) -> Self {
-        self.cycle = cycle;
+    pub fn circular(mut self, circular: bool) -> Self {
+        self.circular = circular;
         self
     }
 
@@ -187,6 +205,42 @@ where
             Axis::Y => (IconKind::ArrowUp, IconKind::ArrowDown),
         }
     }
+
+    #[inline]
+    fn get_sibling(&self, offset: isize) -> Option<&O> {
+        if self.circular {
+            let options_len = self.options.borrow().len();
+            let index = (options_len as isize
+                + ((self.chosen as isize + offset) % options_len as isize))
+                as usize
+                % options_len;
+            self.options.borrow().get(index)
+        } else {
+            self.options.borrow().get((self.chosen as isize).checked_add(offset)? as usize)
+        }
+    }
+
+    // #[inline]
+    // fn prev_sibling(&self, offset: usize) -> Option<&O> {
+    //     if self.circular {}
+    // }
+
+    fn current(&self) -> Option<&O> {
+        self.options.borrow().get(self.chosen)
+    }
+
+    // #[inline]
+    // fn next_sibling(&self, offset: usize) -> Option<&O> {
+    //     if self.circular {
+    //         self.chosen
+    //             .checked_add(offset)?
+    //             .checked_rem(self.options.borrow().len())
+    //             .map(|index| self.options.borrow().get(index))
+    //             .flatten()
+    //     } else {
+    //         self.options.borrow().get(self.chosen.checked_add(offset)?)
+    //     }
+    // }
 
     // fn current_value(&self) -> &O {
     //     &self.option_values[self.chosen]
@@ -266,7 +320,7 @@ where
         if let Some(offset) = event.as_select_shift() {
             if focused && current_state.is_active {
                 let prev = self.chosen;
-                if self.cycle {
+                if self.circular {
                     let len = self.options.borrow().len() as i32;
                     self.chosen = ((self.chosen as i32 + offset % len + len) % len) as usize;
                 } else {
@@ -385,7 +439,7 @@ where
             background: style.background,
         });
 
-        if self.cycle || self.chosen != 0 {
+        if self.circular || self.chosen != 0 {
             Widget::<Message, R, E, S>::draw(
                 &Icon::new(self.icon_prev),
                 ctx,
@@ -393,7 +447,7 @@ where
                 renderer,
                 styler,
                 Layout::with_offset(
-                    bounds.position
+                    bounds.top_left
                         + self.axis.canon::<Point>(style.border.width as i32, icons_cross_center),
                     &icons_node,
                 ),
@@ -401,7 +455,7 @@ where
             );
         }
 
-        if self.cycle || self.chosen != self.options.borrow().len() - 1 {
+        if self.circular || self.chosen != self.options.borrow().len() - 1 {
             Widget::<Message, R, E, S>::draw(
                 &Icon::new(self.icon_next),
                 ctx,
@@ -409,7 +463,7 @@ where
                 renderer,
                 styler,
                 Layout::with_offset(
-                    bounds.position
+                    bounds.top_left
                         + self.axis.canon::<Point>(
                             bounds.size.main_for(self.axis) as i32
                                 - icons_node.size().main_for(self.axis) as i32
@@ -422,19 +476,15 @@ where
             );
         }
 
-        let value_layout = layout.children().next().unwrap();
+        let inner_layout = layout.children().next().unwrap();
 
-        renderer.block(Block {
-            border: style.selected_border,
-            rect: value_layout.bounds().into(),
-            background: style.selected_background,
-        });
+        let mut renderer = renderer.clipped(inner_layout.bounds());
 
         let real_font = self.font.to_real(viewport);
 
         let text_style = MonoTextStyleBuilder::new()
             .font(real_font.font())
-            .text_color(style.selected_foreground)
+            .text_color(style.selected_text_color)
             .build();
 
         let text_box_style = TextBoxStyleBuilder::new()
@@ -443,12 +493,56 @@ where
             .line_height(embedded_graphics::text::LineHeight::Percent(100))
             .build();
 
-        renderer.mono_text(TextBox::with_textbox_style(
-            &self.options.borrow()[self.chosen].to_string(),
-            value_layout.bounds().into(),
-            text_style,
-            text_box_style,
-        ));
+        let option_size =
+            inner_layout.bounds().size.component_div(self.axis.canon::<Size>(3, 1).into())
+                - Size::new(2, 2).into();
+
+        if let Some(prev) = self.get_sibling(-1) {
+            let prev_bounds = inner_layout
+                .bounds()
+                .resized(option_size, embedded_graphics::geometry::AnchorPoint::Center)
+                .translate(self.axis.canon(-(option_size.main_for(self.axis) as i32), 0));
+
+            renderer.mono_text(TextBox::with_textbox_style(
+                &prev.to_string(),
+                prev_bounds,
+                text_style,
+                text_box_style,
+            ));
+        }
+
+        if let Some(next) = self.get_sibling(1) {
+            let next_bounds = inner_layout
+                .bounds()
+                .resized(option_size, embedded_graphics::geometry::AnchorPoint::Center)
+                .translate(self.axis.canon(option_size.main_for(self.axis) as i32, 0));
+
+            renderer.mono_text(TextBox::with_textbox_style(
+                &next.to_string(),
+                next_bounds,
+                text_style,
+                text_box_style,
+            ));
+        }
+
+        if let Some(current) = self.current() {
+            let chosen_bounds = inner_layout
+                .bounds()
+                .resized(option_size, embedded_graphics::geometry::AnchorPoint::Center);
+
+            renderer.block(Block {
+                border: style.selected_border,
+                rect: chosen_bounds,
+                background: style.selected_background,
+            });
+
+            renderer.mono_text(TextBox::with_textbox_style(
+                &current.to_string(),
+                chosen_bounds,
+                text_style,
+                text_box_style,
+            ));
+        }
 
         // renderer.block(Block {
         //     border: style.selected_border,

@@ -2,9 +2,9 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use embedded_graphics::primitives::Rectangle;
 
-use crate::color::UiColor;
 use crate::el::{El, ElId};
 use crate::event::{Capture, CommonEvent, Event, Propagate};
+use crate::font::FontSize;
 use crate::icons::IconKind;
 use crate::layout::{Layout, Viewport};
 use crate::padding::Padding;
@@ -57,7 +57,9 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: CheckboxStatus) -> Che
     match status {
         CheckboxStatus::Normal => base.border_width(1).border_radius(0),
         CheckboxStatus::Pressed => base.border_width(2).border_radius(5),
-        CheckboxStatus::Focused => base.border_width(1).border_radius(3),
+        CheckboxStatus::Focused => {
+            base.border_width(1).border_radius(3).border_color(palette.selection_background)
+        },
         CheckboxStatus::Checked => base.border_width(1).border_radius(0),
     }
 }
@@ -69,7 +71,8 @@ where
 {
     id: ElId,
     check_icon: Icon<'a, R, S>,
-    size: Size<Length>,
+    // size: Size<Length>,
+    size: FontSize,
     on_change: Box<dyn Fn(bool) -> Message + 'a>,
     class: <S as CheckboxStyler<R::Color>>::Class<'a>,
 }
@@ -86,7 +89,8 @@ where
         Self {
             id: ElId::unique(),
             check_icon: Icon::new(crate::icons::IconKind::Check),
-            size: Size::fill(),
+            // size: Size::fill(),
+            size: FontSize::Relative(1.0),
             on_change: Box::new(on_change),
             class: <S as CheckboxStyler<R::Color>>::default(),
             // color: R::Color::default_foreground(),
@@ -98,15 +102,19 @@ where
         self
     }
 
-    pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.size.width = width.into();
-        self
+    fn size(&self, viewport: &Viewport) -> Size {
+        self.size.to_real(viewport).into()
     }
 
-    pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.size.height = height.into();
-        self
-    }
+    // pub fn width(mut self, width: impl Into<Length>) -> Self {
+    //     self.size.width = width.into();
+    //     self
+    // }
+
+    // pub fn height(mut self, height: impl Into<Length>) -> Self {
+    //     self.size.height = height.into();
+    //     self
+    // }
 
     // Helpers //
     fn status<E: Event + 'a>(&self, ctx: &UiCtx<Message>, state: &StateNode) -> CheckboxStatus {
@@ -135,7 +143,8 @@ where
     }
 
     fn size(&self) -> crate::size::Size<crate::size::Length> {
-        self.size
+        // FIXME: Wrong
+        Size::fill()
     }
 
     fn state_tag(&self) -> crate::state::StateTag {
@@ -204,7 +213,7 @@ where
     ) -> crate::layout::LayoutNode {
         Layout::container(
             limits,
-            self.size,
+            self.size(viewport),
             crate::layout::Position::Relative,
             viewport,
             Padding::zero(),
@@ -240,7 +249,7 @@ where
 
         renderer.block(crate::block::Block {
             border: style.border,
-            rect: Rectangle::new(bounds.position, bounds.size.into()),
+            rect: Rectangle::new(bounds.top_left, bounds.size.into()),
             background: style.background,
         });
 

@@ -1,16 +1,27 @@
 use crate::{
     color::UiColor,
-    kit::{button::ButtonStyler, select::SelectStyler, slider::SliderStyler},
+    kit::{
+        bar::BarStyler, button::ButtonStyler, checkbox::CheckboxStyler, icon::IconStyler,
+        knob::KnobStyler, select::SelectStyler, slider::SliderStyler,
+    },
 };
 
 pub trait Styler<C: UiColor>:
-    ButtonStyler<C> + SelectStyler<C> + SliderStyler<C> + Default
+    BarStyler<C>
+    + ButtonStyler<C>
+    + CheckboxStyler<C>
+    + IconStyler<C>
+    + KnobStyler<C>
+    + SelectStyler<C>
+    + SliderStyler<C>
+    + Default
 {
     fn background(&self) -> C;
 }
 
 /**
- *
+ * TODO: Inheritance:
+ * - pub Style: Styler(Status) default {default} extends OtherStyler {other_default}
  */
 macro_rules! component_style {
     ($(#[$meta:meta])? $vis: vis $name: ident $(: $styler: ident ($status: ty) default {$default: expr})? {

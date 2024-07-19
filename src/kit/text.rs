@@ -193,7 +193,7 @@ where
 
         renderer.mono_text(TextBox::with_textbox_style(
             &self.content.get().to_string(),
-            layout.bounds().into(),
+            layout.bounds(),
             mono_text_style,
             TextBoxStyleBuilder::new()
                 .alignment(self.align.into())

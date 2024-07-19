@@ -12,7 +12,7 @@ use crate::{
     padding::Padding,
     palette::PaletteColor,
     render::Renderer,
-    size::{Length, Size},
+    size::{Length, Size, SizeExt},
     state::{State, StateTag},
     style::component_style,
     theme::Theme,
