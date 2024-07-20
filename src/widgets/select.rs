@@ -402,7 +402,7 @@ where
             viewport,
             BoxModel::new()
                 .padding(self.axis.canon::<Padding>(padding_for_icons, 0))
-                .border(style.border.width),
+                .border(style.border),
             crate::align::Alignment::Center,
             crate::align::Alignment::Center,
             |limits| {

@@ -194,6 +194,12 @@ impl<C: UiColor> Border<C> {
     }
 }
 
+impl<C: UiColor> Into<Padding> for Border<C> {
+    fn into(self) -> Padding {
+        self.width.into()
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Block<C: UiColor + Copy> {
     pub border: Border<C>,

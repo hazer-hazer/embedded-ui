@@ -12,12 +12,12 @@ use embedded_ui::{
     col,
     el::ElId,
     event::CommonEvent,
-    helpers::{bar_h, button, checkbox, select_v, text},
+    helpers::{bar_h, button, checkbox, container, select_v, text},
     icons::IconKind,
-    widgets::knob::Knob,
     row,
     ui::UI,
     value::Value,
+    widgets::knob::Knob,
 };
 use embedded_ui::{helpers::bar_v, theme::Theme};
 
@@ -145,7 +145,7 @@ fn main() {
     let knob_value = Value::dynamic(0u8);
 
     let col = row![
-        col![text("OSC1"), button("TYPE"), button("SYNC"), button("EDIT")].gap(1),
+        col![container("OSC1"), button("TYPE"), button("SYNC"), button("EDIT")].gap(1),
         // col![text("OSC2"), button("TYPE"), button("SYNC"), button("EDIT")],
         // col![text("OSC3"), header_line, button("TYPE"), button("SYNC"), button("EDIT")],
         // col![
@@ -183,7 +183,6 @@ fn main() {
             row![IconKind::SnakeCw]
         ],
         col![
-            Knob::new(knob_value.clone()),
             text(knob_value.clone()),
             checkbox(|value| {
                 println!("{value}");

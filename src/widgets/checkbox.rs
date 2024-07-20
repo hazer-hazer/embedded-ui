@@ -132,7 +132,7 @@ where
     E: Event + 'a,
     S: CheckboxStyler<R::Color> + IconStyler<R::Color> + 'a,
 {
-    fn id(&self) -> Option<crate::el::ElId> {
+    fn id(&self) -> Option<ElId> {
         Some(self.id)
     }
 

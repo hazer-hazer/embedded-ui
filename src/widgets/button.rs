@@ -237,9 +237,9 @@ where
             self.size,
             crate::layout::Position::Relative,
             viewport,
-            BoxModel::new().padding(self.padding).border(style.border.width),
-            Alignment::Start,
-            Alignment::Start,
+            BoxModel::new().padding(self.padding).border(style.border),
+            Alignment::Center,
+            Alignment::Center,
             |limits| self.content.layout(ctx, &mut state.children[0], styler, limits, viewport),
         )
     }

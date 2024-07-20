@@ -1,3 +1,5 @@
+use core::default;
+
 #[derive(Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub enum Alignment {
@@ -6,9 +8,10 @@ pub enum Alignment {
     End,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 #[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub enum HorizontalAlign {
+    #[default]
     Left,
     Center,
     Right,
@@ -34,9 +37,10 @@ impl Into<embedded_text::alignment::HorizontalAlignment> for HorizontalAlign {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 #[cfg_attr(feature = "defmt", derive(::defmt::Format))]
 pub enum VerticalAlign {
+    #[default]
     Top,
     Center,
     Bottom,

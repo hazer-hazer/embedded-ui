@@ -3,10 +3,13 @@ use core::{borrow::Borrow, fmt::Display};
 use crate::{
     el::El,
     event::Event,
+    render::Renderer,
+    value::Value,
     widgets::{
         bar::{Bar, BarStyler},
         button::{Button, ButtonStyler},
         checkbox::{Checkbox, CheckboxStyler},
+        container::{Container, ContainerStyler},
         divider::Divider,
         icon::IconStyler,
         knob::{Knob, KnobStyler, KnobValue},
@@ -14,14 +17,18 @@ use crate::{
         slider::{Slider, SliderPosition, SliderStyler},
         text::{Text, TextStyler},
     },
-    render::Renderer,
-    value::Value,
 };
 
 pub fn button<'a, Message: Clone, R: Renderer, E: Event, S: ButtonStyler<R::Color>>(
     content: impl Into<El<'a, Message, R, E, S>>,
 ) -> Button<'a, Message, R, E, S> {
     Button::new(content)
+}
+
+pub fn container<'a, Message: Clone, R: Renderer, E: Event, S: ContainerStyler<R::Color>>(
+    content: impl Into<El<'a, Message, R, E, S>>,
+) -> Container<'a, Message, R, E, S> {
+    Container::new(content)
 }
 
 pub fn text<'a, T: Display, R: Renderer, S: TextStyler<R::Color>>(
@@ -41,7 +48,7 @@ pub fn v_div<R: Renderer>() -> Divider<R> {
 #[macro_export]
 macro_rules! col {
     ($($el: expr),* $(,)?) => [
-        $crate::kit::linear::Column::new([$($crate::el::El::from($el)),*])
+        $crate::widgets::linear::Column::new([$($crate::el::El::from($el)),*])
     ];
 }
 
@@ -51,7 +58,7 @@ pub use col;
 #[macro_export]
 macro_rules! row {
     ($($el: expr),* $(,)?) => [
-        $crate::kit::linear::Row::new([$($crate::el::El::from($el)),*])
+        $crate::widgets::linear::Row::new([$($crate::el::El::from($el)),*])
     ];
 }
 

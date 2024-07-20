@@ -1,4 +1,4 @@
-use alloc::string::ToString as _;
+use alloc::{string::ToString as _, vec::Vec};
 use core::{fmt::Display, marker::PhantomData};
 
 use embedded_graphics::mono_font::MonoTextStyleBuilder;
@@ -6,7 +6,7 @@ use embedded_text::{style::TextBoxStyleBuilder, TextBox};
 
 use crate::{
     align::{HorizontalAlign, VerticalAlign},
-    el::El,
+    el::{El, ElId},
     event::Event,
     font::{Font, FontSize},
     layout::{Layout, Viewport},
@@ -86,11 +86,9 @@ where
     font: Font,
 
     class: S::Class<'a>,
-
-    font_size: FontSize,
-
-    /// Precomputed size, does not need to be set by user
-    size: Size<Length>,
+    // TODO: Cache size?
+    // /// Precomputed size, does not need to be set by user
+    // size: Size,
 }
 
 impl<'a, T, R, S> Text<'a, T, R, S>
@@ -108,9 +106,6 @@ where
             vertical_align: VerticalAlign::Center,
             font: R::default_font(),
             class: S::default(),
-            font_size: FontSize::Relative(1.0),
-            // TODO: Should be computed by text size?
-            size: Size::fill(),
         }
     }
 
@@ -130,12 +125,17 @@ where
     }
 
     pub fn font_size(mut self, font_size: impl Into<FontSize>) -> Self {
-        self.font_size = font_size.into();
+        self.font.size = font_size.into();
         self
     }
 
     pub fn update(&mut self, new_value: T) {
         *self.content.get_mut() = new_value;
+    }
+
+    // Helpers //
+    fn compute_size(&self, viewport: &Viewport) -> Size {
+        self.font.to_real(viewport).measure_text_size(&self.content.get().to_string())
     }
 }
 
@@ -145,16 +145,16 @@ where
     R: Renderer,
     S: TextStyler<R::Color>,
 {
-    fn id(&self) -> Option<crate::el::ElId> {
+    fn id(&self) -> Option<ElId> {
         None
     }
 
-    fn tree_ids(&self) -> alloc::vec::Vec<crate::el::ElId> {
+    fn tree_ids(&self) -> Vec<ElId> {
         vec![]
     }
 
-    fn size(&self, _viewport: &Viewport) -> Size<Length> {
-        self.size.into()
+    fn size(&self, viewport: &Viewport) -> Size<Length> {
+        self.compute_size(viewport).into()
     }
 
     fn layout(
@@ -165,11 +165,13 @@ where
         limits: &crate::layout::Limits,
         viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
-        Layout::sized(limits, self.size, crate::layout::Position::Relative, viewport, |limits| {
-            let text_size =
-                self.font.to_real(viewport).measure_text_size(&self.content.get().to_string());
-            limits.resolve_size(self.size.width, self.size.height, text_size)
-        })
+        Layout::sized(
+            limits,
+            self.compute_size(viewport),
+            crate::layout::Position::Relative,
+            viewport,
+            |limits| limits.max(),
+        )
     }
 
     fn draw(

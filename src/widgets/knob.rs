@@ -84,7 +84,6 @@ where
     min: KnobValue,
     max: KnobValue,
     inner: Option<El<'a, Message, R, E, S>>,
-    // TODO: Can be moved to style as it doesn't affect layout
     start: Angle,
     on_change: Option<Box<dyn Fn(KnobValue) -> Message + 'a>>,
     class: S::Class<'a>,
