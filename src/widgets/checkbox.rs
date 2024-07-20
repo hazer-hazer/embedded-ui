@@ -245,7 +245,7 @@ where
 
         renderer.block(crate::block::Block {
             border: style.border,
-            rect: Rectangle::new(bounds.top_left, bounds.size.into()),
+            rect: bounds.into(),
             background: style.background,
         });
 

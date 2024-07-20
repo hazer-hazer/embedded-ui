@@ -16,7 +16,6 @@ use crate::{
     style::component_style,
     theme::Theme,
     ui::UiCtx,
-    value::Value,
     widget::Widget,
 };
 
@@ -79,7 +78,7 @@ where
 {
     id: ElId,
     diameter: Length,
-    value: Value<KnobValue>,
+    value: KnobValue,
     step: KnobValue,
     min: KnobValue,
     max: KnobValue,
@@ -113,17 +112,20 @@ where
     //     }
     // }
 
-    pub fn new(value: Value<KnobValue>) -> Self {
+    pub fn new<F>(on_change: F) -> Self
+    where
+        F: 'a + Fn(KnobValue) -> Message,
+    {
         Self {
             id: ElId::unique(),
             diameter: Length::Fill,
-            value,
+            value: 127,
             step: 1,
             min: 0,
             max: KnobValue::MAX,
             inner: None,
             start: Angle::from_degrees(-90.0),
-            on_change: None,
+            on_change: Some(Box::new(on_change)),
             class: S::default(),
         }
     }
@@ -155,14 +157,6 @@ where
 
     pub fn start(mut self, start: impl Into<Angle>) -> Self {
         self.start = start.into();
-        self
-    }
-
-    pub fn on_change<F>(mut self, on_change: F) -> Self
-    where
-        F: 'a + Fn(KnobValue) -> Message,
-    {
-        self.on_change = Some(Box::new(on_change));
         self
     }
 
@@ -224,16 +218,15 @@ where
 
         if let Some(offset) = event.as_knob_rotation() {
             if current_state.is_active {
-                let prev_value = *self.value.get();
+                let prev_value = self.value;
 
-                *self.value.get_mut() = (prev_value as i32)
+                self.value = (prev_value as i32)
                     .saturating_add(offset * self.step as i32)
-                    .clamp(self.min as i32, self.max as i32)
-                    as u8;
+                    .clamp(self.min as i32, self.max as i32) as u8;
 
                 if let Some(on_change) = self.on_change.as_ref() {
-                    if prev_value != *self.value.get() {
-                        ctx.publish((on_change)(*self.value.get()));
+                    if prev_value != self.value {
+                        ctx.publish((on_change)(self.value));
                     }
                 }
 
@@ -349,7 +342,7 @@ where
 
         // TODO: Draw min/max serifs
 
-        let value_degree = 360.0 * (*self.value.get() as f32 / u8::MAX as f32);
+        let value_degree = 360.0 * (self.value as f32 / u8::MAX as f32);
 
         renderer.arc(
             Arc::with_center(center, track_diameter, self.start, Angle::from_degrees(value_degree)),

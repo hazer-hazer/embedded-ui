@@ -3,6 +3,7 @@
 pub mod action;
 pub mod align;
 pub mod app;
+pub mod axis;
 pub mod block;
 pub mod color;
 pub mod el;
@@ -11,21 +12,19 @@ pub mod focus;
 pub mod font;
 pub mod helpers;
 pub mod icons;
-pub mod widgets;
 mod layer;
 pub mod layout;
 mod log;
 pub mod padding;
+pub mod palette;
 pub mod render;
 pub mod size;
 pub mod state;
 pub mod style;
-pub mod ui;
-pub mod value;
-pub mod widget;
-pub mod axis;
-pub mod palette;
 pub mod theme;
+pub mod ui;
+pub mod widget;
+pub mod widgets;
 
 // TODO: Feature to switch to fixed-sized heapless
 #[macro_use]

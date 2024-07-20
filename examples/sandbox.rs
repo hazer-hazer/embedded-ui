@@ -15,9 +15,9 @@ use embedded_ui::{
     helpers::{bar_h, button, checkbox, container, select_v, text},
     icons::IconKind,
     row,
+    size::Length,
     ui::UI,
-    value::Value,
-    widgets::knob::Knob,
+    widgets::{container::InsideContainerExt, knob::Knob},
 };
 use embedded_ui::{helpers::bar_v, theme::Theme};
 
@@ -142,8 +142,6 @@ fn main() {
     // event fetching. Otherwise SDL2 will panic :(
     window.update(&display);
 
-    let knob_value = Value::dynamic(0u8);
-
     let col = row![
         col![container("OSC1"), button("TYPE"), button("SYNC"), button("EDIT")].gap(1),
         // col![text("OSC2"), button("TYPE"), button("SYNC"), button("EDIT")],
@@ -183,11 +181,12 @@ fn main() {
             row![IconKind::SnakeCw]
         ],
         col![
-            text(knob_value.clone()),
+            "This is a checkbox".wrap().height(Length::Fill),
             checkbox(|value| {
                 println!("{value}");
                 Message::None
-            }),
+            })
+            .wrap(),
         ]
     ]
     .gap(1);

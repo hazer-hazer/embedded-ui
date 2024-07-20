@@ -4,7 +4,6 @@ use crate::{
     el::El,
     event::Event,
     render::Renderer,
-    value::Value,
     widgets::{
         bar::{Bar, BarStyler},
         button::{Button, ButtonStyler},
@@ -132,9 +131,9 @@ pub fn slider_h<'a, Message: Clone, R: Renderer, S: SliderStyler<R::Color>>(
 // }
 
 pub fn knob<'a, Message: Clone, R: Renderer, E: Event, S: KnobStyler<R::Color>>(
-    value: impl Into<Value<KnobValue>>,
+    on_change: impl (Fn(KnobValue) -> Message) + 'a,
 ) -> Knob<'a, Message, R, E, S> {
-    Knob::new(value.into())
+    Knob::new(on_change)
 }
 
 pub fn bar_h<'a, R: Renderer, S: BarStyler<R::Color>>() -> Bar<'a, R, S> {

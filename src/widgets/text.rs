@@ -17,7 +17,6 @@ use crate::{
     style::component_style,
     theme::Theme,
     ui::UiCtx,
-    value::Value,
     widget::Widget,
 };
 
@@ -77,7 +76,7 @@ where
     T: Display,
     S: TextStyler<R::Color>,
 {
-    content: Value<T>,
+    content: T,
     marker: PhantomData<&'a str>,
 
     align: HorizontalAlign,
@@ -97,7 +96,7 @@ where
     R: Renderer,
     S: TextStyler<R::Color>,
 {
-    pub fn new(content: Value<T>) -> Self {
+    pub fn new(content: T) -> Self {
         Self {
             content,
             marker: PhantomData,
@@ -130,12 +129,12 @@ where
     }
 
     pub fn update(&mut self, new_value: T) {
-        *self.content.get_mut() = new_value;
+        self.content = new_value;
     }
 
     // Helpers //
     fn compute_size(&self, viewport: &Viewport) -> Size {
-        self.font.to_real(viewport).measure_text_size(&self.content.get().to_string())
+        self.font.to_real(viewport).measure_text_size(&self.content.to_string())
     }
 }
 
@@ -193,7 +192,7 @@ where
             .build();
 
         renderer.mono_text(TextBox::with_textbox_style(
-            &self.content.get().to_string(),
+            &self.content.to_string(),
             layout.bounds(),
             mono_text_style,
             TextBoxStyleBuilder::new()
@@ -205,31 +204,14 @@ where
     }
 }
 
-impl<'a, T, R, S> From<Value<T>> for Text<'a, T, R, S>
-where
-    T: Display + 'a,
-    R: Renderer,
-    S: TextStyler<R::Color>,
-{
-    fn from(value: Value<T>) -> Self {
-        Text::new(value)
-    }
-}
-
-// impl<'a, R: Renderer> From<&'a str> for Text<'a, &'a str, R> {
-//     fn from(value: &'a str) -> Self {
-//         Self::new(Value::new(value))
-//     }
-// }
-
-impl<'a, T, R: Renderer, S> From<T> for Text<'a, T, R, S>
+impl<'a, T, R, S> From<T> for Text<'a, T, R, S>
 where
     T: Display + 'a,
     R: Renderer,
     S: TextStyler<R::Color>,
 {
     fn from(value: T) -> Self {
-        Text::new(Value::new(value))
+        Text::new(value)
     }
 }
 
@@ -241,7 +223,7 @@ where
     S: TextStyler<R::Color> + 'a,
 {
     fn from(value: &'a str) -> Self {
-        Text::new(Value::new(value)).into()
+        Text::new(value).into()
     }
 }
 
@@ -253,7 +235,7 @@ where
     S: TextStyler<R::Color> + 'a,
 {
     fn from(value: alloc::string::String) -> Self {
-        Text::new(Value::new(value)).into()
+        Text::new(value).into()
     }
 }
 

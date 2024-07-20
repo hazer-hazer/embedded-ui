@@ -4,10 +4,10 @@ use crate::{
     el::El,
     event::Event,
     layout::Layout,
-    padding::Padding,
     palette::PaletteColor,
     render::Renderer,
     size::{Length, Size},
+    state::StateNode,
     style::component_style,
     theme::Theme,
     widget::Widget,
@@ -90,7 +90,7 @@ where
     }
 
     fn tree_ids(&self) -> alloc::vec::Vec<crate::el::ElId> {
-        vec![]
+        self.content.tree_ids()
     }
 
     fn size(&self, _viewport: &crate::layout::Viewport) -> Size<Length> {
@@ -115,7 +115,7 @@ where
             BoxModel::new().padding(style.padding).border(style.border),
             self.h_align,
             self.v_align,
-            |limits| self.content.layout(ctx, state, styler, limits, viewport),
+            |limits| self.content.layout(ctx, &mut state.children[0], styler, limits, viewport),
         )
     }
 
@@ -137,7 +137,35 @@ where
             background: style.background,
         });
 
-        self.content.draw(ctx, state, renderer, styler, layout, viewport);
+        self.content.draw(
+            ctx,
+            &mut state.children[0],
+            renderer,
+            styler,
+            layout.children().next().unwrap(),
+            viewport,
+        );
+    }
+
+    fn on_event(
+        &mut self,
+        ctx: &mut crate::ui::UiCtx<Message>,
+        event: E,
+        state: &mut crate::state::StateNode,
+    ) -> crate::event::EventResponse<E> {
+        self.content.on_event(ctx, event, &mut state.children[0])
+    }
+
+    fn state_tag(&self) -> crate::state::StateTag {
+        crate::state::StateTag::stateless()
+    }
+
+    fn state(&self) -> crate::state::State {
+        crate::state::State::None
+    }
+
+    fn state_children(&self) -> alloc::vec::Vec<crate::state::StateNode> {
+        vec![StateNode::new(&self.content)]
     }
 }
 
@@ -150,5 +178,26 @@ where
 {
     fn from(value: Container<'a, Message, R, E, S>) -> Self {
         Self::new(value)
+    }
+}
+
+pub trait InsideContainerExt<'a, Message, R, E, S>
+where
+    R: Renderer,
+    E: Event,
+    S: ContainerStyler<R::Color>,
+{
+    fn wrap(self) -> Container<'a, Message, R, E, S>;
+}
+
+impl<'a, T, Message, R, E, S> InsideContainerExt<'a, Message, R, E, S> for T
+where
+    R: Renderer,
+    E: Event,
+    S: ContainerStyler<R::Color>,
+    T: Into<El<'a, Message, R, E, S>>,
+{
+    fn wrap(self) -> Container<'a, Message, R, E, S> {
+        Container::new(self)
     }
 }
