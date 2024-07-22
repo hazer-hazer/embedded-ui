@@ -1,5 +1,5 @@
 use crate::{
-    align::Alignment,
+    align::Align,
     block::{Block, BoxModel},
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, EventResponse, Propagate},
@@ -238,8 +238,8 @@ where
             crate::layout::Position::Relative,
             viewport,
             BoxModel::new().padding(self.padding).border(style.border),
-            Alignment::Center,
-            Alignment::Center,
+            Align::Center,
+            Align::Center,
             |limits| self.content.layout(ctx, &mut state.children[0], styler, limits, viewport),
         )
     }

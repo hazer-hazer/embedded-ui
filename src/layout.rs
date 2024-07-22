@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use embedded_graphics::{geometry::Point, primitives::Rectangle};
 
 use crate::{
-    align::Alignment,
+    align::Align,
     axis::{Axial, Axis},
     block::BoxModel,
     el::El,
@@ -89,28 +89,28 @@ impl LayoutNode {
 
     pub fn align_mut(
         &mut self,
-        horizontal: Alignment,
-        vertical: Alignment,
+        horizontal: Align,
+        vertical: Align,
         parent_size: Size,
     ) -> &mut Self {
         match horizontal {
-            Alignment::Start => {},
-            Alignment::Center => {
+            Align::Start => {},
+            Align::Center => {
                 self.bounds.top_left.x +=
                     (parent_size.width as i32 - self.bounds.size.width as i32) / 2;
             },
-            Alignment::End => {
+            Align::End => {
                 self.bounds.top_left.x += parent_size.width as i32 - self.bounds.size.width as i32;
             },
         }
 
         match vertical {
-            Alignment::Start => {},
-            Alignment::Center => {
+            Align::Start => {},
+            Align::Center => {
                 self.bounds.top_left.y +=
                     (parent_size.height as i32 - self.bounds.size.height as i32) / 2;
             },
-            Alignment::End => {
+            Align::End => {
                 self.bounds.top_left.y += parent_size.width as i32 - self.bounds.size.width as i32;
             },
         }
@@ -118,12 +118,7 @@ impl LayoutNode {
         self
     }
 
-    pub fn aligned(
-        mut self,
-        horizontal: Alignment,
-        vertical: Alignment,
-        parent_size: Size,
-    ) -> Self {
+    pub fn aligned(mut self, horizontal: Align, vertical: Align, parent_size: Size) -> Self {
         self.align_mut(horizontal, vertical, parent_size);
         self
     }
@@ -200,8 +195,8 @@ impl<'a> Layout<'a> {
         position: Position,
         viewport: &Viewport,
         box_model: BoxModel,
-        content_align_h: Alignment,
-        content_align_v: Alignment,
+        content_align_h: Align,
+        content_align_v: Align,
         content_layout: impl FnOnce(&Limits) -> LayoutNode,
         // place_content: impl FnOnce(LayoutNode, Size) -> LayoutNode,
     ) -> LayoutNode {
@@ -237,7 +232,7 @@ impl<'a> Layout<'a> {
         viewport: &Viewport,
         box_model: BoxModel,
         gap: u32,
-        align: Alignment,
+        align: Align,
         children: &[El<'_, Message, R, E, S>],
     ) -> LayoutNode {
         let size = size.into();
@@ -370,8 +365,8 @@ impl<'a> Layout<'a> {
                 node.move_mut(Point::new(x, y));
 
                 match axis {
-                    Axis::X => node.align_mut(align, Alignment::Start, Size::new(0, free_cross)),
-                    Axis::Y => node.align_mut(Alignment::Start, align, Size::new(free_cross, 0)),
+                    Axis::X => node.align_mut(align, Align::Start, Size::new(0, free_cross)),
+                    Axis::Y => node.align_mut(Align::Start, align, Size::new(free_cross, 0)),
                 };
 
                 let size = node.size();

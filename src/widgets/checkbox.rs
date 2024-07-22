@@ -1,6 +1,5 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use embedded_graphics::primitives::Rectangle;
 
 use crate::block::BoxModel;
 use crate::el::{El, ElId};
@@ -32,13 +31,10 @@ impl Default for CheckboxState {
 }
 
 #[derive(Clone, Copy)]
-pub enum CheckboxStatus {
-    Normal,
-    Pressed,
-    Focused,
-
-    // TODO: Think about compound statuses such as FocusedChecked, PressedChecked, etc.
-    Checked,
+pub struct CheckboxStatus {
+    focused: bool,
+    pressed: bool,
+    checked: bool,
 }
 
 component_style! {
@@ -55,12 +51,14 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: CheckboxStatus) -> Che
         .border_color(palette.foreground);
 
     match status {
-        CheckboxStatus::Normal => base.border_width(1).border_radius(0),
-        CheckboxStatus::Pressed => base.border_width(2).border_radius(5),
-        CheckboxStatus::Focused => {
+        CheckboxStatus { pressed: true, .. } => base.border_width(2).border_radius(5),
+        CheckboxStatus { focused: true, .. } => {
             base.border_width(1).border_radius(3).border_color(palette.selection_background)
         },
-        CheckboxStatus::Checked => base.border_width(1).border_radius(0),
+        CheckboxStatus { checked: true, .. } => base.border_width(1).border_radius(0),
+        CheckboxStatus { focused: _, pressed: _, checked: _ } => {
+            base.border_width(1).border_radius(0)
+        },
     }
 }
 
@@ -117,12 +115,9 @@ where
 
     fn status<E: Event + 'a>(&self, ctx: &UiCtx<Message>, state: &StateNode) -> CheckboxStatus {
         let focused = UiCtx::is_focused::<R, E, S>(&ctx, self);
-        match (state.get::<CheckboxState>(), focused) {
-            (CheckboxState { is_pressed: true, .. }, _) => CheckboxStatus::Pressed,
-            (CheckboxState { is_checked: true, .. }, false) => CheckboxStatus::Checked,
-            (CheckboxState { .. }, true) => CheckboxStatus::Focused,
-            (CheckboxState { .. }, false) => CheckboxStatus::Normal,
-        }
+        let state = state.get::<CheckboxState>();
+
+        CheckboxStatus { focused, pressed: state.is_pressed, checked: state.is_checked }
     }
 }
 
@@ -214,8 +209,8 @@ where
             crate::layout::Position::Relative,
             viewport,
             BoxModel::new().border(BORDER).padding(PADDING),
-            crate::align::Alignment::Center,
-            crate::align::Alignment::Center,
+            crate::align::Align::Center,
+            crate::align::Align::Center,
             |limits| {
                 Widget::<Message, R, E, S>::layout(
                     &self.check_icon,

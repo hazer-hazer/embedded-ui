@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 use alloc::vec::Vec;
 
 use crate::{
-    align::Alignment,
+    align::Align,
     axis::Axis,
     block::BoxModel,
     el::{El, ElId},
@@ -14,7 +14,7 @@ use crate::{
     size::{Length, Size},
     state::StateNode,
     ui::UiCtx,
-    widget::Widget,
+    widget::{DrawCtx, LayoutCtx, Widget},
 };
 
 pub trait LinearDirection {
@@ -39,7 +39,7 @@ pub struct Linear<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> {
     size: Size<Length>,
     padding: Padding,
     gap: u32,
-    align: Alignment,
+    align: Align,
     children: Vec<El<'a, Message, R, E, S>>,
 
     dir: PhantomData<D>,
@@ -52,7 +52,7 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Linear<'a, Messa
             size: Size::fill(),
             padding: Padding::default(),
             gap: 0,
-            align: Alignment::Start,
+            align: Align::Start,
             children: children.into_iter().collect(),
             dir: PhantomData,
         }
@@ -83,7 +83,7 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Linear<'a, Messa
         self
     }
 
-    pub fn align(mut self, align: Alignment) -> Self {
+    pub fn align(mut self, align: Align) -> Self {
         self.align = align;
         self
     }
@@ -147,14 +147,7 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
         Propagate::Ignored.into()
     }
 
-    fn layout(
-        &self,
-        ctx: &mut UiCtx<Message>,
-        state: &mut StateNode,
-        styler: &S,
-        limits: &crate::layout::Limits,
-        viewport: &Viewport,
-    ) -> crate::layout::LayoutNode {
+    fn layout(&self, ctx: &mut LayoutCtx<'_, Message, S>) -> crate::layout::LayoutNode {
         Layout::flex(
             ctx,
             state,
@@ -171,20 +164,19 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
         )
     }
 
-    fn draw(
-        &self,
-        ctx: &mut UiCtx<Message>,
-        state: &mut StateNode,
-        renderer: &mut R,
-        styler: &S,
-        layout: crate::layout::Layout,
-        viewport: &Viewport,
-    ) {
+    fn draw(&self, ctx: &mut DrawCtx<'_, Message, R, S>) {
         // TODO: Draw only children inside viewport?
         for ((child, child_state), child_layout) in
-            self.children.iter().zip(state.children.iter_mut()).zip(layout.children())
+            self.children.iter().zip(ctx.state.children.iter_mut()).zip(ctx.layout.children())
         {
-            child.draw(ctx, child_state, renderer, styler, child_layout, viewport);
+            child.draw(&mut DrawCtx {
+                ctx: ctx.ctx,
+                state: child_state,
+                renderer: todo!(),
+                styler: todo!(),
+                layout: todo!(),
+                viewport: todo!(),
+            });
         }
     }
 }

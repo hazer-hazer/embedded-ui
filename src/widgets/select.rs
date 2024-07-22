@@ -1,13 +1,7 @@
 use core::borrow::Borrow;
 
-use alloc::{
-    boxed::Box,
-    string::ToString,
-    vec::Vec,
-};
-use embedded_graphics::{
-    geometry::Point, mono_font::MonoTextStyleBuilder, transform::Transform,
-};
+use alloc::{boxed::Box, string::ToString, vec::Vec};
+use embedded_graphics::{geometry::Point, mono_font::MonoTextStyleBuilder, transform::Transform};
 use embedded_text::{style::TextBoxStyleBuilder, TextBox};
 
 use crate::{
@@ -403,8 +397,8 @@ where
             BoxModel::new()
                 .padding(self.axis.canon::<Padding>(padding_for_icons, 0))
                 .border(style.border),
-            crate::align::Alignment::Center,
-            crate::align::Alignment::Center,
+            crate::align::Align::Center,
+            crate::align::Align::Center,
             |limits| {
                 Layout::sized(
                     limits,

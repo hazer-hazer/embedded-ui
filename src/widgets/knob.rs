@@ -280,8 +280,8 @@ where
             crate::layout::Position::Relative,
             viewport,
             BoxModel::new(),
-            crate::align::Alignment::Center,
-            crate::align::Alignment::Center,
+            crate::align::Align::Center,
+            crate::align::Align::Center,
             |limits| {
                 if let Some(inner) = self.inner.as_ref() {
                     inner.layout(ctx, &mut state.children[0], styler, limits, viewport)

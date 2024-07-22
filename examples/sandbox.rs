@@ -9,6 +9,7 @@ use embedded_graphics_simulator::{
     OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_ui::{
+    align::Align,
     col,
     el::ElId,
     event::CommonEvent,
@@ -181,12 +182,17 @@ fn main() {
             row![IconKind::SnakeCw]
         ],
         col![
-            "This is a checkbox".wrap().height(Length::Fill),
+            "This is a checkbox and some text also"
+                .wrap()
+                .h_align(Align::Center)
+                .v_align(Align::Center)
+                .height(Length::Div(1)),
             checkbox(|value| {
                 println!("{value}");
                 Message::None
             })
-            .wrap(),
+            .wrap()
+            .height(Length::Div(2)),
         ]
     ]
     .gap(1);

@@ -1,5 +1,5 @@
 use crate::{
-    align::Alignment,
+    align::Align,
     block::{Block, BoxModel},
     el::El,
     event::Event,
@@ -37,8 +37,8 @@ where
 {
     content: El<'a, Message, R, E, S>,
     size: Size<Length>,
-    h_align: Alignment,
-    v_align: Alignment,
+    h_align: Align,
+    v_align: Align,
     class: S::Class<'a>,
 }
 
@@ -52,8 +52,8 @@ where
         Self {
             content: content.into(),
             size: Size::fill(),
-            h_align: Alignment::Start,
-            v_align: Alignment::Start,
+            h_align: Align::Start,
+            v_align: Align::Start,
             class: S::default(),
         }
     }
@@ -68,12 +68,12 @@ where
         self
     }
 
-    pub fn h_align(mut self, h_align: impl Into<Alignment>) -> Self {
+    pub fn h_align(mut self, h_align: impl Into<Align>) -> Self {
         self.h_align = h_align.into();
         self
     }
 
-    pub fn v_align(mut self, v_align: impl Into<Alignment>) -> Self {
+    pub fn v_align(mut self, v_align: impl Into<Align>) -> Self {
         self.v_align = v_align.into();
         self
     }

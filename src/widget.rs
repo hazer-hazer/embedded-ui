@@ -7,6 +7,7 @@ use crate::{
     render::Renderer,
     size::{Length, Size},
     state::{State, StateNode, StateTag},
+    style::Styler,
     ui::UiCtx,
 };
 
@@ -14,6 +15,62 @@ use crate::{
 //     bounds: Bounds,
 //     children: Vec<Overlay>,
 // }
+
+pub struct LayoutCtx<'a, Message, S> {
+    pub ctx: &'a mut UiCtx<Message>,
+    pub state: &'a mut StateNode,
+    pub styler: &'a S,
+    pub limits: &'a Limits,
+    pub viewport: &'a Viewport,
+}
+
+// impl<'a, Message, S> LayoutCtx<'a, Message, S> {
+//     pub fn children(&'a mut self) -> impl Iterator<Item = LayoutCtx<'a,
+// Message, S>> + 'a {         self.state.children.iter_mut().map(|state_child|
+// LayoutCtx {             ctx: self.ctx,
+//             state: state_child,
+//             styler: self.styler,
+//             limits: self.limits,
+//             viewport: self.viewport,
+//         })
+//     }
+// }
+
+pub struct DrawCtx<'a, Message, R, S>
+where
+    R: Renderer,
+{
+    pub ctx: &'a mut UiCtx<Message>,
+    pub state: &'a mut StateNode,
+    pub renderer: &'a mut R,
+    pub styler: &'a S,
+    pub layout: Layout<'a>,
+    pub viewport: &'a Viewport,
+}
+
+impl<'a, Message, R, S> DrawCtx<'a, Message, R, S>
+where
+    R: Renderer,
+{
+    // pub fn for_child(&'a mut self, state: &'a mut StateNode, layout: Layout<'a>) -> Self {
+    //     Self {
+    //         ctx: self.ctx,
+    //         state,
+    //         renderer: self.renderer,
+    //         styler: self.styler,
+    //         layout,
+    //         viewport: self.viewport,
+    //     }
+    // }
+
+    // pub fn draw_children<E: Event>(self, children: &mut [impl Widget<Message, R, E, S>]) {
+    //     for ((child, child_state), child_layout) in
+    //         children.iter().zip(self.state.children.iter_mut()).zip(self.layout.children())
+    //     {
+    //         child.draw(&mut self.for_child(child_state, child_layout));
+    //     }
+    // }
+}
 
 pub trait Widget<Message, R, E: Event, S>
 where
@@ -25,24 +82,9 @@ where
     fn position(&self) -> Position {
         Position::Relative
     }
-    fn layout(
-        &self,
-        ctx: &mut UiCtx<Message>,
-        state: &mut StateNode,
-        styler: &S,
-        limits: &Limits,
-        viewport: &Viewport,
-    ) -> LayoutNode;
+    fn layout(&self, ctx: &mut LayoutCtx<'_, Message, S>) -> LayoutNode;
 
-    fn draw(
-        &self,
-        ctx: &mut UiCtx<Message>,
-        state: &mut StateNode,
-        renderer: &mut R,
-        styler: &S,
-        layout: Layout,
-        viewport: &Viewport,
-    );
+    fn draw(&self, ctx: &mut DrawCtx<'_, Message, R, S>);
 
     fn on_event(
         &mut self,

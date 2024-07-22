@@ -2,7 +2,7 @@ use core::default;
 
 #[derive(Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(::defmt::Format))]
-pub enum Alignment {
+pub enum Align {
     Start,
     Center,
     End,
