@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use embedded_canvas::{Canvas, CanvasAt};
 use embedded_graphics::{
     draw_target::{Clipped, DrawTargetExt},
@@ -23,6 +23,7 @@ use crate::{
     el::El,
     event::Event,
     font::{Font, FontFamily, FontStyle},
+    size::Size,
 };
 
 #[derive(Clone, Copy)]
@@ -32,11 +33,54 @@ pub enum LayerKind {
     Cropped(Rectangle),
 }
 
-pub trait Renderer {
-    type Color: UiColor + Copy;
-    type Clipped<'a>: Renderer
-    where
-        Self: 'a;
+impl LayerKind {
+    #[inline]
+    fn target(&self, target: &mut impl DrawTarget) -> impl DrawTarget {
+        match self {
+            LayerKind::FullScreen => target,
+            LayerKind::Clipped(bounds) => target.clipped(bounds),
+            LayerKind::Cropped(bounds) => target.cropped(bounds),
+        }
+    }
+}
+
+// struct Layer<C: UiColor> {
+//     canvas: CanvasAt<C>,
+// }
+
+// impl<C: UiColor> Layer<C> {
+//     fn new(screen: Size, kind: LayerKind) -> Self {
+//         Self {
+//             canvas: match kind {
+//                 LayerKind::FullScreen => CanvasAt::new(Point::zero(),
+// screen.into()),                 LayerKind::Clipped(bounds) =>
+// CanvasAt::new(bounds.top_left, bounds.size),
+// LayerKind::Cropped(bounds) => todo!(),             },
+//         }
+//     }
+// }
+
+// impl<C: UiColor> DrawTarget for Layer<C> {
+//     type Color = C;
+
+//     type Error = ();
+
+//     fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+//     where
+//         I: IntoIterator<Item = Pixel<Self::Color>>,
+//     {
+//         self.canvas.draw_iter(pixels)
+//     }
+// }
+
+pub struct Renderer<C: UiColor> {
+    layers: Vec<LayerKind>,
+}
+
+impl<C: UiColor> Renderer<C> {
+    fn layer(&mut self) -> &mut impl DrawTarget {
+        self.layers.last().unwrap().target(self)
+    }
 
     // Renderer info
     fn clear(&mut self, color: Self::Color);
