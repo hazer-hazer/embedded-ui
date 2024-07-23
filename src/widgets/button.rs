@@ -1,6 +1,7 @@
 use crate::{
     align::Align,
     block::{Block, BoxModel},
+    color::UiColor,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, EventResponse, Propagate},
     layout::{Layout, Viewport},
@@ -62,28 +63,28 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: ButtonStatus) -> Butto
     }
 }
 
-pub struct Button<'a, Message, R, E, S>
+pub struct Button<'a, Message, C, E, S>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: ButtonStyler<R::Color>,
+    S: ButtonStyler<C>,
 {
     id: ElId,
-    content: El<'a, Message, R, E, S>,
+    content: El<'a, Message, C, E, S>,
     size: Size<Length>,
     padding: Padding,
     class: S::Class<'a>,
     on_press: Option<Message>,
 }
 
-impl<'a, Message, R, E, S> Button<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> Button<'a, Message, C, E, S>
 where
     Message: Clone,
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: ButtonStyler<R::Color>,
+    S: ButtonStyler<C>,
 {
-    pub fn new(content: impl Into<El<'a, Message, R, E, S>>) -> Self {
+    pub fn new(content: impl Into<El<'a, Message, C, E, S>>) -> Self {
         let content = content.into();
         let padding = Padding::default();
         // let size = content.size();
@@ -136,12 +137,12 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Button<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> Widget<Message, C, E, S> for Button<'a, Message, C, E, S>
 where
     Message: Clone,
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: ButtonStyler<R::Color>,
+    S: ButtonStyler<C>,
 {
     fn id(&self) -> Option<ElId> {
         Some(self.id)
@@ -248,7 +249,7 @@ where
         &self,
         ctx: &mut UiCtx<Message>,
         state: &mut StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         styler: &S,
         layout: Layout,
         viewport: &Viewport,
@@ -274,14 +275,14 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> From<Button<'a, Message, R, E, S>> for El<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> From<Button<'a, Message, C, E, S>> for El<'a, Message, C, E, S>
 where
     Message: Clone + 'a,
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
-    S: ButtonStyler<R::Color> + 'a,
+    S: ButtonStyler<C> + 'a,
 {
-    fn from(value: Button<'a, Message, R, E, S>) -> Self {
+    fn from(value: Button<'a, Message, C, E, S>) -> Self {
         Self::new(value)
     }
 }

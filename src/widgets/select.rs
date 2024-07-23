@@ -7,9 +7,10 @@ use embedded_text::{style::TextBoxStyleBuilder, TextBox};
 use crate::{
     axis::{Axial, Axis},
     block::{Block, BoxModel},
+    color::UiColor,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
-    font::{Font, FontSize},
+    font::{Font, FontFamily, FontSize, FontStyle},
     icons::IconKind,
     layout::{Layout, LayoutNode, Viewport},
     padding::Padding,
@@ -98,10 +99,10 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: SelectStatus) -> Selec
 //     }
 // }
 
-pub struct Select<'a, Message, R, S, O, L>
+pub struct Select<'a, Message, C, S, O, L>
 where
-    R: Renderer,
-    S: SelectStyler<R::Color>,
+    C: UiColor,
+    S: SelectStyler<C>,
     O: ToString,
     L: Borrow<[O]>,
 {
@@ -119,10 +120,10 @@ where
     show_siblings: usize,
 }
 
-impl<'a, Message, R, S, O, L> Select<'a, Message, R, S, O, L>
+impl<'a, Message, C, S, O, L> Select<'a, Message, C, S, O, L>
 where
-    R: Renderer,
-    S: SelectStyler<R::Color> + IconStyler<R::Color>,
+    C: UiColor,
+    S: SelectStyler<C> + IconStyler<C>,
     O: ToString,
     L: Borrow<[O]>,
 {
@@ -137,10 +138,14 @@ where
             options,
             chosen: 0,
             on_change: None,
-            class: <S as SelectStyler<R::Color>>::default(),
+            class: <S as SelectStyler<C>>::default(),
             circular: false,
             axis,
-            font: R::default_font(),
+            font: Font {
+                family: FontFamily::Mono,
+                size: crate::font::FontSize::Relative(1.0),
+                style: FontStyle::Normal,
+            },
             show_siblings: 1,
         }
     }
@@ -239,11 +244,11 @@ where
     //     &self.option_values[self.chosen]
     // }
 
-    // fn current_el(&self) -> &El<'a, Message, R, E, S> {
+    // fn current_el(&self) -> &El<'a, Message, C, E, S> {
     //     &self.option_els[self.chosen]
     // }
 
-    // fn current_siblings(&self) -> &[El<'a, Message, R, E, S>] {
+    // fn current_siblings(&self) -> &[El<'a, Message, C, E, S>] {
     //     let siblings_aside = self.show_siblings / 2;
     //     &self.option_els[self.chosen.checked_sub(siblings_aside).unwrap_or(0)
     //         ..self.chosen.checked_add(1).unwrap_or(usize::MAX)]
@@ -259,16 +264,16 @@ where
         SelectStatus {
             active: state.is_active,
             pressed: state.is_pressed,
-            focused: ctx.is_focused::<R, E, S>(self),
+            focused: ctx.is_focused::<C, E, S>(self),
         }
     }
 }
 
-impl<'a, Message, R, E, S, O, L> Widget<Message, R, E, S> for Select<'a, Message, R, S, O, L>
+impl<'a, Message, C, E, S, O, L> Widget<Message, C, E, S> for Select<'a, Message, C, S, O, L>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: SelectStyler<R::Color> + IconStyler<R::Color>,
+    S: SelectStyler<C> + IconStyler<C>,
     O: ToString,
     L: Borrow<[O]>,
 {
@@ -307,7 +312,7 @@ where
     ) -> crate::event::EventResponse<E> {
         // TODO: Think about need of passing events to children, is it safe?
 
-        let focused = ctx.is_focused::<R, E, S>(self);
+        let focused = ctx.is_focused::<C, E, S>(self);
         let current_state = state.get::<SelectState>();
 
         if let Some(offset) = event.as_select_shift() {
@@ -415,7 +420,7 @@ where
         &self,
         ctx: &mut crate::ui::UiCtx<Message>,
         state: &mut crate::state::StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         styler: &S,
         layout: crate::layout::Layout,
         viewport: &Viewport,
@@ -434,7 +439,7 @@ where
         });
 
         if self.circular || self.chosen != 0 {
-            Widget::<Message, R, E, S>::draw(
+            Widget::<Message, C, E, S>::draw(
                 &Icon::new(self.icon_prev),
                 ctx,
                 &mut StateNode::stateless(),
@@ -450,7 +455,7 @@ where
         }
 
         if self.circular || self.chosen != self.options.borrow().len() - 1 {
-            Widget::<Message, R, E, S>::draw(
+            Widget::<Message, C, E, S>::draw(
                 &Icon::new(self.icon_next),
                 ctx,
                 &mut StateNode::stateless(),
@@ -472,7 +477,7 @@ where
 
         let inner_layout = layout.children().next().unwrap();
 
-        let renderer = renderer.clipped(inner_layout.bounds());
+        // let renderer = renderer.clipped(inner_layout.bounds());
         let real_font = self.font.to_real(viewport);
 
         let text_style = MonoTextStyleBuilder::new()
@@ -557,17 +562,17 @@ where
     }
 }
 
-impl<'a, Message, R, E, S, O, L> From<Select<'a, Message, R, S, O, L>> for El<'a, Message, R, E, S>
+impl<'a, Message, C, E, S, O, L> From<Select<'a, Message, C, S, O, L>> for El<'a, Message, C, E, S>
 where
     Message: Clone + 'a,
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
-    S: SelectStyler<R::Color> + IconStyler<R::Color> + 'a,
+    S: SelectStyler<C> + IconStyler<C> + 'a,
     O: 'a,
     O: ToString,
     L: Borrow<[O]> + 'a,
 {
-    fn from(value: Select<'a, Message, R, S, O, L>) -> Self {
+    fn from(value: Select<'a, Message, C, S, O, L>) -> Self {
         El::new(value)
     }
 }

@@ -3,6 +3,7 @@ use embedded_graphics::iterator::raw::RawDataSlice;
 use embedded_graphics::pixelcolor::raw::{BigEndian, RawData, RawU1};
 use embedded_graphics::Pixel;
 
+use crate::color::UiColor;
 use crate::el::El;
 use crate::font::FontSize;
 use crate::icons::icons5::Icons5;
@@ -60,20 +61,20 @@ component_style! {
     }
 }
 
-pub struct Icon<'a, R, S>
+pub struct Icon<'a, C, S>
 where
-    R: Renderer,
-    S: IconStyler<R::Color>,
+    C: UiColor,
+    S: IconStyler<C>,
 {
     size: FontSize,
     kind: IconKind,
     class: S::Class<'a>,
 }
 
-impl<'a, R, S> Icon<'a, R, S>
+impl<'a, C, S> Icon<'a, C, S>
 where
-    R: Renderer,
-    S: IconStyler<R::Color>,
+    C: UiColor,
+    S: IconStyler<C>,
 {
     pub fn new(kind: IconKind) -> Self {
         // assert_eq!((size * size).div_ceil(8) as usize, data.len());
@@ -92,11 +93,11 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Icon<'a, R, S>
+impl<'a, Message, C, E, S> Widget<Message, C, E, S> for Icon<'a, C, S>
 where
-    R: Renderer + 'a,
+    C: UiColor,
     E: Event + 'a,
-    S: IconStyler<R::Color> + 'a,
+    S: IconStyler<C> + 'a,
 {
     fn id(&self) -> Option<crate::el::ElId> {
         None
@@ -130,7 +131,7 @@ where
         &self,
         _ctx: &mut crate::ui::UiCtx<Message>,
         _state: &mut crate::state::StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         styler: &S,
         layout: crate::layout::Layout,
         _viewport: &Viewport,
@@ -182,32 +183,32 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> From<Icon<'a, R, S>> for El<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> From<Icon<'a, C, S>> for El<'a, Message, C, E, S>
 where
     Message: 'a,
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
-    S: IconStyler<R::Color> + 'a,
+    S: IconStyler<C> + 'a,
 {
-    fn from(value: Icon<'a, R, S>) -> Self {
+    fn from(value: Icon<'a, C, S>) -> Self {
         Self::new(value)
     }
 }
 
-impl<'a, Message, R, E, S> From<IconKind> for El<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> From<IconKind> for El<'a, Message, C, E, S>
 where
     Message: 'a,
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
-    S: IconStyler<R::Color> + 'a,
+    S: IconStyler<C> + 'a,
 {
     fn from(value: IconKind) -> Self {
         El::new(Icon::new(value))
     }
 }
 
-impl<'a, R: Renderer, S: IconStyler<R::Color>> Into<Icon<'a, R, S>> for IconKind {
-    fn into(self) -> Icon<'a, R, S> {
+impl<'a, C: UiColor, S: IconStyler<C>> Into<Icon<'a, C, S>> for IconKind {
+    fn into(self) -> Icon<'a, C, S> {
         Icon::new(self)
     }
 }

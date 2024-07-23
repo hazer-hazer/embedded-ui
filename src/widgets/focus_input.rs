@@ -46,10 +46,9 @@
 //     }
 // }
 
-// pub struct FocusInput<'a, Message, R, S>
+// pub struct FocusInput<'a, Message, C, S>
 // where
-//     R: Renderer,
-//     S: FocusInputStyler<R::Color>,
+//     //     S: FocusInputStyler<C>,
 // {
 //     id: ElId,
 //     size: Size<Length>,
@@ -60,10 +59,9 @@
 //     class: S::Class<'a>,
 // }
 
-// impl<'a, Message, R, S> FocusInput<'a, Message, R, S>
+// impl<'a, Message, C, S> FocusInput<'a, Message, C, S>
 // where
-//     R: Renderer,
-//     S: FocusInputStyler<R::Color>,
+//     //     S: FocusInputStyler<C>,
 // {
 //     pub fn new(value: Value<String>) -> Self {
 //         Self {
@@ -94,7 +92,7 @@
 
 //     // Helpers //
 //     fn status<E: Event>(&self, ctx: &UiCtx<Message>, state: &FocusInputState)
-// -> FocusInputStatus {         match (UiCtx::is_focused::<R, E, S>(&ctx,
+// -> FocusInputStatus {         match (UiCtx::is_focused::<C, E, S>(&ctx,
 // self), state) {             (_, FocusInputState { is_active: true, .. }) =>
 // FocusInputStatus::Active,             (_, FocusInputState { is_pressed: true,
 // .. }) => FocusInputStatus::Pressed,             (true, FocusInputState {
@@ -107,11 +105,10 @@
 //     }
 // }
 
-// impl<'a, Message, R, E, S> Widget<Message, R, E, S> for FocusInput<'a,
-// Message, R, S> where
-//     R: Renderer,
-//     E: Event,
-//     S: FocusInputStyler<R::Color>,
+// impl<'a, Message, C, E, S> Widget<Message, C, E, S> for FocusInput<'a,
+// Message, C, S> where
+//     //     E: Event,
+//     S: FocusInputStyler<C>,
 // {
 //     fn id(&self) -> Option<ElId> {
 //         Some(self.id)
@@ -221,7 +218,7 @@
 //         &self,
 //         ctx: &mut UiCtx<Message>,
 //         state: &mut crate::state::StateNode,
-//         renderer: &mut R,
+//         renderer: &mut Renderer<C>,
 //         styler: &S,
 //         layout: crate::layout::Layout,
 //     ) { let state = state.get::<FocusInputState>(); let style =

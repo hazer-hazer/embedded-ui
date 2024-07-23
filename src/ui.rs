@@ -1,7 +1,11 @@
 use alloc::collections::VecDeque;
-use embedded_graphics::pixelcolor::{BinaryColor, Rgb555, Rgb565, Rgb666, Rgb888};
+use embedded_graphics::{
+    draw_target::DrawTarget,
+    pixelcolor::{BinaryColor, Rgb555, Rgb565, Rgb666, Rgb888},
+};
 
 use crate::{
+    color::UiColor,
     el::{El, ElId},
     event::{Event, EventStub, Propagate},
     layout::{Layout, LayoutNode, Limits, Viewport},
@@ -29,10 +33,11 @@ impl<Message> UiCtx<Message> {
         self.focused = Some(id)
     }
 
-    pub fn is_focused<R: Renderer, E: Event, S>(
-        &self,
-        widget: &impl Widget<Message, R, E, S>,
-    ) -> bool {
+    pub fn is_focused<C, E, S>(&self, widget: &impl Widget<Message, C, E, S>) -> bool
+    where
+        C: UiColor,
+        E: Event,
+    {
         match (self.focused, widget.id()) {
             (Some(focus), Some(id)) if focus == id => true,
             _ => false,
@@ -48,14 +53,8 @@ impl<Message> UiCtx<Message> {
     }
 }
 
-pub struct UI<
-    'a,
-    Message,
-    R: Renderer,
-    E: Event,
-    S: Styler<R::Color> = Theme<<R as Renderer>::Color>,
-> {
-    root: El<'a, Message, R, E, S>,
+pub struct UI<'a, Message, C: UiColor, E: Event, S: Styler<C> = Theme<C>> {
+    root: El<'a, Message, C, E, S>,
     root_node: LayoutNode,
     viewport_size: Size,
     root_state: StateNode,
@@ -64,8 +63,13 @@ pub struct UI<
     ctx: UiCtx<Message>,
 }
 
-impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R, E, S> {
-    pub fn new(root: impl Widget<Message, R, E, S> + 'a, viewport_size: Size) -> Self {
+impl<'a, Message, C, E, S> UI<'a, Message, C, E, S>
+where
+    C: UiColor,
+    E: Event,
+    S: Styler<C>,
+{
+    pub fn new(root: impl Widget<Message, C, E, S> + 'a, viewport_size: Size) -> Self {
         let mut ctx = UiCtx::new();
 
         let root = El::new(root);
@@ -148,41 +152,48 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
         self.ctx.focus(id)
     }
 
-    pub fn draw(&mut self, renderer: &mut R) {
+    pub fn draw<D>(&mut self, target: &mut D)
+    where
+        D: DrawTarget<Color = C>,
+        D::Error: core::fmt::Debug,
+    {
         // FIXME: Performance?
         // TODO: Maybe should clear only root bounds
-        renderer.clear(self.styler.background());
+        // renderer.clear(self.styler.background());
+        let mut renderer = Renderer::new(self.styler.background(), target);
 
         self.root.draw(
             &mut self.ctx,
             &mut self.root_state,
-            renderer,
+            &mut renderer,
             &self.styler,
             Layout::new(&self.root_node),
             &Viewport { size: self.viewport_size },
         );
+
+        renderer.finish(target);
     }
 }
 
 /// Does not have events
-impl<'a, Message, R: Renderer, S: Styler<R::Color>> UI<'a, Message, R, EventStub, S> {
+impl<'a, Message, C: UiColor, S: Styler<C>> UI<'a, Message, C, EventStub, S> {
     pub fn no_events(self) -> Self {
         self
     }
 }
 
 /// Does not allow messages
-impl<'a, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, (), R, E, S> {
+impl<'a, C: UiColor, E: Event, S: Styler<C>> UI<'a, (), C, E, S> {
     pub fn static_ui(self) -> Self {
         self
     }
 }
 
-impl<'a, Message, R: Renderer, E: Event> UI<'a, Message, R, E, Theme<R::Color>>
+impl<'a, Message, C: UiColor, E: Event> UI<'a, Message, C, E, Theme<C>>
 where
-    <R as Renderer>::Color: PaletteColor + 'static,
+    C: PaletteColor + 'static,
 {
-    pub fn theme(mut self, theme: Theme<R::Color>) -> Self {
+    pub fn theme(mut self, theme: Theme<C>) -> Self {
         self.styler = theme;
         self
     }
@@ -191,9 +202,8 @@ where
 macro_rules! renderer_colors {
     ($($method:ident : $color_ty:ty),*) => {
         $(
-            impl<'a, Message, R, E> UI<'a, Message, R, E>
+            impl<'a, Message, E> UI<'a, Message, $color_ty, E>
             where
-                R: Renderer<Color = $color_ty>,
                 E: Event,
             {
                 pub fn $method(self) -> Self {

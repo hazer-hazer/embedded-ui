@@ -6,6 +6,7 @@ use crate::{
     align::Align,
     axis::Axis,
     block::BoxModel,
+    color::UiColor,
     el::{El, ElId},
     event::{Event, EventResponse, Propagate},
     layout::{Layout, Viewport},
@@ -31,22 +32,22 @@ impl LinearDirection for DirectionRow {
     const AXIS: Axis = Axis::X;
 }
 
-pub type Column<'a, Message, R, E, S> = Linear<'a, Message, R, E, S, DirectionColumn>;
-pub type Row<'a, Message, R, E, S> = Linear<'a, Message, R, E, S, DirectionRow>;
+pub type Column<'a, Message, C, E, S> = Linear<'a, Message, C, E, S, DirectionColumn>;
+pub type Row<'a, Message, C, E, S> = Linear<'a, Message, C, E, S, DirectionRow>;
 
-pub struct Linear<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> {
+pub struct Linear<'a, Message, C: UiColor, E: Event, S, D: LinearDirection> {
     spacing: u32,
     size: Size<Length>,
     padding: Padding,
     gap: u32,
     align: Align,
-    children: Vec<El<'a, Message, R, E, S>>,
+    children: Vec<El<'a, Message, C, E, S>>,
 
     dir: PhantomData<D>,
 }
 
-impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Linear<'a, Message, R, E, S, D> {
-    pub fn new(children: impl IntoIterator<Item = El<'a, Message, R, E, S>>) -> Self {
+impl<'a, Message, C: UiColor, E: Event, S, D: LinearDirection> Linear<'a, Message, C, E, S, D> {
+    pub fn new(children: impl IntoIterator<Item = El<'a, Message, C, E, S>>) -> Self {
         Self {
             spacing: 0,
             size: Size::fill(),
@@ -88,7 +89,7 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Linear<'a, Messa
         self
     }
 
-    pub fn add(mut self, child: impl Into<El<'a, Message, R, E, S>>) -> Self {
+    pub fn add(mut self, child: impl Into<El<'a, Message, C, E, S>>) -> Self {
         self.children.push(child.into());
         self
     }
@@ -112,8 +113,11 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Linear<'a, Messa
     // }
 }
 
-impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, R, E, S>
-    for Linear<'a, Message, R, E, S, D>
+impl<'a, Message, C, E, S, D> Widget<Message, C, E, S> for Linear<'a, Message, C, E, S, D>
+where
+    C: UiColor,
+    E: Event,
+    D: LinearDirection,
 {
     fn id(&self) -> Option<crate::el::ElId> {
         None
@@ -175,7 +179,7 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
         &self,
         ctx: &mut UiCtx<Message>,
         state: &mut StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         styler: &S,
         layout: crate::layout::Layout,
         viewport: &Viewport,
@@ -189,15 +193,15 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
     }
 }
 
-impl<'a, Message, R, E, S, D> From<Linear<'a, Message, R, E, S, D>> for El<'a, Message, R, E, S>
+impl<'a, Message, C, E, S, D> From<Linear<'a, Message, C, E, S, D>> for El<'a, Message, C, E, S>
 where
     Message: 'a,
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
     S: 'a,
     D: LinearDirection + 'a,
 {
-    fn from(value: Linear<'a, Message, R, E, S, D>) -> Self {
+    fn from(value: Linear<'a, Message, C, E, S, D>) -> Self {
         Self::new(value)
     }
 }

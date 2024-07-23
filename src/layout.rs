@@ -5,6 +5,7 @@ use crate::{
     align::Align,
     axis::{Axial, Axis},
     block::BoxModel,
+    color::UiColor,
     el::El,
     event::Event,
     padding::Padding,
@@ -221,7 +222,7 @@ impl<'a> Layout<'a> {
         LayoutNode::with_children(size.expand(fit_padding), box_model.margin, vec![content])
     }
 
-    pub fn flex<Message, R: Renderer, E: Event, S>(
+    pub fn flex<Message, C: UiColor, E: Event, S>(
         ctx: &mut UiCtx<Message>,
         state_tree: &mut StateNode,
         styler: &S,
@@ -233,7 +234,7 @@ impl<'a> Layout<'a> {
         box_model: BoxModel,
         gap: u32,
         align: Align,
-        children: &[El<'_, Message, R, E, S>],
+        children: &[El<'_, Message, C, E, S>],
     ) -> LayoutNode {
         let size = size.into();
         let padding = box_model.padding;

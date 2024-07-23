@@ -1,5 +1,6 @@
 use crate::{
     block::BoxModel,
+    color::UiColor,
     el::{El, ElId},
     event::Event,
     layout::{Layout, Limits},
@@ -53,26 +54,26 @@ impl ScrollDir {
     }
 }
 
-pub struct Scrollable<'a, Message, R, E, S>
+pub struct Scrollable<'a, Message, C, E, S>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: ScrollableStyler<R::Color>,
+    S: ScrollableStyler<C>,
 {
     id: ElId,
-    content: El<'a, Message, R, E, S>,
+    content: El<'a, Message, C, E, S>,
     size: Size<Length>,
     dir: ScrollDir,
     class: S::Class<'a>,
 }
 
-impl<'a, Message, R, E, S> Scrollable<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> Scrollable<'a, Message, C, E, S>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: ScrollableStyler<R::Color>,
+    S: ScrollableStyler<C>,
 {
-    pub fn new(content: El<'a, Message, R, E, S>) -> Self {
+    pub fn new(content: El<'a, Message, C, E, S>) -> Self {
         Self {
             id: ElId::unique(),
             content,
@@ -83,11 +84,11 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Scrollable<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> Widget<Message, C, E, S> for Scrollable<'a, Message, C, E, S>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: ScrollableStyler<R::Color>,
+    S: ScrollableStyler<C>,
 {
     fn id(&self) -> Option<ElId> {
         Some(self.id)
@@ -133,19 +134,19 @@ where
         &self,
         ctx: &mut crate::ui::UiCtx<Message>,
         state: &mut crate::state::StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         styler: &S,
         layout: crate::layout::Layout,
         viewport: &crate::layout::Viewport,
     ) {
         let bounds = layout.bounds();
 
-        let renderer = renderer.clipped(bounds);
+        // let renderer = renderer.clipped(bounds);
 
         self.content.draw(
             ctx,
             &mut state.children[0],
-            &mut renderer,
+            renderer,
             styler,
             layout.children().next().unwrap(),
             viewport,

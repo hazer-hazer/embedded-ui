@@ -11,9 +11,9 @@
 //     Outside(i32),
 // }
 
-// pub fn for_container<'a, Message, R: Renderer, E: Event, S>(
+// pub fn for_container<'a, Message, C: UiColor, E: Event, S>(
 //     ctx: &mut UiCtx<Message>,
-//     children: &[El<'a, Message, R, E, S>],
+//     children: &[El<'a, Message, C, E, S>],
 // ) -> EventResponse<E> {
 //     let new_focus_index = child_index as i32 + focus_offset;
 
@@ -22,7 +22,8 @@
 //     }
 
 //     let new_focused_child =
-//         children.iter().filter_map(|child| child.id()).nth(new_focus_index as usize);
+//         children.iter().filter_map(|child| child.id()).nth(new_focus_index as
+// usize);
 
 //     if let Some(new_focused_child) = new_focused_child {
 //         FocusResult::Child(new_focused_child)

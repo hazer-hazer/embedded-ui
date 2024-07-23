@@ -9,9 +9,10 @@ use embedded_text::{
 
 use crate::{
     align::{HorizontalAlign, VerticalAlign},
+    color::UiColor,
     el::{El, ElId},
     event::Event,
-    font::{Font, FontSize},
+    font::{Font, FontFamily, FontSize, FontStyle},
     layout::{Layout, Viewport},
     palette::PaletteColor,
     render::Renderer,
@@ -92,11 +93,11 @@ impl Into<embedded_text::alignment::HorizontalAlignment> for TextAlign {
     }
 }
 
-pub struct Text<'a, T, R, S>
+pub struct Text<'a, T, C, S>
 where
-    R: Renderer,
+    C: UiColor,
     T: Display,
-    S: TextStyler<R::Color>,
+    S: TextStyler<C>,
 {
     content: T,
 
@@ -112,11 +113,11 @@ where
     // size: Size,
 }
 
-impl<'a, T, R, S> Text<'a, T, R, S>
+impl<'a, T, C, S> Text<'a, T, C, S>
 where
     T: Display,
-    R: Renderer,
-    S: TextStyler<R::Color>,
+    C: UiColor,
+    S: TextStyler<C>,
 {
     pub fn new(content: T) -> Self {
         Self {
@@ -125,7 +126,11 @@ where
             align: TextAlign::Center,
             vertical_align: VerticalAlign::Center,
             size: Size::fill(),
-            font: R::default_font(),
+            font: Font {
+                family: FontFamily::Mono,
+                size: crate::font::FontSize::Relative(1.0),
+                style: FontStyle::Normal,
+            },
             class: S::default(),
         }
     }
@@ -155,11 +160,7 @@ where
     }
 
     // Helpers //
-    fn text_style(
-        &self,
-        style: &TextStyle<R::Color>,
-        viewport: &Viewport,
-    ) -> MonoTextStyle<'_, R::Color> {
+    fn text_style(&self, style: &TextStyle<C>, viewport: &Viewport) -> MonoTextStyle<'_, C> {
         let real_font = self.font.to_real(viewport);
         let mono_text_style = MonoTextStyleBuilder::new()
             .font(&real_font.font())
@@ -181,18 +182,19 @@ where
             .build()
     }
 
-    // fn compute_size(&self, text: &str, style: &TextStyle<R::Color>, viewport:
+    // fn compute_size(&self, text: &str, style: &TextStyle<C>, viewport:
     // &Viewport) -> Size {     // self.font.to_real(viewport).
     // measure_text_size(&self.content.to_string())
 
     // }
 }
 
-impl<'a, T, Message, R, E: Event, S> Widget<Message, R, E, S> for Text<'a, T, R, S>
+impl<'a, T, Message, C, E, S> Widget<Message, C, E, S> for Text<'a, T, C, S>
 where
     T: Display,
-    R: Renderer,
-    S: TextStyler<R::Color>,
+    E: Event,
+    C: UiColor,
+    S: TextStyler<C>,
 {
     fn id(&self) -> Option<ElId> {
         None
@@ -233,7 +235,7 @@ where
         &self,
         _ctx: &mut UiCtx<Message>,
         _state_tree: &mut StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         styler: &S,
         layout: Layout,
         viewport: &Viewport,
@@ -249,58 +251,58 @@ where
     }
 }
 
-impl<'a, T, R, S> From<T> for Text<'a, T, R, S>
+impl<'a, T, C, S> From<T> for Text<'a, T, C, S>
 where
     T: Display + 'a,
-    R: Renderer,
-    S: TextStyler<R::Color>,
+    C: UiColor,
+    S: TextStyler<C>,
 {
     fn from(value: T) -> Self {
         Text::new(value)
     }
 }
 
-impl<'a, Message, R, E, S> From<&'a str> for El<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> From<&'a str> for El<'a, Message, C, E, S>
 where
     Message: 'a,
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
-    S: TextStyler<R::Color> + 'a,
+    S: TextStyler<C> + 'a,
 {
     fn from(value: &'a str) -> Self {
         Text::new(value).into()
     }
 }
 
-impl<'a, Message, R, E, S> From<alloc::string::String> for El<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> From<alloc::string::String> for El<'a, Message, C, E, S>
 where
     Message: 'a,
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
-    S: TextStyler<R::Color> + 'a,
+    S: TextStyler<C> + 'a,
 {
     fn from(value: alloc::string::String) -> Self {
         Text::new(value).into()
     }
 }
 
-impl<'a, T, Message, R, E, S> From<Text<'a, T, R, S>> for El<'a, Message, R, E, S>
+impl<'a, T, Message, C, E, S> From<Text<'a, T, C, S>> for El<'a, Message, C, E, S>
 where
     T: Display + 'a,
     Message: 'a,
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
-    S: TextStyler<R::Color> + 'a,
+    S: TextStyler<C> + 'a,
 {
-    fn from(value: Text<'a, T, R, S>) -> Self {
+    fn from(value: Text<'a, T, C, S>) -> Self {
         Self::new(value)
     }
 }
 
-// impl<'a, T, Message, R, E, S> From<T> for El<'a, Message, R, E, S>
+// impl<'a, T, Message, C, E, S> From<T> for El<'a, Message, C, E, S>
 // where
 //     Message: 'a,
-//     R: Renderer + 'a,
+//     C: UiColor + 'a,
 //     E: Event + 'a,
 //     S: 'a,
 //     T: ToString,
@@ -310,10 +312,10 @@ where
 //     }
 // }
 
-// impl<'a, F, T, Message, R, E, S> From<F> for El<'a, Message, R, E, S>
+// impl<'a, F, T, Message, C, E, S> From<F> for El<'a, Message, C, E, S>
 // where
 //     Message: 'a,
-//     R: Renderer + 'a,
+//     C: UiColor + 'a,
 //     E: Event + 'a,
 //     S: 'a,
 //     F: FnMut() -> T,
@@ -331,9 +333,9 @@ where
 // }
 
 // #[derive(Clone, Copy)]
-// pub struct TextBox<'a, R: Renderer> {
+// pub struct TextBox<'a, C: UiColor> {
 //     pub position: Point,
 //     pub align: HorizontalAlign,
-//     pub style: TextStyle<R::Color>,
+//     pub style: TextStyle<C>,
 //     pub text: &'a str,
 // }

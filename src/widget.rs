@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 
 use crate::{
+    color::UiColor,
     el::ElId,
     event::{Event, EventResponse, Propagate},
     layout::{Layout, LayoutNode, Limits, Position, Viewport},
@@ -16,9 +17,10 @@ use crate::{
 //     children: Vec<Overlay>,
 // }
 
-pub trait Widget<Message, R, E: Event, S>
+pub trait Widget<Message, C, E, S>
 where
-    R: Renderer,
+    C: UiColor,
+    E: Event,
 {
     fn id(&self) -> Option<ElId>;
     fn tree_ids(&self) -> Vec<ElId>;
@@ -39,7 +41,7 @@ where
         &self,
         ctx: &mut UiCtx<Message>,
         state: &mut StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         styler: &S,
         layout: Layout,
         viewport: &Viewport,

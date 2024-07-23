@@ -64,10 +64,10 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: SliderStatus) -> Slide
 
 pub type SliderPosition = u8;
 
-pub struct Slider<'a, Message, R, S>
+pub struct Slider<'a, Message, C, S>
 where
-    R: Renderer,
-    S: SliderStyler<R::Color>,
+    C: UiColor,
+    S: SliderStyler<C>,
 {
     axis: Axis,
     id: ElId,
@@ -79,10 +79,10 @@ where
     class: S::Class<'a>,
 }
 
-impl<'a, Message, R, S> Slider<'a, Message, R, S>
+impl<'a, Message, C, S> Slider<'a, Message, C, S>
 where
-    R: Renderer,
-    S: SliderStyler<R::Color>,
+    C: UiColor,
+    S: SliderStyler<C>,
 {
     pub fn new<F>(axis: Axis, on_change: F) -> Self
     where
@@ -136,7 +136,7 @@ where
             SliderState { is_active: false, is_pressed: false } => {},
         }
 
-        if UiCtx::is_focused::<R, E, S>(&ctx, self) {
+        if UiCtx::is_focused::<C, E, S>(&ctx, self) {
             return SliderStatus::Focused;
         }
 
@@ -144,11 +144,11 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Slider<'a, Message, R, S>
+impl<'a, Message, C, E, S> Widget<Message, C, E, S> for Slider<'a, Message, C, S>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: SliderStyler<R::Color>,
+    S: SliderStyler<C>,
 {
     fn id(&self) -> Option<ElId> {
         Some(self.id)
@@ -180,7 +180,7 @@ where
         event: E,
         state: &mut crate::state::StateNode,
     ) -> crate::event::EventResponse<E> {
-        let focused = ctx.is_focused::<R, E, S>(self);
+        let focused = ctx.is_focused::<C, E, S>(self);
         let current_state = *state.get::<SliderState>();
 
         if let Some(offset) = event.as_slider_shift() {
@@ -247,7 +247,7 @@ where
         &self,
         ctx: &mut crate::ui::UiCtx<Message>,
         state: &mut crate::state::StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         styler: &S,
         layout: crate::layout::Layout,
         _viewport: &Viewport,
@@ -279,7 +279,7 @@ where
             self.axis.canon(position.main() + length.main() as i32, guide_cross_axis_pos);
 
         // TODO: Style for guide
-        renderer.line(guide_start, guide_end, R::Color::default_foreground(), 1);
+        renderer.line(guide_start, guide_end, C::default_foreground(), 1);
 
         // let knob_size = Size::new_equal(bounds.size.width.min(bounds.size.height));
         let knob_size = Size::new_equal(5);
@@ -292,14 +292,11 @@ where
         let knob_position =
             self.axis.canon(position.main() + knob_shift_offset as i32, guide_cross_axis_pos);
 
-        let knob_background = if state.is_active {
-            R::Color::default_foreground()
-        } else {
-            R::Color::default_background()
-        };
+        let knob_background =
+            if state.is_active { C::default_foreground() } else { C::default_background() };
 
         let knob = Block {
-            border: Border { color: R::Color::default_foreground(), width: 1, radius: 0.into() },
+            border: Border { color: C::default_foreground(), width: 1, radius: 0.into() },
             rect: Rectangle::with_center(knob_position, knob_size.into()),
             background: knob_background,
         };
@@ -308,14 +305,14 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> From<Slider<'a, Message, R, S>> for El<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> From<Slider<'a, Message, C, S>> for El<'a, Message, C, E, S>
 where
     Message: Clone + 'a,
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
-    S: SliderStyler<R::Color> + 'a,
+    S: SliderStyler<C> + 'a,
 {
-    fn from(value: Slider<'a, Message, R, S>) -> Self {
+    fn from(value: Slider<'a, Message, C, S>) -> Self {
         El::new(value)
     }
 }

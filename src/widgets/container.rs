@@ -1,6 +1,7 @@
 use crate::{
     align::Align,
     block::{Block, BoxModel},
+    color::UiColor,
     el::El,
     event::Event,
     layout::Layout,
@@ -29,26 +30,26 @@ pub fn default<C: PaletteColor>(theme: &Theme<C>, _status: ContainerStatus) -> C
     ContainerStyle::new(&palette)
 }
 
-pub struct Container<'a, Message, R, E, S>
+pub struct Container<'a, Message, C, E, S>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: ContainerStyler<R::Color>,
+    S: ContainerStyler<C>,
 {
-    content: El<'a, Message, R, E, S>,
+    content: El<'a, Message, C, E, S>,
     size: Size<Length>,
     h_align: Align,
     v_align: Align,
     class: S::Class<'a>,
 }
 
-impl<'a, Message, R, E, S> Container<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> Container<'a, Message, C, E, S>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: ContainerStyler<R::Color>,
+    S: ContainerStyler<C>,
 {
-    pub fn new(content: impl Into<El<'a, Message, R, E, S>>) -> Self {
+    pub fn new(content: impl Into<El<'a, Message, C, E, S>>) -> Self {
         Self {
             content: content.into(),
             size: Size::fill(),
@@ -79,11 +80,11 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Container<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> Widget<Message, C, E, S> for Container<'a, Message, C, E, S>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: ContainerStyler<R::Color>,
+    S: ContainerStyler<C>,
 {
     fn id(&self) -> Option<crate::el::ElId> {
         None
@@ -123,7 +124,7 @@ where
         &self,
         ctx: &mut crate::ui::UiCtx<Message>,
         state: &mut crate::state::StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         styler: &S,
         layout: crate::layout::Layout,
         viewport: &crate::layout::Viewport,
@@ -169,35 +170,35 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> From<Container<'a, Message, R, E, S>> for El<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> From<Container<'a, Message, C, E, S>> for El<'a, Message, C, E, S>
 where
     Message: Clone + 'a,
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
-    S: ContainerStyler<R::Color> + 'a,
+    S: ContainerStyler<C> + 'a,
 {
-    fn from(value: Container<'a, Message, R, E, S>) -> Self {
+    fn from(value: Container<'a, Message, C, E, S>) -> Self {
         Self::new(value)
     }
 }
 
-pub trait InsideContainerExt<'a, Message, R, E, S>
+pub trait InsideContainerExt<'a, Message, C, E, S>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: ContainerStyler<R::Color>,
+    S: ContainerStyler<C>,
 {
-    fn wrap(self) -> Container<'a, Message, R, E, S>;
+    fn wrap(self) -> Container<'a, Message, C, E, S>;
 }
 
-impl<'a, T, Message, R, E, S> InsideContainerExt<'a, Message, R, E, S> for T
+impl<'a, T, Message, C, E, S> InsideContainerExt<'a, Message, C, E, S> for T
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: ContainerStyler<R::Color>,
-    T: Into<El<'a, Message, R, E, S>>,
+    S: ContainerStyler<C>,
+    T: Into<El<'a, Message, C, E, S>>,
 {
-    fn wrap(self) -> Container<'a, Message, R, E, S> {
+    fn wrap(self) -> Container<'a, Message, C, E, S> {
         Container::new(self)
     }
 }

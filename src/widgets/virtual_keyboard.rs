@@ -54,10 +54,9 @@
 // Box::new(on_char) }     }
 // }
 
-// impl<'a, Message, R, E, S> Widget<Message, R, E, S> for VirtualKeyboard<'a,
+// impl<'a, Message, C, E, S> Widget<Message, C, E, S> for VirtualKeyboard<'a,
 // Message> where
-//     R: Renderer,
-//     E: Event,
+//     //     E: Event,
 // {
 //     fn id(&self) -> Option<crate::el::ElId> {
 //         Some(self.id)
@@ -90,7 +89,7 @@
 //         &self,
 //         ctx: &mut crate::ui::UiCtx<Message>,
 //         state: &mut crate::state::StateNode,
-//         renderer: &mut R,
+//         renderer: &mut Renderer<C>,
 //         styler: &S,
 //         layout: crate::layout::Layout,
 //     ) {

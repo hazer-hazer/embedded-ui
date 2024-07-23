@@ -3,6 +3,7 @@ use core::{borrow::Borrow, sync::atomic::AtomicUsize};
 use alloc::boxed::Box;
 
 use crate::{
+    color::UiColor,
     event::Event,
     layout::{Layout, Viewport},
     render::Renderer,
@@ -38,11 +39,11 @@ impl From<&'static str> for ElId {
 }
 
 #[cfg_attr(feature = "defmt", derive(::defmt::Format))]
-pub struct El<'a, Message, R: Renderer, E: Event, S> {
-    widget: Box<dyn Widget<Message, R, E, S> + 'a>,
+pub struct El<'a, Message, C: UiColor, E: Event, S> {
+    widget: Box<dyn Widget<Message, C, E, S> + 'a>,
 }
 
-impl<'a, Message, R: Renderer, E: Event, S> Widget<Message, R, E, S> for El<'a, Message, R, E, S> {
+impl<'a, Message, C: UiColor, E: Event, S> Widget<Message, C, E, S> for El<'a, Message, C, E, S> {
     fn id(&self) -> Option<ElId> {
         self.widget.id()
     }
@@ -70,7 +71,7 @@ impl<'a, Message, R: Renderer, E: Event, S> Widget<Message, R, E, S> for El<'a, 
         &self,
         ctx: &mut UiCtx<Message>,
         state_tree: &mut StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         styler: &S,
         layout: Layout,
         viewport: &Viewport,
@@ -100,28 +101,28 @@ impl<'a, Message, R: Renderer, E: Event, S> Widget<Message, R, E, S> for El<'a, 
     }
 }
 
-impl<'a, Message, R: Renderer, E: Event, S> El<'a, Message, R, E, S> {
-    pub fn new(widget: impl Widget<Message, R, E, S> + 'a) -> Self {
+impl<'a, Message, C: UiColor, E: Event, S> El<'a, Message, C, E, S> {
+    pub fn new(widget: impl Widget<Message, C, E, S> + 'a) -> Self {
         Self { widget: Box::new(widget) }
     }
 
-    pub fn widget(&self) -> &dyn Widget<Message, R, E, S> {
+    pub fn widget(&self) -> &dyn Widget<Message, C, E, S> {
         self.widget.as_ref()
     }
 }
 
-impl<'a, Message, R: Renderer, E: Event, S> Borrow<dyn Widget<Message, R, E, S> + 'a>
-    for El<'a, Message, R, E, S>
+impl<'a, Message, C: UiColor, E: Event, S> Borrow<dyn Widget<Message, C, E, S> + 'a>
+    for El<'a, Message, C, E, S>
 {
-    fn borrow(&self) -> &(dyn Widget<Message, R, E, S> + 'a) {
+    fn borrow(&self) -> &(dyn Widget<Message, C, E, S> + 'a) {
         self.widget.borrow()
     }
 }
 
-impl<'a, Message, R: Renderer, E: Event, S> Borrow<dyn Widget<Message, R, E, S> + 'a>
-    for &El<'a, Message, R, E, S>
+impl<'a, Message, C: UiColor, E: Event, S> Borrow<dyn Widget<Message, C, E, S> + 'a>
+    for &El<'a, Message, C, E, S>
 {
-    fn borrow(&self) -> &(dyn Widget<Message, R, E, S> + 'a) {
+    fn borrow(&self) -> &(dyn Widget<Message, C, E, S> + 'a) {
         self.widget.borrow()
     }
 }

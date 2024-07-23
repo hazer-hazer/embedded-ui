@@ -5,6 +5,7 @@ use embedded_graphics::primitives::Rectangle;
 use crate::{
     axis::{Axial, Axis},
     block::{Block, Border},
+    color::UiColor,
     el::El,
     event::Event,
     layout::{Layout, Viewport},
@@ -53,10 +54,10 @@ component_style! {
 //     }
 // }
 
-pub struct Bar<'a, R, S>
+pub struct Bar<'a, C, S>
 where
-    R: Renderer,
-    S: BarStyler<R::Color>,
+    C: UiColor,
+    S: BarStyler<C>,
 {
     size: Size<Length>,
     class: S::Class<'a>,
@@ -64,21 +65,21 @@ where
     axis: Axis,
 }
 
-impl<'a, Message, R, E, S> From<Bar<'a, R, S>> for El<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> From<Bar<'a, C, S>> for El<'a, Message, C, E, S>
 where
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
-    S: BarStyler<R::Color> + 'a,
+    S: BarStyler<C> + 'a,
 {
-    fn from(value: Bar<'a, R, S>) -> Self {
+    fn from(value: Bar<'a, C, S>) -> Self {
         Self::new(value)
     }
 }
 
-impl<'a, R, S> Bar<'a, R, S>
+impl<'a, C, S> Bar<'a, C, S>
 where
-    R: Renderer,
-    S: BarStyler<R::Color>,
+    C: UiColor,
+    S: BarStyler<C>,
 {
     pub fn new(axis: Axis) -> Self {
         Self {
@@ -113,11 +114,11 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Bar<'a, R, S>
+impl<'a, Message, C, E, S> Widget<Message, C, E, S> for Bar<'a, C, S>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: BarStyler<R::Color>,
+    S: BarStyler<C>,
 {
     fn id(&self) -> Option<crate::el::ElId> {
         None
@@ -160,7 +161,7 @@ where
         &self,
         _ctx: &mut crate::ui::UiCtx<Message>,
         _state: &mut crate::state::StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         styler: &S,
         layout: crate::layout::Layout,
         _viewport: &crate::layout::Viewport,

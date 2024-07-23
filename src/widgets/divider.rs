@@ -8,22 +8,19 @@ use crate::size::{Length, Size};
 use crate::widget::Widget;
 use crate::{event::Event, padding::Padding, render::Renderer};
 
-pub struct Divider<R>
-where
-    R: Renderer,
-{
+pub struct Divider<C: UiColor> {
     axis: Axis,
     thickness: u32,
-    color: R::Color,
+    color: C,
     padding: Padding,
 }
 
-impl<R> Divider<R>
+impl<C> Divider<C>
 where
-    R: Renderer,
+    C: UiColor,
 {
     pub fn new(axis: Axis) -> Self {
-        Self { axis, thickness: 1, color: R::Color::default_foreground(), padding: Padding::zero() }
+        Self { axis, thickness: 1, color: C::default_foreground(), padding: Padding::zero() }
     }
 
     pub fn vertical() -> Self {
@@ -39,7 +36,7 @@ where
         self
     }
 
-    pub fn color(mut self, color: R::Color) -> Self {
+    pub fn color(mut self, color: C) -> Self {
         self.color = color;
         self
     }
@@ -56,9 +53,9 @@ where
     }
 }
 
-impl<Message, R, E, S> Widget<Message, R, E, S> for Divider<R>
+impl<Message, C, E, S> Widget<Message, C, E, S> for Divider<C>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
 {
     fn id(&self) -> Option<crate::el::ElId> {
@@ -110,7 +107,7 @@ where
         &self,
         _ctx: &mut crate::ui::UiCtx<Message>,
         _state: &mut crate::state::StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         _styler: &S,
         layout: crate::layout::Layout,
         _viewport: &Viewport,
@@ -131,19 +128,19 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> From<Divider<R>> for El<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> From<Divider<C>> for El<'a, Message, C, E, S>
 where
     Message: 'a,
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
     S: 'a,
 {
-    fn from(value: Divider<R>) -> Self {
+    fn from(value: Divider<C>) -> Self {
         El::new(value)
     }
 }
 
-impl<R: Renderer> Clone for Divider<R> {
+impl<C: UiColor> Clone for Divider<C> {
     fn clone(&self) -> Self {
         Self {
             axis: self.axis,
@@ -153,4 +150,4 @@ impl<R: Renderer> Clone for Divider<R> {
         }
     }
 }
-impl<R: Renderer> Copy for Divider<R> {}
+impl<C: UiColor> Copy for Divider<C> {}

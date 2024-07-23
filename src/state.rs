@@ -4,7 +4,7 @@ use core::{
     borrow::Borrow,
 };
 
-use crate::{event::Event, render::Renderer, widget::Widget};
+use crate::{color::UiColor, event::Event, render::Renderer, widget::Widget};
 
 // TODO: Not just any, but specific "State" trait with Default, etc.??? Is it
 // possible
@@ -70,8 +70,8 @@ impl StateNode {
         Self { tag: StateTag::stateless(), state: State::None, children: vec![] }
     }
 
-    pub fn new<'a, Message, R: Renderer, E: Event, S>(
-        widget: impl Borrow<dyn Widget<Message, R, E, S> + 'a>,
+    pub fn new<'a, Message, C: UiColor, E: Event, S>(
+        widget: impl Borrow<dyn Widget<Message, C, E, S> + 'a>,
     ) -> Self {
         let widget = widget.borrow();
 

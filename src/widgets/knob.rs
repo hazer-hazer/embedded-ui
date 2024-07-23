@@ -6,6 +6,7 @@ use embedded_graphics::{
 
 use crate::{
     block::BoxModel,
+    color::UiColor,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
     layout::{Layout, LayoutNode, Viewport},
@@ -70,11 +71,11 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: KnobStatus) -> KnobSty
 
 pub type KnobValue = u8;
 
-pub struct Knob<'a, Message, R, E, S>
+pub struct Knob<'a, Message, C, E, S>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: KnobStyler<R::Color>,
+    S: KnobStyler<C>,
 {
     id: ElId,
     diameter: Length,
@@ -82,17 +83,17 @@ where
     step: KnobValue,
     min: KnobValue,
     max: KnobValue,
-    inner: Option<El<'a, Message, R, E, S>>,
+    inner: Option<El<'a, Message, C, E, S>>,
     start: Angle,
     on_change: Option<Box<dyn Fn(KnobValue) -> Message + 'a>>,
     class: S::Class<'a>,
 }
 
-impl<'a, Message, R, E, S> Knob<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> Knob<'a, Message, C, E, S>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: KnobStyler<R::Color>,
+    S: KnobStyler<C>,
 {
     // pub fn new<F>(on_change: F) -> Self
     // where
@@ -160,7 +161,7 @@ where
         self
     }
 
-    pub fn inner(mut self, inner: impl Into<El<'a, Message, R, E, S>>) -> Self {
+    pub fn inner(mut self, inner: impl Into<El<'a, Message, C, E, S>>) -> Self {
         self.inner = Some(inner.into());
         self
     }
@@ -177,11 +178,11 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Knob<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> Widget<Message, C, E, S> for Knob<'a, Message, C, E, S>
 where
-    R: Renderer,
+    C: UiColor,
     E: Event,
-    S: KnobStyler<R::Color>,
+    S: KnobStyler<C>,
 {
     fn id(&self) -> Option<ElId> {
         Some(self.id)
@@ -213,7 +214,7 @@ where
         event: E,
         state: &mut crate::state::StateNode,
     ) -> crate::event::EventResponse<E> {
-        let focused = ctx.is_focused::<R, E, S>(self);
+        let focused = ctx.is_focused::<C, E, S>(self);
         let current_state = *state.get::<KnobState>();
 
         if let Some(offset) = event.as_knob_rotation() {
@@ -299,7 +300,7 @@ where
         &self,
         ctx: &mut crate::ui::UiCtx<Message>,
         state_tree: &mut crate::state::StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         styler: &S,
         layout: crate::layout::Layout,
         viewport: &Viewport,
@@ -351,14 +352,14 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> From<Knob<'a, Message, R, E, S>> for El<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> From<Knob<'a, Message, C, E, S>> for El<'a, Message, C, E, S>
 where
     Message: Clone + 'a,
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
-    S: KnobStyler<R::Color> + 'a,
+    S: KnobStyler<C> + 'a,
 {
-    fn from(value: Knob<'a, Message, R, E, S>) -> Self {
+    fn from(value: Knob<'a, Message, C, E, S>) -> Self {
         El::new(value)
     }
 }

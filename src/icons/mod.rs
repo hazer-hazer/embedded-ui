@@ -180,11 +180,11 @@ impl<'a> IconData<'a> {
     }
 }
 
-// pub trait IntoIcon<R: Renderer> {
+// pub trait IntoIcon<C: UiColor> {
 //     fn into_icon<'a>(self) -> IconData<'a>;
 // }
 
-pub trait InternalIconSet<R: Renderer> {
+pub trait InternalIconSet {
     fn internal<'a>(icon: InternalIcon) -> IconData<'a>;
 }
 

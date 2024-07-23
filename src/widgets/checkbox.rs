@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use crate::block::BoxModel;
+use crate::color::UiColor;
 use crate::el::{El, ElId};
 use crate::event::{Capture, CommonEvent, Event, Propagate};
 use crate::font::FontSize;
@@ -65,23 +66,23 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: CheckboxStatus) -> Che
 const PADDING: u32 = 2;
 const BORDER: u32 = 1;
 
-pub struct Checkbox<'a, Message, R, S>
+pub struct Checkbox<'a, Message, C, S>
 where
-    R: Renderer,
-    S: CheckboxStyler<R::Color> + IconStyler<R::Color>,
+    C: UiColor,
+    S: CheckboxStyler<C> + IconStyler<C>,
 {
     id: ElId,
-    check_icon: Icon<'a, R, S>,
+    check_icon: Icon<'a, C, S>,
     // size: Size<Length>,
     size: FontSize,
     on_change: Box<dyn Fn(bool) -> Message + 'a>,
-    class: <S as CheckboxStyler<R::Color>>::Class<'a>,
+    class: <S as CheckboxStyler<C>>::Class<'a>,
 }
 
-impl<'a, Message, R, S> Checkbox<'a, Message, R, S>
+impl<'a, Message, C, S> Checkbox<'a, Message, C, S>
 where
-    R: Renderer + 'a,
-    S: CheckboxStyler<R::Color> + IconStyler<R::Color> + 'a,
+    C: UiColor,
+    S: CheckboxStyler<C> + IconStyler<C> + 'a,
 {
     pub fn new<F>(on_change: F) -> Self
     where
@@ -93,8 +94,8 @@ where
             // size: Size::fill(),
             size: FontSize::Relative(1.0),
             on_change: Box::new(on_change),
-            class: <S as CheckboxStyler<R::Color>>::default(),
-            // color: R::Color::default_foreground(),
+            class: <S as CheckboxStyler<C>>::default(),
+            // color: C::default_foreground(),
         }
     }
 
@@ -114,18 +115,18 @@ where
     }
 
     fn status<E: Event + 'a>(&self, ctx: &UiCtx<Message>, state: &StateNode) -> CheckboxStatus {
-        let focused = UiCtx::is_focused::<R, E, S>(&ctx, self);
+        let focused = UiCtx::is_focused::<C, E, S>(&ctx, self);
         let state = state.get::<CheckboxState>();
 
         CheckboxStatus { focused, pressed: state.is_pressed, checked: state.is_checked }
     }
 }
 
-impl<'a, Message, R, E, S> Widget<Message, R, E, S> for Checkbox<'a, Message, R, S>
+impl<'a, Message, C, E, S> Widget<Message, C, E, S> for Checkbox<'a, Message, C, S>
 where
-    R: Renderer + 'a,
+    C: UiColor,
     E: Event + 'a,
-    S: CheckboxStyler<R::Color> + IconStyler<R::Color> + 'a,
+    S: CheckboxStyler<C> + IconStyler<C> + 'a,
 {
     fn id(&self) -> Option<ElId> {
         Some(self.id)
@@ -157,7 +158,7 @@ where
         event: E,
         state: &mut StateNode,
     ) -> crate::event::EventResponse<E> {
-        let focused = UiCtx::is_focused::<R, E, S>(&ctx, self);
+        let focused = UiCtx::is_focused::<C, E, S>(&ctx, self);
         let current_state = state.get::<CheckboxState>();
 
         if let Some(common) = event.as_common() {
@@ -212,7 +213,7 @@ where
             crate::align::Align::Center,
             crate::align::Align::Center,
             |limits| {
-                Widget::<Message, R, E, S>::layout(
+                Widget::<Message, C, E, S>::layout(
                     &self.check_icon,
                     ctx,
                     &mut StateNode::stateless(),
@@ -228,7 +229,7 @@ where
         &self,
         ctx: &mut UiCtx<Message>,
         state: &mut StateNode,
-        renderer: &mut R,
+        renderer: &mut Renderer<C>,
         styler: &S,
         layout: crate::layout::Layout,
         viewport: &Viewport,
@@ -245,7 +246,7 @@ where
         });
 
         if state.is_checked {
-            Widget::<Message, R, E, S>::draw(
+            Widget::<Message, C, E, S>::draw(
                 &self.check_icon,
                 ctx,
                 &mut StateNode::stateless(),
@@ -258,14 +259,14 @@ where
     }
 }
 
-impl<'a, Message, R, E, S> From<Checkbox<'a, Message, R, S>> for El<'a, Message, R, E, S>
+impl<'a, Message, C, E, S> From<Checkbox<'a, Message, C, S>> for El<'a, Message, C, E, S>
 where
     Message: 'a,
-    R: Renderer + 'a,
+    C: UiColor + 'a,
     E: Event + 'a,
-    S: CheckboxStyler<R::Color> + IconStyler<R::Color> + 'a,
+    S: CheckboxStyler<C> + IconStyler<C> + 'a,
 {
-    fn from(value: Checkbox<'a, Message, R, S>) -> Self {
+    fn from(value: Checkbox<'a, Message, C, S>) -> Self {
         Self::new(value)
     }
 }
