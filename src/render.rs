@@ -20,8 +20,9 @@ use embedded_text::TextBox;
 use crate::{
     block::Block,
     color::UiColor,
+    el::El,
+    event::Event,
     font::{Font, FontFamily, FontStyle},
-    size::Size,
 };
 
 #[derive(Clone, Copy)]
@@ -33,18 +34,14 @@ pub enum LayerKind {
 
 pub trait Renderer {
     type Color: UiColor + Copy;
+    type Clipped<'a>: Renderer
+    where
+        Self: 'a;
 
     // Renderer info
     fn clear(&mut self, color: Self::Color);
 
-    fn start_layer(&mut self, kind: LayerKind);
-    fn end_layer(&mut self);
-
-    fn with_layer(&mut self, kind: LayerKind, f: impl FnOnce(&mut Self)) {
-        self.start_layer(kind);
-        f(self);
-        self.end_layer();
-    }
+    fn clipped(&mut self, bounds: Rectangle) -> Self::Clipped<'_>;
 
     // Primitives //
     fn pixel(&mut self, pixel: Pixel<Self::Color>);
@@ -78,11 +75,12 @@ pub struct NullRenderer;
 
 impl Renderer for NullRenderer {
     type Color = BinaryColor;
+    type Clipped<'a> = Self;
 
     fn clear(&mut self, _color: Self::Color) {}
-
-    fn start_layer(&mut self, _kind: LayerKind) {}
-    fn end_layer(&mut self) {}
+    fn clipped(&mut self, _bounds: Rectangle) -> Self::Clipped<'_> {
+        NullRenderer
+    }
 
     fn pixel(&mut self, _pixel: Pixel<Self::Color>) {}
     fn line(&mut self, _from: Point, _to: Point, _color: Self::Color, _width: u32) {}
@@ -107,61 +105,41 @@ impl Renderer for NullRenderer {
     }
 }
 
-pub struct Layering<C: UiColor> {
-    size: Size,
-    layers: Vec<CanvasAt<C>>,
-}
-
-impl<C: UiColor> Layering<C> {
-    pub fn new(size: Size) -> Self {
-        Self { size, layers: vec![CanvasAt::new(Point::zero(), size.into())] }
-    }
-
-    fn layer(&mut self) -> &mut CanvasAt<C> {
-        self.layers.last_mut().unwrap()
-    }
-}
-
-impl<C: UiColor> Renderer for Layering<C> {
+impl<D, C: UiColor> Renderer for D
+where
+    D: DrawTarget<Color = C>,
+    D::Error: core::fmt::Debug,
+{
     type Color = C;
+    type Clipped<'a> = Clipped<'a, Self> where Self: 'a;
 
     fn clear(&mut self, color: Self::Color) {
-        self.layer().clear(color).unwrap()
+        DrawTarget::clear(self, color).unwrap()
     }
 
-    fn start_layer(&mut self, kind: LayerKind) {
-        let layer = match kind {
-            LayerKind::FullScreen => CanvasAt::new(Point::zero(), self.size.into()),
-            LayerKind::Clipped(bounds) => CanvasAt::new(bounds.top_left, bounds.size),
-            LayerKind::Cropped(_) => todo!(),
-        };
-
-        self.layers.push(layer);
-    }
-
-    fn end_layer(&mut self) {
-        self.layers.pop();
+    fn clipped(&mut self, bounds: Rectangle) -> Self::Clipped<'_> {
+        DrawTargetExt::clipped(self, &bounds)
     }
 
     fn pixel(&mut self, pixel: Pixel<Self::Color>) {
-        pixel.draw(self.layer()).unwrap();
+        pixel.draw(self).unwrap();
     }
 
     fn line(&mut self, start: Point, end: Point, color: Self::Color, width: u32) {
         Line::new(start, end)
             .draw_styled(
                 &PrimitiveStyleBuilder::new().stroke_width(width).stroke_color(color).build(),
-                self.layer(),
+                self,
             )
             .unwrap();
     }
 
     fn arc(&mut self, arc: Arc, style: PrimitiveStyle<Self::Color>) {
-        arc.draw_styled(&style, self.layer()).unwrap();
+        arc.draw_styled(&style, self).unwrap();
     }
 
     fn circle(&mut self, circle: Circle, style: PrimitiveStyle<Self::Color>) {
-        circle.draw_styled(&style, self.layer()).unwrap();
+        circle.draw_styled(&style, self).unwrap();
     }
 
     fn block(&mut self, block: Block<Self::Color>)
@@ -176,7 +154,7 @@ impl<C: UiColor> Renderer for Layering<C> {
                     .stroke_color(block.border.color)
                     .stroke_width(block.border.width)
                     .build(),
-                self.layer(),
+                self,
             )
             .unwrap();
     }
@@ -190,7 +168,7 @@ impl<C: UiColor> Renderer for Layering<C> {
     }
 
     fn mono_text(&mut self, text: TextBox<'_, MonoTextStyle<'_, Self::Color>>) {
-        text.draw(self.layer()).unwrap();
+        text.draw(self).unwrap();
     }
 
     fn image<'a>(&mut self, image: Image<'a, ImageRaw<'a, Self::Color>>)
@@ -198,6 +176,6 @@ impl<C: UiColor> Renderer for Layering<C> {
         RawDataSlice<'a, <Self::Color as PixelColor>::Raw, BigEndian>:
             IntoIterator<Item = <Self::Color as PixelColor>::Raw>,
     {
-        image.draw(self.layer()).unwrap();
+        image.draw(self).unwrap();
     }
 }
