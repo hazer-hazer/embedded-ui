@@ -422,6 +422,10 @@ impl Limits {
         }
     }
 
+    pub fn with_max(self, max: Size) -> Self {
+        Self::new(self.min, max)
+    }
+
     pub fn limit_width(self, width: impl Into<Length>) -> Self {
         match width.into() {
             Length::Shrink | Length::Div(_) | Length::Fill => self,

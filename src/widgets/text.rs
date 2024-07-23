@@ -1,8 +1,11 @@
 use alloc::{string::ToString as _, vec::Vec};
 use core::{fmt::Display, marker::PhantomData};
 
-use embedded_graphics::mono_font::MonoTextStyleBuilder;
-use embedded_text::{style::TextBoxStyleBuilder, TextBox};
+use embedded_graphics::mono_font::{MonoTextStyle, MonoTextStyleBuilder};
+use embedded_text::{
+    style::{TextBoxStyle, TextBoxStyleBuilder},
+    TextBox,
+};
 
 use crate::{
     align::{HorizontalAlign, VerticalAlign},
@@ -70,6 +73,25 @@ component_style! {
     }
 }
 
+#[derive(Clone, Copy)]
+pub enum TextAlign {
+    Left,
+    Center,
+    Right,
+    Justified,
+}
+
+impl Into<embedded_text::alignment::HorizontalAlignment> for TextAlign {
+    fn into(self) -> embedded_text::alignment::HorizontalAlignment {
+        match self {
+            TextAlign::Left => embedded_text::alignment::HorizontalAlignment::Left,
+            TextAlign::Center => embedded_text::alignment::HorizontalAlignment::Center,
+            TextAlign::Right => embedded_text::alignment::HorizontalAlignment::Right,
+            TextAlign::Justified => embedded_text::alignment::HorizontalAlignment::Justified,
+        }
+    }
+}
+
 pub struct Text<'a, T, R, S>
 where
     R: Renderer,
@@ -77,12 +99,12 @@ where
     S: TextStyler<R::Color>,
 {
     content: T,
-    marker: PhantomData<&'a str>,
 
-    align: HorizontalAlign,
+    align: TextAlign,
     vertical_align: VerticalAlign,
     line_height: LineHeight,
     font: Font,
+    size: Size<Length>,
 
     class: S::Class<'a>,
     // TODO: Cache size?
@@ -99,22 +121,22 @@ where
     pub fn new(content: T) -> Self {
         Self {
             content,
-            marker: PhantomData,
             line_height: LineHeight::default(),
-            align: HorizontalAlign::Center,
+            align: TextAlign::Center,
             vertical_align: VerticalAlign::Center,
+            size: Size::fill(),
             font: R::default_font(),
             class: S::default(),
         }
     }
 
-    pub fn align(mut self, align: HorizontalAlign) -> Self {
-        self.align = align;
+    pub fn align(mut self, align: impl Into<TextAlign>) -> Self {
+        self.align = align.into();
         self
     }
 
-    pub fn vertical_align(mut self, vertical_align: VerticalAlign) -> Self {
-        self.vertical_align = vertical_align;
+    pub fn vertical_align(mut self, vertical_align: impl Into<VerticalAlign>) -> Self {
+        self.vertical_align = vertical_align.into();
         self
     }
 
@@ -133,9 +155,37 @@ where
     }
 
     // Helpers //
-    fn compute_size(&self, viewport: &Viewport) -> Size {
-        self.font.to_real(viewport).measure_text_size(&self.content.to_string())
+    fn text_style(
+        &self,
+        style: &TextStyle<R::Color>,
+        viewport: &Viewport,
+    ) -> MonoTextStyle<'_, R::Color> {
+        let real_font = self.font.to_real(viewport);
+        let mono_text_style = MonoTextStyleBuilder::new()
+            .font(&real_font.font())
+            .text_color(style.text_color)
+            // .background_color(style.background)
+            .build();
+
+        mono_text_style
     }
+
+    fn textbox_style(&self) -> TextBoxStyle {
+        TextBoxStyleBuilder::new()
+            .alignment(self.align.into())
+            .vertical_alignment(self.vertical_align.into())
+            .line_height(self.line_height.into())
+            .height_mode(embedded_text::style::HeightMode::Exact(
+                embedded_text::style::VerticalOverdraw::Hidden,
+            ))
+            .build()
+    }
+
+    // fn compute_size(&self, text: &str, style: &TextStyle<R::Color>, viewport:
+    // &Viewport) -> Size {     // self.font.to_real(viewport).
+    // measure_text_size(&self.content.to_string())
+
+    // }
 }
 
 impl<'a, T, Message, R, E: Event, S> Widget<Message, R, E, S> for Text<'a, T, R, S>
@@ -152,25 +202,31 @@ where
         vec![]
     }
 
-    fn size(&self, viewport: &Viewport) -> Size<Length> {
-        self.compute_size(viewport).into()
+    fn size(&self, _viewport: &Viewport) -> Size<Length> {
+        // self.compute_size(viewport).into()
+        self.size
     }
 
     fn layout(
         &self,
         _ctx: &mut UiCtx<Message>,
         _state_tree: &mut StateNode,
-        _styler: &S,
+        styler: &S,
         limits: &crate::layout::Limits,
         viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
-        Layout::sized(
-            limits,
-            self.compute_size(viewport),
-            crate::layout::Position::Relative,
-            viewport,
-            |limits| limits.max(),
-        )
+        let style = styler.style(&self.class, TextStatus::Normal);
+
+        Layout::sized(limits, self.size, crate::layout::Position::Relative, viewport, |limits| {
+            let width = limits.max().width;
+            let text_height = self.textbox_style().measure_text_height(
+                &self.text_style(&style, viewport),
+                &self.content.to_string(),
+                limits.max().width,
+            );
+
+            limits.resolve_size(self.size.width, self.size.height, Size::new(width, text_height))
+        })
     }
 
     fn draw(
@@ -184,22 +240,11 @@ where
     ) {
         let style = styler.style(&self.class, TextStatus::Normal);
 
-        let real_font = self.font.to_real(viewport);
-        let mono_text_style = MonoTextStyleBuilder::new()
-            .font(&real_font.font())
-            .text_color(style.text_color)
-            // .background_color(style.background)
-            .build();
-
         renderer.mono_text(TextBox::with_textbox_style(
             &self.content.to_string(),
             layout.bounds(),
-            mono_text_style,
-            TextBoxStyleBuilder::new()
-                .alignment(self.align.into())
-                .vertical_alignment(self.vertical_align.into())
-                .line_height(self.line_height.into())
-                .build(),
+            self.text_style(&style, viewport),
+            self.textbox_style(),
         ))
     }
 }

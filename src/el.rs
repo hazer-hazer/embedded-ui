@@ -125,10 +125,3 @@ impl<'a, Message, R: Renderer, E: Event, S> Borrow<dyn Widget<Message, R, E, S> 
         self.widget.borrow()
     }
 }
-
-// impl<'a, Message, R: Renderer, T> From<T> for El<'a, Message, R>
-// where
-//     T: Widget<Message, R>,
-// {
-
-// }

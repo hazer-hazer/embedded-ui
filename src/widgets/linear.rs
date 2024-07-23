@@ -14,7 +14,7 @@ use crate::{
     size::{Length, Size},
     state::StateNode,
     ui::UiCtx,
-    widget::{DrawCtx, LayoutCtx, Widget},
+    widget::Widget,
 };
 
 pub trait LinearDirection {
@@ -147,7 +147,14 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
         Propagate::Ignored.into()
     }
 
-    fn layout(&self, ctx: &mut LayoutCtx<'_, Message, S>) -> crate::layout::LayoutNode {
+    fn layout(
+        &self,
+        ctx: &mut UiCtx<Message>,
+        state: &mut StateNode,
+        styler: &S,
+        limits: &crate::layout::Limits,
+        viewport: &Viewport,
+    ) -> crate::layout::LayoutNode {
         Layout::flex(
             ctx,
             state,
@@ -164,19 +171,20 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
         )
     }
 
-    fn draw(&self, ctx: &mut DrawCtx<'_, Message, R, S>) {
+    fn draw(
+        &self,
+        ctx: &mut UiCtx<Message>,
+        state: &mut StateNode,
+        renderer: &mut R,
+        styler: &S,
+        layout: crate::layout::Layout,
+        viewport: &Viewport,
+    ) {
         // TODO: Draw only children inside viewport?
         for ((child, child_state), child_layout) in
-            self.children.iter().zip(ctx.state.children.iter_mut()).zip(ctx.layout.children())
+            self.children.iter().zip(state.children.iter_mut()).zip(layout.children())
         {
-            child.draw(&mut DrawCtx {
-                ctx: ctx.ctx,
-                state: child_state,
-                renderer: todo!(),
-                styler: todo!(),
-                layout: todo!(),
-                viewport: todo!(),
-            });
+            child.draw(ctx, child_state, renderer, styler, child_layout, viewport);
         }
     }
 }

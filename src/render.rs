@@ -1,5 +1,7 @@
+use alloc::vec::Vec;
+use embedded_canvas::{Canvas, CanvasAt};
 use embedded_graphics::{
-    draw_target::DrawTargetExt,
+    draw_target::{Clipped, DrawTargetExt},
     geometry::Point,
     image::{Image, ImageRaw},
     iterator::raw::RawDataSlice,
@@ -19,7 +21,15 @@ use crate::{
     block::Block,
     color::UiColor,
     font::{Font, FontFamily, FontStyle},
+    size::Size,
 };
+
+#[derive(Clone, Copy)]
+pub enum LayerKind {
+    FullScreen,
+    Clipped(Rectangle),
+    Cropped(Rectangle),
+}
 
 pub trait Renderer {
     type Color: UiColor + Copy;
@@ -27,36 +37,14 @@ pub trait Renderer {
     // Renderer info
     fn clear(&mut self, color: Self::Color);
 
-    fn z_index(&self) -> i32 {
-        0
-    }
+    fn start_layer(&mut self, kind: LayerKind);
+    fn end_layer(&mut self);
 
-    #[inline]
-    fn with_z_index(&mut self, z_index: i32, draw: impl Fn(&mut Self)) {
-        let _z_index = z_index;
-        draw(self)
+    fn with_layer(&mut self, kind: LayerKind, f: impl FnOnce(&mut Self)) {
+        self.start_layer(kind);
+        f(self);
+        self.end_layer();
     }
-
-    #[inline]
-    fn relative_z_index(&mut self, z_index_offset: i32, draw: impl Fn(&mut Self)) {
-        self.with_z_index(self.z_index() + z_index_offset, draw);
-    }
-
-    #[inline]
-    fn under(&mut self, draw: impl Fn(&mut Self)) {
-        self.relative_z_index(-1, draw);
-    }
-
-    #[inline]
-    fn above(&mut self, draw: impl Fn(&mut Self)) {
-        self.relative_z_index(1, draw);
-    }
-
-    fn topmost(&mut self, draw: impl Fn(&mut Self)) {
-        self.with_z_index(i32::MAX, draw);
-    }
-
-    fn clipped(&mut self, bounds: Rectangle) -> impl Renderer<Color = Self::Color>;
 
     // Primitives //
     fn pixel(&mut self, pixel: Pixel<Self::Color>);
@@ -93,9 +81,9 @@ impl Renderer for NullRenderer {
 
     fn clear(&mut self, _color: Self::Color) {}
 
-    fn clipped(&mut self, _bounds: Rectangle) -> impl Renderer<Color = Self::Color> {
-        NullRenderer
-    }
+    fn start_layer(&mut self, _kind: LayerKind) {}
+    fn end_layer(&mut self) {}
+
     fn pixel(&mut self, _pixel: Pixel<Self::Color>) {}
     fn line(&mut self, _from: Point, _to: Point, _color: Self::Color, _width: u32) {}
     fn arc(&mut self, _arc: Arc, _style: PrimitiveStyle<Self::Color>) {}
@@ -119,40 +107,61 @@ impl Renderer for NullRenderer {
     }
 }
 
-impl<D, C: UiColor> Renderer for D
-where
-    D: DrawTarget<Color = C>,
-    D::Error: core::fmt::Debug,
-{
-    type Color = C;
+pub struct Layering<C: UiColor> {
+    size: Size,
+    layers: Vec<CanvasAt<C>>,
+}
 
-    fn clipped(&mut self, bounds: Rectangle) -> impl Renderer<Color = Self::Color> {
-        DrawTargetExt::clipped(self, &bounds)
+impl<C: UiColor> Layering<C> {
+    pub fn new(size: Size) -> Self {
+        Self { size, layers: vec![CanvasAt::new(Point::zero(), size.into())] }
     }
 
+    fn layer(&mut self) -> &mut CanvasAt<C> {
+        self.layers.last_mut().unwrap()
+    }
+}
+
+impl<C: UiColor> Renderer for Layering<C> {
+    type Color = C;
+
     fn clear(&mut self, color: Self::Color) {
-        self.clear(color).unwrap()
+        self.layer().clear(color).unwrap()
+    }
+
+    fn start_layer(&mut self, kind: LayerKind) {
+        let layer = match kind {
+            LayerKind::FullScreen => CanvasAt::new(Point::zero(), self.size.into()),
+            LayerKind::Clipped(bounds) => CanvasAt::new(bounds.top_left, bounds.size),
+            LayerKind::Cropped(_) => todo!(),
+        };
+
+        self.layers.push(layer);
+    }
+
+    fn end_layer(&mut self) {
+        self.layers.pop();
     }
 
     fn pixel(&mut self, pixel: Pixel<Self::Color>) {
-        pixel.draw(self).unwrap();
+        pixel.draw(self.layer()).unwrap();
     }
 
     fn line(&mut self, start: Point, end: Point, color: Self::Color, width: u32) {
         Line::new(start, end)
             .draw_styled(
                 &PrimitiveStyleBuilder::new().stroke_width(width).stroke_color(color).build(),
-                self,
+                self.layer(),
             )
             .unwrap();
     }
 
     fn arc(&mut self, arc: Arc, style: PrimitiveStyle<Self::Color>) {
-        arc.draw_styled(&style, self).unwrap();
+        arc.draw_styled(&style, self.layer()).unwrap();
     }
 
     fn circle(&mut self, circle: Circle, style: PrimitiveStyle<Self::Color>) {
-        circle.draw_styled(&style, self).unwrap();
+        circle.draw_styled(&style, self.layer()).unwrap();
     }
 
     fn block(&mut self, block: Block<Self::Color>)
@@ -167,7 +176,7 @@ where
                     .stroke_color(block.border.color)
                     .stroke_width(block.border.width)
                     .build(),
-                self,
+                self.layer(),
             )
             .unwrap();
     }
@@ -181,7 +190,7 @@ where
     }
 
     fn mono_text(&mut self, text: TextBox<'_, MonoTextStyle<'_, Self::Color>>) {
-        text.draw(self).unwrap();
+        text.draw(self.layer()).unwrap();
     }
 
     fn image<'a>(&mut self, image: Image<'a, ImageRaw<'a, Self::Color>>)
@@ -189,6 +198,6 @@ where
         RawDataSlice<'a, <Self::Color as PixelColor>::Raw, BigEndian>:
             IntoIterator<Item = <Self::Color as PixelColor>::Raw>,
     {
-        image.draw(self).unwrap();
+        image.draw(self.layer()).unwrap();
     }
 }

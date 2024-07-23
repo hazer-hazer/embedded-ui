@@ -28,6 +28,11 @@ impl Length {
             Length::Div(div) => *div,
         }
     }
+
+    pub fn infinite() -> Self {
+        // TODO: Do we need distinct `Length::Infinite`?
+        Self::Fixed(u32::MAX)
+    }
 }
 
 impl From<u32> for Length {

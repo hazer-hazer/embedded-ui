@@ -1,7 +1,13 @@
-use embedded_graphics::mono_font::{
-    ascii::{FONT_10X20, FONT_4X6, FONT_5X7, FONT_6X10, FONT_7X13, FONT_8X13, FONT_9X15},
-    MonoFont,
+use embedded_graphics::{
+    geometry::Point,
+    mono_font::{
+        ascii::{FONT_10X20, FONT_4X6, FONT_5X7, FONT_6X10, FONT_7X13, FONT_8X13, FONT_9X15},
+        MonoFont, MonoTextStyle, MonoTextStyleBuilder,
+    },
+    pixelcolor::BinaryColor,
+    text::renderer::TextRenderer,
 };
+use embedded_text::style::TextBoxStyleBuilder;
 
 use crate::{layout::Viewport, size::Size};
 
@@ -125,17 +131,31 @@ impl RealFont {
         let FontMetrics { char_size, char_space } = self.family.metrics();
 
         // TODO: Optimize with single loop over chars
-        let max_line = text.split("\n").map(|s| s.len()).max().unwrap_or(0) as u32;
-        let lines_count = text.split("\n").count() as u32;
+        let (lines_count, max_length) =
+            text.split("\n").fold((0u32, 0u32), |(lines_count, max_length), s| {
+                (lines_count + 1, (s.len() as u32).max(max_length))
+            });
 
         // Dividing something linear N times, gives us N + 1 parts
         Size::new(
-            max_line * char_size.width + (max_line.wrapping_sub(1)) * char_space,
+            max_length * char_size.width + (max_length.saturating_sub(1)) * char_space,
             lines_count * char_size.height,
         )
     }
 
-    pub fn font(&self) -> &MonoFont<'static> {
+    // pub fn measure_text_size(&self, text: &str) -> Size {
+    //     match self.family {
+    //         RealFontFamily::Mono(mono) => TextBoxStyleBuilder::new()
+    //             .alignment(embedded_text::alignment::HorizontalAlignment::Center)
+    //             .height_mode(embedded_text::style::HeightMode::FitToText)
+    //             .line_height(embedded_graphics::text::LineHeight::Percent(100))
+    //             .build().measure_text_height(MonoTextStyle::new(mono,
+    //                 BinaryColor::Off)             .measure_string(text,
+    // Point::zero(),                 embedded_graphics::text::Baseline::Top),
+    // text, max_width),     }
+    // }
+
+    pub fn font(&self) -> &'static MonoFont<'static> {
         match self.family {
             RealFontFamily::Mono(mono) => mono,
         }

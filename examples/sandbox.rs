@@ -18,7 +18,7 @@ use embedded_ui::{
     row,
     size::Length,
     ui::UI,
-    widgets::{container::InsideContainerExt, knob::Knob},
+    widgets::{container::InsideContainerExt, knob::Knob, text::TextAlign},
 };
 use embedded_ui::{helpers::bar_v, theme::Theme};
 
@@ -182,17 +182,12 @@ fn main() {
             row![IconKind::SnakeCw]
         ],
         col![
-            "This is a checkbox and some text also"
-                .wrap()
-                .h_align(Align::Center)
-                .v_align(Align::Center)
-                .height(Length::Div(1)),
+            text("This is a checkbox and some text also blah-blah-blah yeah yeah").wrap(),
             checkbox(|value| {
                 println!("{value}");
                 Message::None
             })
             .wrap()
-            .height(Length::Div(2)),
         ]
     ]
     .gap(1);

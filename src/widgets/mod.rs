@@ -11,3 +11,4 @@ pub mod slider;
 pub mod text;
 pub mod virtual_keyboard;
 pub mod container;
+pub mod scrollable;

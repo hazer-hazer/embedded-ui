@@ -50,12 +50,12 @@
 //     where
 //         F: Fn(char) -> Message + 'a,
 //     {
-//         Self { id: ElId::unique(), size: Size::fill(), on_char: Box::new(on_char) }
-//     }
+//         Self { id: ElId::unique(), size: Size::fill(), on_char:
+// Box::new(on_char) }     }
 // }
 
-// impl<'a, Message, R, E, S> Widget<Message, R, E, S> for VirtualKeyboard<'a, Message>
-// where
+// impl<'a, Message, R, E, S> Widget<Message, R, E, S> for VirtualKeyboard<'a,
+// Message> where
 //     R: Renderer,
 //     E: Event,
 // {
@@ -83,8 +83,8 @@
 //         limits: &crate::layout::Limits,
 //         viewport: &Viewport,
 //     ) -> crate::layout::LayoutNode {
-//         Layout::flex(ctx, state, styler, axis, limits, size, position, viewport, padding, gap, align, children)
-//     }
+//         Layout::flex(ctx, state, styler, axis, limits, size, position,
+// viewport, padding, gap, align, children)     }
 
 //     fn draw(
 //         &self,

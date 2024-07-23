@@ -33,6 +33,11 @@ Cons:
 - You may find a lot of overhead in computations and memory usage which is unacceptable in embedded systems
 - Only monospaced fonts are supported for now
 
+## Text
+
+> In many cases, when we're creating buttons, knobs and other interactive widgets, we want text to be centered.
+> And in case of embedded systems where users mostly not creating interfaces for text reading but with some small names for components, I think centered-by-default is a good choice, so keep this in mind.
+
 ## Icons
 
 To design icons I used free online app called Piskel for pixel-art. It supports exporting as C header file which you can put into repo as `icons-input.c` and run `node make-icons.js` Node.JS script to convert this header file into `src/icons` directory. All you need is to give a name to each icon and its corresponding method.
