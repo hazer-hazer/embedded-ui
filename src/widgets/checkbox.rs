@@ -156,6 +156,7 @@ where
         ctx: &mut UiCtx<Message>,
         event: E,
         state: &mut StateNode,
+        layout: Layout,
     ) -> crate::event::EventResponse<E> {
         let focused = UiCtx::is_focused::<R, E, S>(&ctx, self);
         let current_state = state.get::<CheckboxState>();
@@ -251,7 +252,7 @@ where
                 &mut StateNode::stateless(),
                 renderer,
                 styler,
-                layout.children().next().unwrap(),
+                layout.first_child(),
                 viewport,
             )
         }

@@ -136,9 +136,12 @@ impl<'a, Message, R: Renderer, E: Event, S, D: LinearDirection> Widget<Message, 
         ctx: &mut UiCtx<Message>,
         event: E,
         state: &mut crate::state::StateNode,
+        layout: Layout,
     ) -> EventResponse<E> {
-        for (child, child_state) in self.children.iter_mut().zip(state.children.iter_mut()) {
-            match child.on_event(ctx, event.clone(), child_state)? {
+        for ((child, child_state), child_layout) in
+            self.children.iter_mut().zip(state.children.iter_mut()).zip(layout.children())
+        {
+            match child.on_event(ctx, event.clone(), child_state, child_layout)? {
                 Propagate::Ignored => {},
                 bubbled @ Propagate::BubbleUp(..) => return bubbled.into(),
             }

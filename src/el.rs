@@ -83,8 +83,9 @@ impl<'a, Message, R: Renderer, E: Event, S> Widget<Message, R, E, S> for El<'a, 
         ctx: &mut UiCtx<Message>,
         event: E,
         state: &mut StateNode,
+        layout: Layout,
     ) -> crate::event::EventResponse<E> {
-        self.widget.on_event(ctx, event, state)
+        self.widget.on_event(ctx, event, state, layout)
     }
 
     fn state_tag(&self) -> crate::state::StateTag {

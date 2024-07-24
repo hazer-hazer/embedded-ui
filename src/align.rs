@@ -1,4 +1,3 @@
-use core::default;
 
 #[derive(Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(::defmt::Format))]

@@ -135,9 +135,12 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
 
     pub fn tick(&mut self, events: impl Iterator<Item = E>) {
         for event in events {
-            if let core::ops::ControlFlow::Continue(propagate) =
-                self.root.on_event(&mut self.ctx, event.clone(), &mut self.root_state)
-            {
+            if let core::ops::ControlFlow::Continue(propagate) = self.root.on_event(
+                &mut self.ctx,
+                event.clone(),
+                &mut self.root_state,
+                Layout::new(&self.root_node),
+            ) {
                 match propagate {
                     Propagate::BubbleUp(bubble_origin, bubbled) => {
                         // debug!("Capture Bubble up event {bubbled:?} from {bubble_origin:?}");

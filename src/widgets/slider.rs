@@ -179,6 +179,7 @@ where
         ctx: &mut crate::ui::UiCtx<Message>,
         event: E,
         state: &mut crate::state::StateNode,
+        _layout: Layout,
     ) -> crate::event::EventResponse<E> {
         let focused = ctx.is_focused::<R, E, S>(self);
         let current_state = *state.get::<SliderState>();

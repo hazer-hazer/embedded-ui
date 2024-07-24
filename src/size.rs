@@ -33,6 +33,14 @@ impl Length {
         // TODO: Do we need distinct `Length::Infinite`?
         Self::Fixed(u32::MAX)
     }
+
+    pub fn is_fixed(&self) -> bool {
+        matches!(self, Self::Fixed(_))
+    }
+
+    pub fn is_fill(&self) -> bool {
+        self.div_factor() != 0
+    }
 }
 
 impl From<u32> for Length {
@@ -73,6 +81,16 @@ impl<T> Size<T> {
             Axis::X => self.width,
             Axis::Y => self.height,
         }
+    }
+}
+
+impl Size<Length> {
+    pub fn is_fixed(&self) -> bool {
+        self.width.is_fixed() && self.height.is_fixed()
+    }
+
+    pub fn is_fill(&self) -> bool {
+        self.width.is_fill() && self.height.is_fill()
     }
 }
 

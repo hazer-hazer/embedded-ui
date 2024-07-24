@@ -2,7 +2,7 @@ use core::{borrow::Borrow, fmt::Display};
 
 use crate::{
     el::El,
-    event::Event,
+    event::{self, Event},
     render::Renderer,
     widgets::{
         bar::{Bar, BarStyler},
@@ -12,6 +12,7 @@ use crate::{
         divider::Divider,
         icon::IconStyler,
         knob::{Knob, KnobStyler, KnobValue},
+        scrollable::{Scrollable, ScrollableStyler},
         select::{Select, SelectStyler},
         slider::{Slider, SliderPosition, SliderStyler},
         text::{Text, TextStyler},
@@ -142,4 +143,15 @@ pub fn bar_h<'a, R: Renderer, S: BarStyler<R::Color>>() -> Bar<'a, R, S> {
 
 pub fn bar_v<'a, R: Renderer, S: BarStyler<R::Color>>() -> Bar<'a, R, S> {
     Bar::vertical()
+}
+
+pub fn scrollable<'a, Message, R, E, S>(
+    content: impl Into<El<'a, Message, R, E, S>>,
+) -> Scrollable<'a, Message, R, E, S>
+where
+    R: Renderer,
+    E: Event,
+    S: ScrollableStyler<R::Color>,
+{
+    Scrollable::new(content)
 }

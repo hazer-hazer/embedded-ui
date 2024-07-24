@@ -48,6 +48,7 @@ pub struct SelectStatus {
 component_style! {
     pub SelectStyle: SelectStyler(SelectStatus) default {primary} {
         background: background,
+        // TODO: Should be outline
         border: border,
         text_color: color,
         selected_background: background,
@@ -304,8 +305,9 @@ where
         ctx: &mut crate::ui::UiCtx<Message>,
         event: E,
         state: &mut StateNode,
+        _layout: Layout,
     ) -> crate::event::EventResponse<E> {
-        // TODO: Think about need of passing events to children, is it safe?
+        // // TODO: Think about need of passing events to children, is it safe?
 
         let focused = ctx.is_focused::<R, E, S>(self);
         let current_state = state.get::<SelectState>();
@@ -470,7 +472,7 @@ where
             );
         }
 
-        let inner_layout = layout.children().next().unwrap();
+        let inner_layout = layout.first_child();
 
         renderer.clipped(inner_layout.bounds(), |renderer| {
             let real_font = self.font.to_real(viewport);

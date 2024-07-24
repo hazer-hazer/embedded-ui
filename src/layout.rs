@@ -146,6 +146,10 @@ impl<'a> Layout<'a> {
         Self { viewport_position: node.bounds.top_left.into(), node }
     }
 
+    pub fn first_child(self) -> Self {
+        self.children().next().unwrap()
+    }
+
     pub fn with_offset(offset: Point, node: &'a LayoutNode) -> Self {
         let bounds = node.bounds;
 
@@ -155,6 +159,10 @@ impl<'a> Layout<'a> {
         };
 
         Self { viewport_position: bounds.top_left + offset, node }
+    }
+
+    pub fn translated(self, translate: Point) -> Self {
+        Self { viewport_position: self.viewport_position + translate, node: self.node }
     }
 
     /// Get iterator of children with offset relative to parent

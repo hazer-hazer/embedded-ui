@@ -174,12 +174,18 @@ where
         ctx: &mut UiCtx<Message>,
         event: E,
         state: &mut StateNode,
+        layout: Layout,
     ) -> EventResponse<E> {
-        match self.content.on_event(ctx, event.clone(), &mut state.children[0])? {
+        match self.content.on_event(
+            ctx,
+            event.clone(),
+            &mut state.children[0],
+            layout.first_child(),
+        )? {
             Propagate::Ignored => match event.as_common() {
                 Some(common) => match common {
-                    // Tell parent that this child is the currently focused so parent can use it as
-                    // an offset of focus
+                    // Tell parent that this child is the currently focused so parent can use it
+                    // as an offset of focus
                     CommonEvent::FocusMove(_) if ctx.is_focused(self) => {
                         Propagate::BubbleUp(self.id, event).into()
                     },
@@ -268,7 +274,7 @@ where
             &mut state.children[0],
             renderer,
             styler,
-            layout.children().next().unwrap(),
+            layout.first_child(),
             viewport,
         )
     }

@@ -1,13 +1,7 @@
-use embedded_graphics::{
-    geometry::Point,
-    mono_font::{
+use embedded_graphics::mono_font::{
         ascii::{FONT_10X20, FONT_4X6, FONT_5X7, FONT_6X10, FONT_7X13, FONT_8X13, FONT_9X15},
-        MonoFont, MonoTextStyle, MonoTextStyleBuilder,
-    },
-    pixelcolor::BinaryColor,
-    text::renderer::TextRenderer,
-};
-use embedded_text::style::TextBoxStyleBuilder;
+        MonoFont,
+    };
 
 use crate::{layout::Viewport, size::Size};
 

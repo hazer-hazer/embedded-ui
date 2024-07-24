@@ -9,16 +9,14 @@ use embedded_graphics_simulator::{
     OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_ui::{
-    align::Align,
     col,
     el::ElId,
     event::CommonEvent,
-    helpers::{bar_h, button, checkbox, container, select_v, text},
+    helpers::{bar_h, button, checkbox, container, scrollable, select_v, text},
     icons::IconKind,
     row,
-    size::Length,
     ui::UI,
-    widgets::{container::InsideContainerExt, knob::Knob, text::TextAlign},
+    widgets::container::InsideContainerExt,
 };
 use embedded_ui::{helpers::bar_v, theme::Theme};
 
@@ -123,6 +121,13 @@ impl embedded_ui::event::Event for Event {
             _ => None,
         }
     }
+
+    fn as_scroll_offset(&self) -> Option<i32> {
+        match self {
+            &Event::MainEncoderRotation(offset) => Some(offset),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -182,12 +187,14 @@ fn main() {
             row![IconKind::SnakeCw]
         ],
         col![
-            text("This is a checkbox and some text also blah-blah-blah yeah yeah").wrap(),
-            checkbox(|value| {
-                println!("{value}");
-                Message::None
-            })
-            .wrap()
+            // text("This is a checkbox and some text also blah-blah-blah yeah yeah").wrap(),
+            // checkbox(|value| {
+            //     println!("{value}");
+            //     Message::None
+            // })
+            // .wrap()
+            scrollable("Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text"),
+            "kek"
         ]
     ]
     .gap(1);

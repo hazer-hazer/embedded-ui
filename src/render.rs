@@ -1,9 +1,9 @@
 use core::marker::PhantomData;
 
 use alloc::vec::Vec;
-use embedded_canvas::{Canvas, CanvasAt};
+use embedded_canvas::CanvasAt;
 use embedded_graphics::{
-    draw_target::{Clipped, DrawTargetExt},
+    draw_target::DrawTargetExt,
     geometry::{Dimensions, Point},
     image::{Image, ImageRaw},
     iterator::raw::RawDataSlice,
@@ -22,10 +22,7 @@ use embedded_text::TextBox;
 use crate::{
     block::Block,
     color::UiColor,
-    el::El,
-    event::Event,
     font::{Font, FontFamily, FontStyle},
-    size::Size,
 };
 
 #[derive(Clone, Copy)]

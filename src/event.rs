@@ -22,8 +22,12 @@ impl<E: Event> Into<EventResponse<E>> for Capture {
 pub enum Propagate<E: Event> {
     /// Event is ignored by element and can be accepted by parents
     Ignored,
-    /// Event is accepted by element and does not belongs to it logic but its parent.
-    /// For example FocusMove on focused button is captured by button but bubbles up to its container which already moves the focus to next children. Check source of Linear container as an example of how to handle bubble up and why it doesn't need to store any state or identifier of element started the bubble up.
+    /// Event is accepted by element and does not belongs to it logic but its
+    /// parent. For example FocusMove on focused button is captured by
+    /// button but bubbles up to its container which already moves the focus to
+    /// next children. Check source of Linear container as an example of how to
+    /// handle bubble up and why it doesn't need to store any state or
+    /// identifier of element started the bubble up.
     BubbleUp(ElId, E),
 }
 
@@ -62,12 +66,15 @@ pub trait Event: Clone + From<CommonEvent> + Debug {
 
     fn as_common(&self) -> Option<CommonEvent>;
 
-    // TODO: This might better be split and moved to separate traits such as `AsSelectShift`, etc. so if user don't want to use Slider for example, these methods don't need to be implemented.
-    //  Or the easier way is to make these methods return `None` or use `FocusMove` by default.
+    // TODO: This might better be split and moved to separate traits such as
+    // `AsSelectShift`, etc. so if user don't want to use Slider for example, these
+    // methods don't need to be implemented.  Or the easier way is to make these
+    // methods return `None` or use `FocusMove` by default.
     fn as_select_shift(&self) -> Option<i32>;
     fn as_slider_shift(&self) -> Option<i32>;
     fn as_knob_rotation(&self) -> Option<i32>;
     fn as_input_letter_scroll(&self) -> Option<i32>;
+    fn as_scroll_offset(&self) -> Option<i32>;
 }
 
 #[derive(Clone, Debug)]
@@ -93,6 +100,10 @@ impl Event for EventStub {
     fn as_input_letter_scroll(&self) -> Option<i32> {
         None
     }
+
+    fn as_scroll_offset(&self) -> Option<i32> {
+        None
+    }
 }
 
 impl From<CommonEvent> for EventStub {
@@ -103,7 +114,8 @@ impl From<CommonEvent> for EventStub {
 
 pub trait Controls<E: Event> {
     // TODO: Pass state to event collector of platform. Is should include:
-    //  - Focus target (widget id). For example, encoder click in common case is FocusClick, but on other page its logic differs
+    //  - Focus target (widget id). For example, encoder click in common case is
+    //    FocusClick, but on other page its logic differs
     fn events(&mut self) -> Vec<E>;
 }
 

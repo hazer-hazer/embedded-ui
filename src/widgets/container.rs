@@ -142,7 +142,7 @@ where
             &mut state.children[0],
             renderer,
             styler,
-            layout.children().next().unwrap(),
+            layout.first_child(),
             viewport,
         );
     }
@@ -152,8 +152,9 @@ where
         ctx: &mut crate::ui::UiCtx<Message>,
         event: E,
         state: &mut crate::state::StateNode,
+        layout: Layout,
     ) -> crate::event::EventResponse<E> {
-        self.content.on_event(ctx, event, &mut state.children[0])
+        self.content.on_event(ctx, event, &mut state.children[0], layout.first_child())
     }
 
     fn state_tag(&self) -> crate::state::StateTag {

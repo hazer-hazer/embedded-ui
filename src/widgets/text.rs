@@ -1,5 +1,5 @@
 use alloc::{string::ToString as _, vec::Vec};
-use core::{fmt::Display, marker::PhantomData};
+use core::fmt::Display;
 
 use embedded_graphics::mono_font::{MonoTextStyle, MonoTextStyleBuilder};
 use embedded_text::{
@@ -8,7 +8,7 @@ use embedded_text::{
 };
 
 use crate::{
-    align::{HorizontalAlign, VerticalAlign},
+    align::VerticalAlign,
     el::{El, ElId},
     event::Event,
     font::{Font, FontSize},
@@ -124,7 +124,7 @@ where
             line_height: LineHeight::default(),
             align: TextAlign::Center,
             vertical_align: VerticalAlign::Center,
-            size: Size::fill(),
+            size: Size::shrink(),
             font: R::default_font(),
             class: S::default(),
         }

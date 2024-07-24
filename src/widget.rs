@@ -7,7 +7,6 @@ use crate::{
     render::Renderer,
     size::{Length, Size},
     state::{State, StateNode, StateTag},
-    style::Styler,
     ui::UiCtx,
 };
 
@@ -50,10 +49,13 @@ where
         ctx: &mut UiCtx<Message>,
         event: E,
         state: &mut StateNode,
+        layout: Layout,
     ) -> EventResponse<E> {
         let _ = ctx;
         let _ = event;
         let _ = state;
+        let _ = layout;
+
         Propagate::Ignored.into()
     }
 
