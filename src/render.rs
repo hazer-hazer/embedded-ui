@@ -25,6 +25,7 @@ use crate::{
     el::El,
     event::Event,
     font::{Font, FontFamily, FontStyle},
+    size::Size,
 };
 
 #[derive(Clone, Copy)]
@@ -101,46 +102,55 @@ impl Renderer for NullRenderer {
     }
 }
 
-pub struct DrawTargetRenderer<C: UiColor, D: DrawTarget<Color = C>> {
+pub struct DrawTargetRenderer<C: UiColor> {
     layers: Vec<LayerKind>,
-    target: D,
+    result: CanvasAt<C>,
 
     color: PhantomData<C>,
 }
 
-impl<C: UiColor, D: DrawTarget<Color = C>> DrawTargetRenderer<C, D> {
-    pub fn new(target: D) -> Self {
-        Self { layers: vec![LayerKind::Normal], target, color: PhantomData }
+impl<C: UiColor> DrawTargetRenderer<C> {
+    pub fn new(size: embedded_graphics_core::geometry::Size, default_bg: C) -> Self {
+        Self {
+            layers: vec![LayerKind::Normal],
+            result: CanvasAt::with_default_color(Point::zero(), size, default_bg),
+            color: PhantomData,
+        }
+    }
+
+    pub fn finish<D>(self, target: &mut D)
+    where
+        D::Error: core::fmt::Debug,
+        D: DrawTarget<Color = C>,
+    {
+        self.result.draw(target).unwrap();
     }
 }
 
-impl<C: UiColor, D: DrawTarget<Color = C>> Dimensions for DrawTargetRenderer<C, D> {
+impl<C: UiColor> Dimensions for DrawTargetRenderer<C> {
     fn bounding_box(&self) -> Rectangle {
-        self.target.bounding_box()
+        self.result.bounding_box()
     }
 }
 
-impl<C: UiColor, D: DrawTarget<Color = C>> DrawTarget for DrawTargetRenderer<C, D> {
+impl<C: UiColor> DrawTarget for DrawTargetRenderer<C> {
     type Color = C;
 
-    type Error = D::Error;
+    type Error = core::convert::Infallible;
 
     fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = Pixel<Self::Color>>,
     {
         match self.layers.last().unwrap() {
-            LayerKind::Normal => self.target.draw_iter(pixels),
-            LayerKind::Clipped(bounds) => self.target.clipped(bounds).draw_iter(pixels),
-            LayerKind::Cropped(bounds) => self.target.cropped(bounds).draw_iter(pixels),
+            LayerKind::Normal => self.result.draw_iter(pixels),
+            LayerKind::Clipped(bounds) => self.result.clipped(bounds).draw_iter(pixels),
+            LayerKind::Cropped(bounds) => self.result.cropped(bounds).draw_iter(pixels),
         }
     }
 }
 
-impl<C: UiColor, D: DrawTarget<Color = C>> Renderer for DrawTargetRenderer<C, D>
-where
-    D::Error: core::fmt::Debug,
-{
+impl<C: UiColor> Renderer for DrawTargetRenderer<C> {
     type Color = C;
 
     fn clear(&mut self, color: Self::Color) {

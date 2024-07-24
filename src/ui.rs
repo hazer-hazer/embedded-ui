@@ -69,28 +69,33 @@ pub struct UI<
     ctx: UiCtx<Message>,
 }
 
-impl<'a, Message, C, D, E, S> UI<'a, Message, DrawTargetRenderer<C, D>, E, S>
+impl<'a, Message, C, E, S> UI<'a, Message, DrawTargetRenderer<C>, E, S>
 where
-    D::Error: core::fmt::Debug,
     C: UiColor,
-    D: DrawTarget<Color = C>,
     E: Event,
     S: Styler<C>,
 {
-    pub fn draw(&self, target: &mut D) {
+    pub fn draw<D>(&mut self, target: &mut D)
+    where
+        D: DrawTarget<Color = C>,
+        D::Error: core::fmt::Debug,
+    {
         // FIXME: Performance?
         // TODO: Maybe should clear only root bounds
         // renderer.clear(self.styler.background());
-        let mut renderer = DrawTargetRenderer::new(target);
+        let mut renderer =
+            DrawTargetRenderer::new(target.bounding_box().size, self.styler.background());
 
-        // self.root.draw(
-        //     &mut self.ctx,
-        //     &mut self.root_state,
-        //     &mut renderer,
-        //     &self.styler,
-        //     Layout::new(&self.root_node),
-        //     &Viewport { size: self.viewport_size },
-        // );
+        self.root.draw(
+            &mut self.ctx,
+            &mut self.root_state,
+            &mut renderer,
+            &self.styler,
+            Layout::new(&self.root_node),
+            &Viewport { size: self.viewport_size },
+        );
+
+        renderer.finish(target);
     }
 }
 
