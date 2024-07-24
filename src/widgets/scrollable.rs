@@ -140,15 +140,15 @@ where
     ) {
         let bounds = layout.bounds();
 
-        let renderer = renderer.clipped(bounds);
-
-        self.content.draw(
-            ctx,
-            &mut state.children[0],
-            &mut renderer,
-            styler,
-            layout.children().next().unwrap(),
-            viewport,
-        );
+        renderer.clipped(bounds, |renderer| {
+            self.content.draw(
+                ctx,
+                &mut state.children[0],
+                renderer,
+                styler,
+                layout.children().next().unwrap(),
+                viewport,
+            );
+        });
     }
 }

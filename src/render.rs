@@ -1,8 +1,10 @@
+use core::marker::PhantomData;
+
 use alloc::vec::Vec;
 use embedded_canvas::{Canvas, CanvasAt};
 use embedded_graphics::{
     draw_target::{Clipped, DrawTargetExt},
-    geometry::Point,
+    geometry::{Dimensions, Point},
     image::{Image, ImageRaw},
     iterator::raw::RawDataSlice,
     mono_font::MonoTextStyle,
@@ -27,21 +29,18 @@ use crate::{
 
 #[derive(Clone, Copy)]
 pub enum LayerKind {
-    FullScreen,
+    Normal,
     Clipped(Rectangle),
     Cropped(Rectangle),
 }
 
 pub trait Renderer {
     type Color: UiColor + Copy;
-    type Clipped<'a>: Renderer
-    where
-        Self: 'a;
 
     // Renderer info
     fn clear(&mut self, color: Self::Color);
 
-    fn clipped(&mut self, bounds: Rectangle) -> Self::Clipped<'_>;
+    fn clipped(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self));
 
     // Primitives //
     fn pixel(&mut self, pixel: Pixel<Self::Color>);
@@ -75,12 +74,9 @@ pub struct NullRenderer;
 
 impl Renderer for NullRenderer {
     type Color = BinaryColor;
-    type Clipped<'a> = Self;
 
     fn clear(&mut self, _color: Self::Color) {}
-    fn clipped(&mut self, _bounds: Rectangle) -> Self::Clipped<'_> {
-        NullRenderer
-    }
+    fn clipped(&mut self, _bounds: Rectangle, _f: impl FnOnce(&mut Self)) {}
 
     fn pixel(&mut self, _pixel: Pixel<Self::Color>) {}
     fn line(&mut self, _from: Point, _to: Point, _color: Self::Color, _width: u32) {}
@@ -105,20 +101,56 @@ impl Renderer for NullRenderer {
     }
 }
 
-impl<D, C: UiColor> Renderer for D
+pub struct DrawTargetRenderer<C: UiColor, D: DrawTarget<Color = C>> {
+    layers: Vec<LayerKind>,
+    target: D,
+
+    color: PhantomData<C>,
+}
+
+impl<C: UiColor, D: DrawTarget<Color = C>> DrawTargetRenderer<C, D> {
+    pub fn new(target: D) -> Self {
+        Self { layers: vec![LayerKind::Normal], target, color: PhantomData }
+    }
+}
+
+impl<C: UiColor, D: DrawTarget<Color = C>> Dimensions for DrawTargetRenderer<C, D> {
+    fn bounding_box(&self) -> Rectangle {
+        self.target.bounding_box()
+    }
+}
+
+impl<C: UiColor, D: DrawTarget<Color = C>> DrawTarget for DrawTargetRenderer<C, D> {
+    type Color = C;
+
+    type Error = D::Error;
+
+    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Pixel<Self::Color>>,
+    {
+        match self.layers.last().unwrap() {
+            LayerKind::Normal => self.target.draw_iter(pixels),
+            LayerKind::Clipped(bounds) => self.target.clipped(bounds).draw_iter(pixels),
+            LayerKind::Cropped(bounds) => self.target.cropped(bounds).draw_iter(pixels),
+        }
+    }
+}
+
+impl<C: UiColor, D: DrawTarget<Color = C>> Renderer for DrawTargetRenderer<C, D>
 where
-    D: DrawTarget<Color = C>,
     D::Error: core::fmt::Debug,
 {
     type Color = C;
-    type Clipped<'a> = Clipped<'a, Self> where Self: 'a;
 
     fn clear(&mut self, color: Self::Color) {
         DrawTarget::clear(self, color).unwrap()
     }
 
-    fn clipped(&mut self, bounds: Rectangle) -> Self::Clipped<'_> {
-        DrawTargetExt::clipped(self, &bounds)
+    fn clipped(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
+        self.layers.push(LayerKind::Clipped(bounds));
+        f(self);
+        self.layers.pop();
     }
 
     fn pixel(&mut self, pixel: Pixel<Self::Color>) {
@@ -171,9 +203,9 @@ where
         text.draw(self).unwrap();
     }
 
-    fn image<'a>(&mut self, image: Image<'a, ImageRaw<'a, Self::Color>>)
+    fn image<'b>(&mut self, image: Image<'b, ImageRaw<'b, Self::Color>>)
     where
-        RawDataSlice<'a, <Self::Color as PixelColor>::Raw, BigEndian>:
+        RawDataSlice<'b, <Self::Color as PixelColor>::Raw, BigEndian>:
             IntoIterator<Item = <Self::Color as PixelColor>::Raw>,
     {
         image.draw(self).unwrap();

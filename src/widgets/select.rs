@@ -472,70 +472,71 @@ where
 
         let inner_layout = layout.children().next().unwrap();
 
-        let renderer = renderer.clipped(inner_layout.bounds());
-        let real_font = self.font.to_real(viewport);
+        renderer.clipped(inner_layout.bounds(), |renderer| {
+            let real_font = self.font.to_real(viewport);
 
-        let text_style = MonoTextStyleBuilder::new()
-            .font(real_font.font())
-            .text_color(style.selected_text_color)
-            .build();
+            let text_style = MonoTextStyleBuilder::new()
+                .font(real_font.font())
+                .text_color(style.selected_text_color)
+                .build();
 
-        let text_box_style = TextBoxStyleBuilder::new()
-            .alignment(embedded_text::alignment::HorizontalAlignment::Center)
-            .vertical_alignment(embedded_text::alignment::VerticalAlignment::Middle)
-            .line_height(embedded_graphics::text::LineHeight::Percent(100))
-            .build();
+            let text_box_style = TextBoxStyleBuilder::new()
+                .alignment(embedded_text::alignment::HorizontalAlignment::Center)
+                .vertical_alignment(embedded_text::alignment::VerticalAlignment::Middle)
+                .line_height(embedded_graphics::text::LineHeight::Percent(100))
+                .build();
 
-        let option_size =
-            inner_layout.bounds().size.component_div(self.axis.canon::<Size>(3, 1).into())
-                - Size::new(2, 2).into();
+            let option_size =
+                inner_layout.bounds().size.component_div(self.axis.canon::<Size>(3, 1).into())
+                    - Size::new(2, 2).into();
 
-        if let Some(prev) = self.get_sibling(-1) {
-            let prev_bounds = inner_layout
-                .bounds()
-                .resized(option_size, embedded_graphics::geometry::AnchorPoint::Center)
-                .translate(self.axis.canon(-(option_size.main_for(self.axis) as i32), 0));
+            if let Some(prev) = self.get_sibling(-1) {
+                let prev_bounds = inner_layout
+                    .bounds()
+                    .resized(option_size, embedded_graphics::geometry::AnchorPoint::Center)
+                    .translate(self.axis.canon(-(option_size.main_for(self.axis) as i32), 0));
 
-            renderer.mono_text(TextBox::with_textbox_style(
-                &prev.to_string(),
-                prev_bounds,
-                text_style,
-                text_box_style,
-            ));
-        }
+                renderer.mono_text(TextBox::with_textbox_style(
+                    &prev.to_string(),
+                    prev_bounds,
+                    text_style,
+                    text_box_style,
+                ));
+            }
 
-        if let Some(next) = self.get_sibling(1) {
-            let next_bounds = inner_layout
-                .bounds()
-                .resized(option_size, embedded_graphics::geometry::AnchorPoint::Center)
-                .translate(self.axis.canon(option_size.main_for(self.axis) as i32, 0));
+            if let Some(next) = self.get_sibling(1) {
+                let next_bounds = inner_layout
+                    .bounds()
+                    .resized(option_size, embedded_graphics::geometry::AnchorPoint::Center)
+                    .translate(self.axis.canon(option_size.main_for(self.axis) as i32, 0));
 
-            renderer.mono_text(TextBox::with_textbox_style(
-                &next.to_string(),
-                next_bounds,
-                text_style,
-                text_box_style,
-            ));
-        }
+                renderer.mono_text(TextBox::with_textbox_style(
+                    &next.to_string(),
+                    next_bounds,
+                    text_style,
+                    text_box_style,
+                ));
+            }
 
-        if let Some(current) = self.current() {
-            let chosen_bounds = inner_layout
-                .bounds()
-                .resized(option_size, embedded_graphics::geometry::AnchorPoint::Center);
+            if let Some(current) = self.current() {
+                let chosen_bounds = inner_layout
+                    .bounds()
+                    .resized(option_size, embedded_graphics::geometry::AnchorPoint::Center);
 
-            renderer.block(Block {
-                border: style.selected_border,
-                rect: chosen_bounds,
-                background: style.selected_background,
-            });
+                renderer.block(Block {
+                    border: style.selected_border,
+                    rect: chosen_bounds,
+                    background: style.selected_background,
+                });
 
-            renderer.mono_text(TextBox::with_textbox_style(
-                &current.to_string(),
-                chosen_bounds,
-                text_style,
-                text_box_style,
-            ));
-        }
+                renderer.mono_text(TextBox::with_textbox_style(
+                    &current.to_string(),
+                    chosen_bounds,
+                    text_style,
+                    text_box_style,
+                ));
+            }
+        });
 
         // renderer.block(Block {
         //     border: style.selected_border,

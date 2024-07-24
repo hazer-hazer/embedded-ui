@@ -1,12 +1,17 @@
 use alloc::collections::VecDeque;
-use embedded_graphics::pixelcolor::{BinaryColor, Rgb555, Rgb565, Rgb666, Rgb888};
+use embedded_graphics::{
+    draw_target::DrawTarget,
+    pixelcolor::{BinaryColor, Rgb555, Rgb565, Rgb666, Rgb888},
+    Drawable,
+};
 
 use crate::{
+    color::UiColor,
     el::{El, ElId},
     event::{Event, EventStub, Propagate},
     layout::{Layout, LayoutNode, Limits, Viewport},
     palette::PaletteColor,
-    render::Renderer,
+    render::{DrawTargetRenderer, Renderer},
     size::Size,
     state::StateNode,
     style::Styler,
@@ -62,6 +67,31 @@ pub struct UI<
     styler: S,
     // events: Vec<E>,
     ctx: UiCtx<Message>,
+}
+
+impl<'a, Message, C, D, E, S> UI<'a, Message, DrawTargetRenderer<C, D>, E, S>
+where
+    D::Error: core::fmt::Debug,
+    C: UiColor,
+    D: DrawTarget<Color = C>,
+    E: Event,
+    S: Styler<C>,
+{
+    pub fn draw(&self, target: &mut D) {
+        // FIXME: Performance?
+        // TODO: Maybe should clear only root bounds
+        // renderer.clear(self.styler.background());
+        let mut renderer = DrawTargetRenderer::new(target);
+
+        // self.root.draw(
+        //     &mut self.ctx,
+        //     &mut self.root_state,
+        //     &mut renderer,
+        //     &self.styler,
+        //     Layout::new(&self.root_node),
+        //     &Viewport { size: self.viewport_size },
+        // );
+    }
 }
 
 impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R, E, S> {
@@ -146,21 +176,6 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
 
     pub fn focus(&mut self, id: ElId) {
         self.ctx.focus(id)
-    }
-
-    pub fn draw(&mut self, renderer: &mut R) {
-        // FIXME: Performance?
-        // TODO: Maybe should clear only root bounds
-        renderer.clear(self.styler.background());
-
-        self.root.draw(
-            &mut self.ctx,
-            &mut self.root_state,
-            renderer,
-            &self.styler,
-            Layout::new(&self.root_node),
-            &Viewport { size: self.viewport_size },
-        );
     }
 }
 
