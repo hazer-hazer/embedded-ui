@@ -1,6 +1,6 @@
 use crate::{
     align::Align,
-    block::{Block, BoxModel},
+    block::BoxModel,
     el::El,
     event::Event,
     layout::Layout,
@@ -131,11 +131,7 @@ where
         let bounds = layout.bounds();
         let style = styler.style(&self.class, ContainerStatus);
 
-        renderer.block(Block {
-            border: style.border,
-            rect: bounds.into(),
-            background: style.background,
-        });
+        renderer.block(style.border.into_block(bounds, style.background));
 
         self.content.draw(
             ctx,

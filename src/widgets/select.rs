@@ -6,7 +6,7 @@ use embedded_text::{style::TextBoxStyleBuilder, TextBox};
 
 use crate::{
     axis::{Axial, Axis},
-    block::{Block, BoxModel},
+    block::BoxModel,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, Propagate},
     font::{Font, FontSize},
@@ -48,7 +48,7 @@ pub struct SelectStatus {
 component_style! {
     pub SelectStyle: SelectStyler(SelectStatus) default {primary} {
         background: background,
-        // TODO: Should be outline
+        outline: outline,
         border: border,
         text_color: color,
         selected_background: background,
@@ -65,8 +65,10 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: SelectStatus) -> Selec
     let palette = theme.palette();
     let base = SelectStyle::new(&palette)
         .background(palette.background)
-        .border_color(palette.background)
+        .outline_color(palette.selection_outline)
+        .outline_width(0)
         .text_color(palette.foreground)
+        .border_width(0)
         .selected_border_width(1)
         .selected_border_color(palette.foreground)
         .selected_border_radius(5)
@@ -75,15 +77,15 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: SelectStatus) -> Selec
 
     match status {
         SelectStatus { pressed: true, active: _, focused: _ } => {
-            base.border_color(palette.selection_background).border_width(2).border_radius(4)
+            base.outline_color(palette.selection_background).outline_width(2).outline_radius(4)
         },
         SelectStatus { active: true, pressed: false, focused: _ } => {
-            base.border_color(palette.selection_background).border_width(1).border_radius(8)
+            base.outline_color(palette.selection_background).outline_width(1).outline_radius(8)
         },
         SelectStatus { active: false, pressed: false, focused: true } => {
-            base.border_color(palette.selection_background).border_width(1).border_radius(2)
+            base.outline_color(palette.selection_background).outline_width(1).outline_radius(2)
         },
-        SelectStatus { .. } => base.border_width(1).border_radius(0),
+        SelectStatus { .. } => base,
     }
 }
 
@@ -117,6 +119,7 @@ where
     circular: bool,
     axis: Axis,
     font: Font,
+    // TODO: Siblings before and after
     show_siblings: usize,
 }
 
@@ -254,14 +257,10 @@ where
         FontSize::Relative(1.0).to_real(viewport)
     }
 
-    fn status<E: Event>(&self, ctx: &UiCtx<Message>, state: &StateNode) -> SelectStatus {
-        let state = state.get::<SelectState>();
+    fn status<E: Event>(&self, ctx: &UiCtx<Message>, state: &SelectState) -> SelectStatus {
+        let &SelectState { is_pressed: pressed, is_active: active } = state;
 
-        SelectStatus {
-            active: state.is_active,
-            pressed: state.is_pressed,
-            focused: ctx.is_focused::<R, E, S>(self),
-        }
+        SelectStatus { active, pressed, focused: ctx.is_focused::<R, E, S>(self) }
     }
 }
 
@@ -366,13 +365,15 @@ where
 
     fn layout(
         &self,
-        ctx: &mut crate::ui::UiCtx<Message>,
-        state: &mut crate::state::StateNode,
-        styler: &S,
+        _ctx: &mut crate::ui::UiCtx<Message>,
+        _state: &mut crate::state::StateNode,
+        _styler: &S,
         limits: &crate::layout::Limits,
         viewport: &Viewport,
     ) -> crate::layout::LayoutNode {
-        let style = SelectStyler::style(styler, &self.class, self.status::<E>(ctx, state));
+        // let state = state.get::<SelectState>();
+        // let style = SelectStyler::style(styler, &self.class, self.status::<E>(ctx,
+        // state));
 
         let padding_for_icons = self.arrow_icon_size(viewport);
 
@@ -396,9 +397,7 @@ where
             self.size,
             crate::layout::Position::Relative,
             viewport,
-            BoxModel::new()
-                .padding(self.axis.canon::<Padding>(padding_for_icons, 0))
-                .border(style.border),
+            BoxModel::new().padding(self.axis.canon::<Padding>(padding_for_icons, 0)),
             crate::align::Align::Center,
             crate::align::Align::Center,
             |limits| {
@@ -427,13 +426,11 @@ where
         let icon_cross_center = bounds.size.cross_for(self.axis) as i32 / 2
             - icon_node.size().cross_for(self.axis) as i32 / 2;
 
+        let state = state.get::<SelectState>();
+
         let style = SelectStyler::style(styler, &self.class, self.status::<E>(ctx, state));
 
-        renderer.block(Block {
-            border: style.border,
-            rect: bounds.into(),
-            background: style.background,
-        });
+        renderer.block(style.border.into_block(bounds, style.background));
 
         if self.circular || self.chosen != 0 {
             Widget::<Message, R, E, S>::draw(
@@ -525,11 +522,9 @@ where
                     .bounds()
                     .resized(option_size, embedded_graphics::geometry::AnchorPoint::Center);
 
-                renderer.block(Block {
-                    border: style.selected_border,
-                    rect: chosen_bounds,
-                    background: style.selected_background,
-                });
+                renderer.block(
+                    style.selected_border.into_block(chosen_bounds, style.selected_background),
+                );
 
                 renderer.mono_text(TextBox::with_textbox_style(
                     &current.to_string(),
@@ -540,23 +535,7 @@ where
             }
         });
 
-        // renderer.block(Block {
-        //     border: style.selected_border,
-        //     rect: Into::<Rectangle>::into(value_layout.bounds()).resized(
-        //         value_layout.bounds().size.into(),
-        //         embedded_graphics::geometry::AnchorPoint::Center,
-        //     ),
-        //     background: style.selected_background,
-        // });
-
-        // self.current_el().draw(
-        //     ctx,
-        //     &mut state.children[0],
-        //     renderer,
-        //     styler,
-        //     value_layout,
-        //     viewport,
-        // );
+        renderer.block(style.outline.into_outline(bounds));
     }
 }
 

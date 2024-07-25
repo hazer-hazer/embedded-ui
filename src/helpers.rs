@@ -2,7 +2,7 @@ use core::{borrow::Borrow, fmt::Display};
 
 use crate::{
     el::El,
-    event::{self, Event},
+    event::Event,
     render::Renderer,
     widgets::{
         bar::{Bar, BarStyler},
@@ -145,7 +145,7 @@ pub fn bar_v<'a, R: Renderer, S: BarStyler<R::Color>>() -> Bar<'a, R, S> {
     Bar::vertical()
 }
 
-pub fn scrollable<'a, Message, R, E, S>(
+pub fn scrollable_v<'a, Message, R, E, S>(
     content: impl Into<El<'a, Message, R, E, S>>,
 ) -> Scrollable<'a, Message, R, E, S>
 where
@@ -153,5 +153,16 @@ where
     E: Event,
     S: ScrollableStyler<R::Color>,
 {
-    Scrollable::new(content)
+    Scrollable::new(crate::axis::Axis::Y, content)
+}
+
+pub fn scrollable_h<'a, Message, R, E, S>(
+    content: impl Into<El<'a, Message, R, E, S>>,
+) -> Scrollable<'a, Message, R, E, S>
+where
+    R: Renderer,
+    E: Event,
+    S: ScrollableStyler<R::Color>,
+{
+    Scrollable::new(crate::axis::Axis::X, content)
 }

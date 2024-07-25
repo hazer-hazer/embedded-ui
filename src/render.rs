@@ -11,7 +11,7 @@ use embedded_graphics::{
     pixelcolor::{raw::BigEndian, BinaryColor, PixelColor},
     primitives::{
         Arc, Circle, Line, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, RoundedRectangle,
-        StyledDrawable,
+        Styled, StyledDrawable,
     },
     Pixel,
 };
@@ -25,6 +25,7 @@ use crate::{
     font::{Font, FontFamily, FontStyle},
 };
 
+// TODO: Clip shapes: Circle, Rounded Rectangle, etc.
 #[derive(Clone, Copy)]
 pub enum LayerKind {
     Normal,
@@ -42,7 +43,7 @@ pub trait Renderer {
 
     // Primitives //
     fn pixel(&mut self, pixel: Pixel<Self::Color>);
-    fn line(&mut self, start: Point, end: Point, color: Self::Color, width: u32);
+    fn line(&mut self, line: Styled<Line, PrimitiveStyle<Self::Color>>);
 
     // TODO: Own Arc, Circle and Sector structs might be needed
     fn arc(&mut self, arc: Arc, style: PrimitiveStyle<Self::Color>);
@@ -77,7 +78,7 @@ impl Renderer for NullRenderer {
     fn clipped(&mut self, _bounds: Rectangle, _f: impl FnOnce(&mut Self)) {}
 
     fn pixel(&mut self, _pixel: Pixel<Self::Color>) {}
-    fn line(&mut self, _from: Point, _to: Point, _color: Self::Color, _width: u32) {}
+    fn line(&mut self, _line: Styled<Line, PrimitiveStyle<Self::Color>>) {}
     fn arc(&mut self, _arc: Arc, _style: PrimitiveStyle<Self::Color>) {}
     fn circle(&mut self, _circle: Circle, _style: PrimitiveStyle<Self::Color>) {}
 
@@ -164,13 +165,8 @@ impl<C: UiColor> Renderer for DrawTargetRenderer<C> {
         pixel.draw(self).unwrap();
     }
 
-    fn line(&mut self, start: Point, end: Point, color: Self::Color, width: u32) {
-        Line::new(start, end)
-            .draw_styled(
-                &PrimitiveStyleBuilder::new().stroke_width(width).stroke_color(color).build(),
-                self,
-            )
-            .unwrap();
+    fn line(&mut self, line: Styled<Line, PrimitiveStyle<Self::Color>>) {
+        line.draw(self).unwrap();
     }
 
     fn arc(&mut self, arc: Arc, style: PrimitiveStyle<Self::Color>) {
@@ -186,16 +182,18 @@ impl<C: UiColor> Renderer for DrawTargetRenderer<C> {
         Self: Sized,
     {
         let corner_radii = block.border.radius.into_corner_radii(block.rect.size.into());
-        RoundedRectangle::new(block.rect, corner_radii)
-            .draw_styled(
-                &PrimitiveStyleBuilder::new()
-                    .fill_color(block.background)
-                    .stroke_color(block.border.color)
-                    .stroke_width(block.border.width)
-                    .build(),
-                self,
-            )
-            .unwrap();
+
+        let style = PrimitiveStyleBuilder::new()
+            .stroke_color(block.border.color)
+            .stroke_width(block.border.width);
+
+        let style = if let Some(background) = block.background {
+            style.fill_color(background)
+        } else {
+            style
+        };
+
+        RoundedRectangle::new(block.rect, corner_radii).draw_styled(&style.build(), self).unwrap();
     }
 
     fn default_font() -> Font {

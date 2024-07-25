@@ -2,7 +2,6 @@ use alloc::collections::VecDeque;
 use embedded_graphics::{
     draw_target::DrawTarget,
     pixelcolor::{BinaryColor, Rgb555, Rgb565, Rgb666, Rgb888},
-    Drawable,
 };
 
 use crate::{

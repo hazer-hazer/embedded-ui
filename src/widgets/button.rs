@@ -1,6 +1,8 @@
+use alloc::vec::Vec;
+
 use crate::{
     align::Align,
-    block::{Block, BoxModel},
+    block::BoxModel,
     el::{El, ElId},
     event::{Capture, CommonEvent, Event, EventResponse, Propagate},
     layout::{Layout, Viewport},
@@ -17,12 +19,12 @@ use crate::{
 
 // TODO: Double-click (needs time source)
 struct ButtonState {
-    is_pressed: bool,
+    pressed: bool,
 }
 
 impl Default for ButtonState {
     fn default() -> Self {
-        Self { is_pressed: false }
+        Self { pressed: false }
     }
 }
 
@@ -41,6 +43,7 @@ component_style! {
     pub ButtonStyle: ButtonStyler(ButtonStatus) default {primary} {
         background: background,
         border: border,
+        outline: outline,
     }
 }
 
@@ -48,17 +51,18 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: ButtonStatus) -> Butto
     let palette = theme.palette();
     let base = ButtonStyle::new(&palette)
         .background(palette.primary)
-        .border_color(palette.selection_background)
-        .border_width(0);
+        .border_radius(3)
+        .outline_width(0)
+        .outline_color(palette.selection_outline);
 
     match status {
         crate::widgets::button::ButtonStatus { pressed: true, focused: _ } => {
-            base.border_width(2).border_radius(7).background(palette.background)
+            base.outline_width(2).outline_radius(7).background(palette.background)
         },
-        crate::widgets::button::ButtonStatus { focused: true, pressed: false } => {
-            base.border_width(1).border_radius(5)
+        crate::widgets::button::ButtonStatus { focused: true, pressed: _ } => {
+            base.outline_width(1).outline_radius(5)
         },
-        crate::widgets::button::ButtonStatus { .. } => base.border_radius(2),
+        crate::widgets::button::ButtonStatus { .. } => base,
     }
 }
 
@@ -129,10 +133,7 @@ where
     }
 
     fn status(&self, ctx: &UiCtx<Message>, state: &mut StateNode) -> ButtonStatus {
-        ButtonStatus {
-            focused: ctx.is_focused(self),
-            pressed: state.get::<ButtonState>().is_pressed,
-        }
+        ButtonStatus { focused: ctx.is_focused(self), pressed: state.get::<ButtonState>().pressed }
     }
 }
 
@@ -147,7 +148,7 @@ where
         Some(self.id)
     }
 
-    fn tree_ids(&self) -> alloc::vec::Vec<ElId> {
+    fn tree_ids(&self) -> Vec<ElId> {
         let mut ids = vec![self.id];
         ids.extend(self.content.tree_ids());
         ids
@@ -165,7 +166,7 @@ where
         state::State::new(ButtonState::default())
     }
 
-    fn state_children(&self) -> alloc::vec::Vec<state::StateNode> {
+    fn state_children(&self) -> Vec<state::StateNode> {
         vec![StateNode::new(&self.content)]
     }
 
@@ -190,7 +191,7 @@ where
                         Propagate::BubbleUp(self.id, event).into()
                     },
                     CommonEvent::FocusClickDown if ctx.is_focused(self) => {
-                        state.get_mut::<ButtonState>().is_pressed = true;
+                        state.get_mut::<ButtonState>().pressed = true;
 
                         Capture::Captured.into()
                     },
@@ -200,9 +201,9 @@ where
                         // - Focus button was down on it
                         // - Focus button released on it
 
-                        let pressed = state.get::<ButtonState>().is_pressed;
+                        let pressed = state.get::<ButtonState>().pressed;
 
-                        state.get_mut::<ButtonState>().is_pressed = false;
+                        state.get_mut::<ButtonState>().pressed = false;
 
                         if pressed {
                             if let Some(on_press) = self.on_press.clone() {
@@ -217,7 +218,7 @@ where
                     | CommonEvent::FocusClickUp
                     | CommonEvent::FocusMove(_) => {
                         // Reset pressed state on click on other element
-                        state.get_mut::<ButtonState>().is_pressed = false;
+                        state.get_mut::<ButtonState>().pressed = false;
 
                         Propagate::Ignored.into()
                     },
@@ -263,11 +264,7 @@ where
 
         let style = styler.style(&self.class, self.status(ctx, state));
 
-        renderer.block(Block {
-            border: style.border,
-            rect: bounds.into(),
-            background: style.background,
-        });
+        renderer.block(style.border.into_block(bounds, style.background));
 
         self.content.draw(
             ctx,
@@ -276,7 +273,9 @@ where
             styler,
             layout.first_child(),
             viewport,
-        )
+        );
+
+        renderer.block(style.outline.into_outline(bounds));
     }
 }
 

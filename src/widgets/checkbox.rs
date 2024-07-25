@@ -20,13 +20,13 @@ use super::icon::{Icon, IconStyler};
 
 #[derive(Clone, Copy)]
 pub struct CheckboxState {
-    is_pressed: bool,
-    is_checked: bool,
+    pressed: bool,
+    checked: bool,
 }
 
 impl Default for CheckboxState {
     fn default() -> Self {
-        Self { is_pressed: false, is_checked: false }
+        Self { pressed: false, checked: false }
     }
 }
 
@@ -41,6 +41,7 @@ component_style! {
     pub CheckboxStyle: CheckboxStyler(CheckboxStatus) default {primary} {
         background: background,
         border: border,
+        outline: outline,
     }
 }
 
@@ -48,16 +49,21 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: CheckboxStatus) -> Che
     let palette = theme.palette();
     let base = CheckboxStyle::new(&palette)
         .background(palette.background)
-        .border_color(palette.foreground);
+        .outline_color(palette.selection_outline)
+        .outline_width(0);
 
     match status {
-        CheckboxStatus { pressed: true, .. } => base.border_width(2).border_radius(5),
-        CheckboxStatus { focused: true, .. } => {
-            base.border_width(1).border_radius(3).border_color(palette.selection_background)
+        CheckboxStatus { pressed: true, focused: _, checked: _ } => {
+            base.outline_width(2).outline_radius(5)
         },
-        CheckboxStatus { checked: true, .. } => base.border_width(1).border_radius(0),
+        CheckboxStatus { focused: true, pressed: _, checked: _ } => {
+            base.outline_width(1).outline_radius(3)
+        },
+        CheckboxStatus { checked: true, focused: _, pressed: _ } => {
+            base.outline_width(1).outline_radius(0)
+        },
         CheckboxStatus { focused: _, pressed: _, checked: _ } => {
-            base.border_width(1).border_radius(0)
+            base.outline_width(1).outline_radius(0)
         },
     }
 }
@@ -113,11 +119,11 @@ where
         Size::new_equal(self.size.to_real(viewport) + BORDER + PADDING)
     }
 
-    fn status<E: Event + 'a>(&self, ctx: &UiCtx<Message>, state: &StateNode) -> CheckboxStatus {
+    fn status<E: Event + 'a>(&self, ctx: &UiCtx<Message>, state: &CheckboxState) -> CheckboxStatus {
         let focused = UiCtx::is_focused::<R, E, S>(&ctx, self);
-        let state = state.get::<CheckboxState>();
+        let &CheckboxState { pressed, checked } = state;
 
-        CheckboxStatus { focused, pressed: state.is_pressed, checked: state.is_checked }
+        CheckboxStatus { focused, pressed, checked }
     }
 }
 
@@ -156,7 +162,7 @@ where
         ctx: &mut UiCtx<Message>,
         event: E,
         state: &mut StateNode,
-        layout: Layout,
+        _layout: Layout,
     ) -> crate::event::EventResponse<E> {
         let focused = UiCtx::is_focused::<R, E, S>(&ctx, self);
         let current_state = state.get::<CheckboxState>();
@@ -167,17 +173,17 @@ where
                     return Propagate::BubbleUp(self.id, event).into()
                 },
                 CommonEvent::FocusClickDown if focused => {
-                    state.get_mut::<CheckboxState>().is_pressed = true;
+                    state.get_mut::<CheckboxState>().pressed = true;
                     return Capture::Captured.into();
                 },
                 CommonEvent::FocusClickUp if focused => {
-                    let was_pressed = current_state.is_pressed;
+                    let was_pressed = current_state.pressed;
 
-                    state.get_mut::<CheckboxState>().is_pressed = false;
+                    state.get_mut::<CheckboxState>().pressed = false;
 
                     if was_pressed {
-                        let new_state = !state.get::<CheckboxState>().is_checked;
-                        state.get_mut::<CheckboxState>().is_checked = new_state;
+                        let new_state = !state.get::<CheckboxState>().checked;
+                        state.get_mut::<CheckboxState>().checked = new_state;
 
                         ctx.publish((self.on_change)(new_state));
 
@@ -188,7 +194,7 @@ where
                 | CommonEvent::FocusClickUp
                 | CommonEvent::FocusMove(_) => {
                     // Should we reset state on any event? Or only on common
-                    state.get_mut::<CheckboxState>().is_pressed = false;
+                    state.get_mut::<CheckboxState>().pressed = false;
                 },
             }
         }
@@ -234,18 +240,15 @@ where
         layout: crate::layout::Layout,
         viewport: &Viewport,
     ) {
-        let style = CheckboxStyler::style(styler, &self.class, self.status::<E>(ctx, state));
         let state = state.get::<CheckboxState>();
+
+        let style = CheckboxStyler::style(styler, &self.class, self.status::<E>(ctx, state));
 
         let bounds = layout.bounds();
 
-        renderer.block(crate::block::Block {
-            border: style.border,
-            rect: bounds.into(),
-            background: style.background,
-        });
+        renderer.block(style.border.into_block(bounds, style.background));
 
-        if state.is_checked {
+        if state.checked {
             Widget::<Message, R, E, S>::draw(
                 &self.check_icon,
                 ctx,
@@ -256,6 +259,8 @@ where
                 viewport,
             )
         }
+
+        renderer.block(style.outline.into_outline(bounds));
     }
 }
 

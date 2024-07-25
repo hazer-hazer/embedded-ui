@@ -166,11 +166,13 @@ where
 
                 let color = match bit.into_inner() {
                     0 => style.background,
-                    1 => style.color,
+                    1 => Some(style.color),
                     _ => unreachable!(),
                 };
 
-                renderer.pixel(Pixel(point, color));
+                if let Some(color) = color {
+                    renderer.pixel(Pixel(point, color));
+                }
             }
         } else {
             warning!(

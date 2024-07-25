@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, vec::Vec};
-use embedded_graphics::primitives::Rectangle;
+use embedded_graphics::primitives::{Line, Primitive, PrimitiveStyleBuilder, Rectangle};
 
 use crate::{
     axis::{Axial, Axis},
@@ -20,45 +20,45 @@ use crate::{
 
 #[derive(Clone, Copy)]
 struct SliderState {
-    is_active: bool,
-    is_pressed: bool,
+    active: bool,
+    pressed: bool,
 }
 
 impl Default for SliderState {
     fn default() -> Self {
-        Self { is_active: false, is_pressed: false }
+        Self { active: false, pressed: false }
     }
 }
 
 #[derive(Clone, Copy)]
-pub enum SliderStatus {
-    Normal,
-    Focused,
-    Pressed,
-    Active,
+pub struct SliderStatus {
+    active: bool,
+    pressed: bool,
+    focused: bool,
 }
 
 component_style! {
     pub SliderStyle: SliderStyler(SliderStatus) default {primary} {
-        background: background,
-        border: border,
+        // background: background,
+        outline: outline,
     }
 }
 
 pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: SliderStatus) -> SliderStyle<C> {
     let palette = theme.palette();
-    let base =
-        SliderStyle::new(&palette).background(palette.background).border_color(palette.background);
+    let base = SliderStyle::new(&palette).outline_color(palette.background);
 
     match status {
-        SliderStatus::Normal => base.border_width(1).border_radius(0),
-        SliderStatus::Focused => {
-            base.border_color(palette.primary).border_width(1).border_radius(5)
+        SliderStatus { active: true, pressed: _, focused: _ } => {
+            base.outline_width(1).outline_radius(0)
         },
-        SliderStatus::Active => base.border_width(1).border_radius(0),
-        SliderStatus::Pressed => {
-            base.border_color(palette.primary).border_width(2).border_radius(5)
+        SliderStatus { pressed: true, active: _, focused: _ } => {
+            base.outline_color(palette.primary).outline_width(2).outline_radius(5)
         },
+        SliderStatus { focused: true, active: _, pressed: _ } => {
+            base.outline_color(palette.primary).outline_width(1).outline_radius(5)
+        },
+        SliderStatus { .. } => base.outline_width(1).outline_radius(0),
     }
 }
 
@@ -130,17 +130,10 @@ where
 
     // Helpers //
     fn status<E: Event>(&self, ctx: &UiCtx<Message>, state: &StateNode) -> SliderStatus {
-        match state.get::<SliderState>() {
-            SliderState { is_active: true, .. } => return SliderStatus::Active,
-            SliderState { is_pressed: true, .. } => return SliderStatus::Pressed,
-            SliderState { is_active: false, is_pressed: false } => {},
-        }
+        let &SliderState { active, pressed } = state.get::<SliderState>();
+        let focused = UiCtx::is_focused::<R, E, S>(&ctx, self);
 
-        if UiCtx::is_focused::<R, E, S>(&ctx, self) {
-            return SliderStatus::Focused;
-        }
-
-        SliderStatus::Normal
+        SliderStatus { active, pressed, focused }
     }
 }
 
@@ -185,7 +178,7 @@ where
         let current_state = *state.get::<SliderState>();
 
         if let Some(offset) = event.as_slider_shift() {
-            if current_state.is_active {
+            if current_state.active {
                 let prev_value = self.value;
 
                 self.value = (self.value as i32)
@@ -207,15 +200,14 @@ where
                     return Propagate::BubbleUp(self.id, event).into()
                 },
                 CommonEvent::FocusClickDown if focused => {
-                    state.get_mut::<SliderState>().is_pressed = true;
+                    state.get_mut::<SliderState>().pressed = true;
                     return Capture::Captured.into();
                 },
                 CommonEvent::FocusClickUp if focused => {
-                    state.get_mut::<SliderState>().is_pressed = false;
+                    state.get_mut::<SliderState>().pressed = false;
 
-                    if current_state.is_pressed {
-                        state.get_mut::<SliderState>().is_active =
-                            !state.get::<SliderState>().is_active;
+                    if current_state.pressed {
+                        state.get_mut::<SliderState>().active = !state.get::<SliderState>().active;
                         return Capture::Captured.into();
                     }
                 },
@@ -263,12 +255,6 @@ where
             return;
         }
 
-        renderer.block(Block {
-            border: style.border,
-            rect: bounds.into(),
-            background: style.background,
-        });
-
         let position = bounds.top_left.into_axial(self.axis);
         let length = bounds.size.into_axial(self.axis);
 
@@ -280,7 +266,14 @@ where
             self.axis.canon(position.main() + length.main() as i32, guide_cross_axis_pos);
 
         // TODO: Style for guide
-        renderer.line(guide_start, guide_end, R::Color::default_foreground(), 1);
+        renderer.line(
+            Line::new(guide_start, guide_end).into_styled(
+                PrimitiveStyleBuilder::new()
+                    .stroke_color(R::Color::default_foreground())
+                    .stroke_width(1)
+                    .build(),
+            ),
+        );
 
         // let knob_size = Size::new_equal(bounds.size.width.min(bounds.size.height));
         let knob_size = Size::new_equal(5);
@@ -293,7 +286,7 @@ where
         let knob_position =
             self.axis.canon(position.main() + knob_shift_offset as i32, guide_cross_axis_pos);
 
-        let knob_background = if state.is_active {
+        let knob_background = if state.active {
             R::Color::default_foreground()
         } else {
             R::Color::default_background()
@@ -302,10 +295,12 @@ where
         let knob = Block {
             border: Border { color: R::Color::default_foreground(), width: 1, radius: 0.into() },
             rect: Rectangle::with_center(knob_position, knob_size.into()),
-            background: knob_background,
+            background: Some(knob_background),
         };
 
         renderer.block(knob);
+
+        renderer.block(style.outline.into_outline(bounds));
     }
 }
 

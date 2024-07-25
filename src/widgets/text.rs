@@ -63,7 +63,10 @@ pub enum TextStatus {
 
 pub fn default<C: PaletteColor>(theme: &Theme<C>, _status: TextStatus) -> TextStyle<C> {
     let palette = theme.palette();
-    TextStyle { background: palette.background, text_color: palette.foreground }
+    let base =
+        TextStyle::new(&palette).background(palette.background).text_color(palette.foreground);
+
+    base
 }
 
 component_style! {
@@ -175,7 +178,7 @@ where
             .alignment(self.align.into())
             .vertical_alignment(self.vertical_align.into())
             .line_height(self.line_height.into())
-            .height_mode(embedded_text::style::HeightMode::Exact(
+            .height_mode(embedded_text::style::HeightMode::ShrinkToText(
                 embedded_text::style::VerticalOverdraw::Hidden,
             ))
             .build()
@@ -219,6 +222,10 @@ where
 
         Layout::sized(limits, self.size, crate::layout::Position::Relative, viewport, |limits| {
             let width = limits.max().width;
+            // FIXME: Works wrong. embedded_text hides max_line_width from LineMeasurement
+            // and we cannot get what is the actual text width, so it takes all the width is
+            // can. This can be seen when putting text into container and setting text
+            // horizontal alignment to Center.
             let text_height = self.textbox_style().measure_text_height(
                 &self.text_style(&style, viewport),
                 &self.content.to_string(),

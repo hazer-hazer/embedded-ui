@@ -2,7 +2,8 @@ use crate::{
     color::UiColor,
     widgets::{
         bar::BarStyler, button::ButtonStyler, checkbox::CheckboxStyler, container::ContainerStyler,
-        icon::IconStyler, knob::KnobStyler, select::SelectStyler, slider::SliderStyler,
+        icon::IconStyler, knob::KnobStyler, scrollable::ScrollableStyler, select::SelectStyler,
+        slider::SliderStyler,
     },
 };
 
@@ -13,12 +14,16 @@ pub trait Styler<C: UiColor>:
     + ContainerStyler<C>
     + IconStyler<C>
     + KnobStyler<C>
+    + ScrollableStyler<C>
     + SelectStyler<C>
     + SliderStyler<C>
     + Default
 {
     fn background(&self) -> C;
 }
+
+// TODO: Styler defaults and style properties FromPalette default method, e.g.
+//  selection_background
 
 /**
  * TODO: Inheritance:
@@ -57,9 +62,9 @@ macro_rules! component_style {
         }
 
         impl<C: $crate::color::UiColor> $name<C> {
-            pub fn new(palette: &$crate::palette::Palette<C>) -> Self {
+            pub fn new(_palette: &$crate::palette::Palette<C>) -> Self {
                 Self {
-                    $($prop: $crate::style::component_style!(@init $prop_kind palette)),*
+                    $($prop: $crate::style::component_style!(@init $prop_kind _palette)),*
                 }
             }
 
@@ -69,7 +74,7 @@ macro_rules! component_style {
 
     // Fields //
     (@field background) => {
-        C
+        Option<C>
     };
 
     (@field color) => {
@@ -80,22 +85,30 @@ macro_rules! component_style {
         $crate::block::Border<C>
     };
 
+    (@field outline) => {
+        $crate::style::component_style!(@field border)
+    };
+
     (@field padding) => {
         $crate::padding::Padding
     };
 
-    // FIXME: Width is not the right word
+    // FIXME: Maybe width is not the right word?
     (@field width) => {
         u32
     };
 
     // Constructor //
     (@init background $palette: ident) => {
-        $palette.background
+        None
     };
 
     (@init border $palette: ident) => {
         $crate::block::Border::new()
+    };
+
+    (@init outline $palette: ident) => {
+        $crate::style::component_style!(@init border $palette)
     };
 
     (@init color $palette: ident) => {
@@ -114,7 +127,7 @@ macro_rules! component_style {
     // Builders //
     (@build $name: ident: background) => {
         pub fn $name(mut self, background: impl Into<C>) -> Self {
-            self.$name = background.into();
+            self.$name = Some(background.into());
             self
         }
     };
@@ -152,6 +165,14 @@ macro_rules! component_style {
         $($crate::style::component_style! {
             @build_method $field.border $method: $method_kind
         })*
+    };
+
+    (@build $field: ident: outline) => {
+        $crate::style::component_style! {@build $field: border {
+            outline_color: border_color,
+            outline_width: border_width,
+            outline_radius: border_radius
+        }}
     };
 
     // Note: As I see, padding is single so no need to make custom builders

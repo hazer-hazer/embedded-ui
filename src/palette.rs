@@ -8,6 +8,7 @@ pub struct Palette<C: UiColor> {
     pub foreground: C,
     pub selection_background: C,
     pub selection_foreground: C,
+    pub selection_outline: C,
     pub primary: C,
 }
 
@@ -23,6 +24,7 @@ impl PaletteColor for Rgba {
         foreground: Self::new_hex_rgb(0x000000),
         selection_background: Self::new_hex_rgb(0x227DFC),
         selection_foreground: Self::new_hex_rgb(0x000000),
+        selection_outline: Self::new_hex_rgb(0x227DFC),
         primary: Self::new_hex_rgb(0xE086D3),
     };
 
@@ -31,6 +33,7 @@ impl PaletteColor for Rgba {
         foreground: Self::new_hex_rgb(0xffffff),
         selection_background: Self::new_hex_rgb(0x227DFC),
         selection_foreground: Self::new_hex_rgb(0xffffff),
+        selection_outline: Self::new_hex_rgb(0x227DFC),
         primary: Self::new_hex_rgb(0xE086D3),
     };
 
@@ -39,6 +42,7 @@ impl PaletteColor for Rgba {
         foreground: Self::new_hex_rgb(0x5C6166),
         selection_background: Self::new_hex_rgb(0xD6E4F6),
         selection_foreground: Self::new_hex_rgb(0x5C6166),
+        selection_outline: Self::new_hex_rgb(0xD6E4F6),
         primary: Self::new_hex_rgb(0xF2AE49),
     };
 }
@@ -49,6 +53,7 @@ impl PaletteColor for BinaryColor {
         foreground: Self::Off,
         selection_background: Self::Off,
         selection_foreground: Self::On,
+        selection_outline: Self::Off,
         primary: Self::Off,
     };
 
@@ -57,6 +62,7 @@ impl PaletteColor for BinaryColor {
         foreground: Self::Off,
         selection_background: Self::On,
         selection_foreground: Self::Off,
+        selection_outline: Self::On,
         primary: Self::On,
     };
 
@@ -80,6 +86,7 @@ macro_rules! impl_from_rgba {
             foreground,
             selection_background,
             selection_foreground,
+            selection_outline,
             primary,
         });
     };

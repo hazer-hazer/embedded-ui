@@ -12,7 +12,7 @@ use embedded_ui::{
     col,
     el::ElId,
     event::CommonEvent,
-    helpers::{bar_h, button, checkbox, container, scrollable, select_v, text},
+    helpers::{bar_h, button, container, scrollable_h, select_v},
     icons::IconKind,
     row,
     ui::UI,
@@ -124,7 +124,7 @@ impl embedded_ui::event::Event for Event {
 
     fn as_scroll_offset(&self) -> Option<i32> {
         match self {
-            &Event::MainEncoderRotation(offset) => Some(offset),
+            &Event::MainEncoderRotation(offset) => Some(offset * 5),
             _ => None,
         }
     }
@@ -149,7 +149,7 @@ fn main() {
     window.update(&display);
 
     let col = row![
-        col![container("OSC1"), button("TYPE"), button("SYNC"), button("EDIT")].gap(1),
+        col!["This is a text inside a container", button("Button").height(50), button("EDIT")].gap(1).padding(2),
         // col![text("OSC2"), button("TYPE"), button("SYNC"), button("EDIT")],
         // col![text("OSC3"), header_line, button("TYPE"), button("SYNC"), button("EDIT")],
         // col![
@@ -193,7 +193,7 @@ fn main() {
             //     Message::None
             // })
             // .wrap()
-            scrollable("Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text"),
+            scrollable_h("Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text Super long text"),
             "kek"
         ]
     ]
@@ -232,6 +232,13 @@ fn main() {
         //         .build(),
         //     &mut display,
         // )
+        // .unwrap();
+
+        // RoundedRectangle::new(
+        //     Rectangle::new(Point::new(100, 100), Size::new(100, 100)),
+        //     CornerRadii::new(Size::new_equal(2)),
+        // )
+        // .draw_styled(&PrimitiveStyle::with_fill(Rgb888::BLACK), &mut display)
         // .unwrap();
 
         window.update(&display);

@@ -192,6 +192,17 @@ impl<C: UiColor> Border<C> {
         self.radius = radius.into();
         self
     }
+
+    // Make Block for border used as outline. Background color is always removed to
+    // avoid drawing above element.
+    pub fn into_outline(self, bounds: Rectangle) -> Block<C> {
+        // FIXME: Wrong transparent
+        Block { rect: bounds, background: None, border: self }
+    }
+
+    pub fn into_block(self, bounds: Rectangle, background: Option<C>) -> Block<C> {
+        Block { rect: bounds, background, border: self }
+    }
 }
 
 impl<C: UiColor> Into<Padding> for Border<C> {
@@ -204,5 +215,11 @@ impl<C: UiColor> Into<Padding> for Border<C> {
 pub struct Block<C: UiColor + Copy> {
     pub border: Border<C>,
     pub rect: Rectangle,
-    pub background: C,
+    pub background: Option<C>,
+}
+
+impl<C: UiColor + Copy> Block<C> {
+    pub fn new_background(bounds: Rectangle, background: Option<C>) -> Self {
+        Self { border: Border::zero(), rect: bounds, background }
+    }
 }

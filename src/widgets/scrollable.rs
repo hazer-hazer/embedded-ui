@@ -1,21 +1,74 @@
-use embedded_graphics::geometry::{AnchorPoint, Point};
+use embedded_graphics::{
+    geometry::{AnchorPoint, Point},
+    primitives::{Line, Primitive, PrimitiveStyle},
+};
 
 use crate::{
+    axis::{Axial, Axis},
     block::{Block, BoxModel},
     el::{El, ElId},
-    event::{Capture, CommonEvent, Event, EventResponse, Propagate},
+    event::{Capture, CommonEvent, Event, Propagate},
     layout::{Layout, Limits, Viewport},
+    padding::Padding,
     palette::PaletteColor,
     render::Renderer,
-    size::{Length, Size, SizeExt},
+    size::{Length, Size},
     state::{State, StateNode, StateTag},
-    style::{component_style, Styler},
+    style::component_style,
     theme::Theme,
     widget::Widget,
 };
 
+struct Scrollbar<'a> {
+    child_layout: Layout<'a>,
+    max_offset: u32,
+    track: Line,
+    thumb: Line,
+    overflow: bool,
+}
+
+impl<'a> Scrollbar<'a> {
+    fn new(axis: Axis, layout: Layout<'a>, offset: u32) -> Self {
+        let bounds = layout.bounds();
+        let child_layout = layout.first_child();
+
+        let container_len = bounds.size.main_for(axis);
+        let child_len = child_layout.bounds().size.main_for(axis);
+
+        let track_len = container_len;
+        let thumb_len = (track_len as f32 * (container_len as f32 / child_len as f32)) as u32;
+
+        // Clamp offset to content length (width/height) minus scrollable viewport
+        let max_offset = child_len.saturating_sub(container_len);
+        let offset = offset.clamp(0, max_offset);
+
+        let thumb_offset = ((track_len as f32 / child_len as f32) * offset as f32) as u32;
+
+        let child_layout = child_layout.translated(axis.canon(-(offset as i32), 0));
+
+        let thumb_start_anchor = match axis {
+            Axis::X => AnchorPoint::BottomLeft,
+            Axis::Y => AnchorPoint::TopRight,
+        };
+        let thumb_start =
+            bounds.anchor_point(thumb_start_anchor) + Point::new(0, thumb_offset as i32);
+
+        Self {
+            child_layout,
+            track: Line::new(
+                bounds.anchor_point(thumb_start_anchor),
+                bounds.anchor_point(AnchorPoint::BottomRight),
+            ),
+            thumb: Line::new(thumb_start, thumb_start + axis.canon::<Point>(thumb_len as i32, 0)),
+            max_offset,
+            overflow: child_len > container_len,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 struct ScrollableState {
+    // TODO: Solve how to interface with 2D scrollable with encoder and add 2D
     // offset: Size,
     offset: u32,
     pressed: bool,
@@ -38,9 +91,10 @@ pub struct ScrollableStatus {
 component_style! {
     pub ScrollableStyle: ScrollableStyler(ScrollableStatus) default {default} {
         background: background,
-        color: color,
-        // TODO: Should be outline
-        border: border,
+        outline: outline,
+        track_color: color,
+        thumb_color: color,
+        scrollbar_width: width,
     }
 }
 
@@ -48,20 +102,25 @@ pub fn default<C: PaletteColor>(theme: &Theme<C>, status: ScrollableStatus) -> S
     let palette = theme.palette();
     let base = ScrollableStyle::new(&palette)
         .background(palette.background)
-        .color(palette.primary)
-        .border_color(palette.background);
+        .outline_color(palette.background)
+        .outline_width(0)
+        .thumb_color(palette.foreground)
+        .track_color(palette.background)
+        .scrollbar_width(3);
+
+    let base = if status.focused { base.thumb_color(palette.primary) } else { base };
 
     match status {
-        ScrollableStatus { pressed: true, .. } => {
-            base.border_color(palette.selection_background).border_width(2).border_radius(4)
+        ScrollableStatus { pressed: true, active: _, focused: _ } => {
+            base.outline_color(palette.selection_background).outline_width(2).outline_radius(4)
         },
-        ScrollableStatus { active: true, pressed: false, .. } => {
-            base.border_color(palette.selection_background).border_width(1).border_radius(8)
+        ScrollableStatus { active: true, pressed: _, focused: _ } => {
+            base.outline_color(palette.selection_background).outline_width(1).outline_radius(4)
         },
-        ScrollableStatus { active: false, pressed: false, focused: true } => {
-            base.border_color(palette.selection_background).border_width(1).border_radius(2)
+        ScrollableStatus { focused: true, pressed: _, active: _ } => {
+            base.outline_color(palette.selection_background).outline_width(1).outline_radius(2)
         },
-        ScrollableStatus { .. } => base.border_width(1).border_radius(0),
+        ScrollableStatus { .. } => base,
     }
 }
 
@@ -102,9 +161,12 @@ where
     S: ScrollableStyler<R::Color>,
 {
     id: ElId,
+    axis: Axis,
     content: El<'a, Message, R, E, S>,
     size: Size<Length>,
     dir: ScrollDir,
+    padding: Padding,
+    always_show: bool,
     class: S::Class<'a>,
 }
 
@@ -114,7 +176,7 @@ where
     E: Event,
     S: ScrollableStyler<R::Color>,
 {
-    pub fn new(content: impl Into<El<'a, Message, R, E, S>>) -> Self {
+    pub fn new(axis: Axis, content: impl Into<El<'a, Message, R, E, S>>) -> Self {
         let content: El<'a, Message, R, E, S> = content.into();
 
         /*
@@ -126,11 +188,19 @@ where
 
         Self {
             id: ElId::unique(),
+            axis,
             content,
             size: Size::fill(),
             dir: ScrollDir::Vertical,
+            padding: 1.into(),
+            always_show: false,
             class: S::default(),
         }
+    }
+
+    pub fn always_show(mut self) -> Self {
+        self.always_show = true;
+        self
     }
 }
 
@@ -176,13 +246,15 @@ where
         let focused = ctx.is_focused(self);
         let current_state = *state.get::<ScrollableState>();
 
+        let scrollbar = Scrollbar::new(self.axis, layout, current_state.offset);
+
         let event = if focused && current_state.active {
             // Child (content) receives events only if scrollable is focused
             let child_propagate = self.content.on_event(
                 ctx,
                 event.clone(),
                 &mut state.children[0],
-                layout.first_child(),
+                scrollbar.child_layout,
             )?;
 
             let event = if let Propagate::Ignored = child_propagate {
@@ -194,8 +266,10 @@ where
             if let Some(offset) = event.as_scroll_offset() {
                 if focused && current_state.active {
                     // TODO: on_scroll event message publish
-                    state.get_mut::<ScrollableState>().offset =
-                        (current_state.offset as i32 + offset).clamp(0, i32::MAX) as u32;
+                    state.get_mut::<ScrollableState>().offset = (current_state.offset as i32
+                        + offset)
+                        .clamp(0, scrollbar.max_offset as i32)
+                        as u32;
                     return Capture::Captured.into();
                 }
             }
@@ -251,7 +325,7 @@ where
             self.size,
             crate::layout::Position::Relative,
             viewport,
-            BoxModel::new(),
+            BoxModel::new().padding(self.padding),
             crate::align::Align::Start,
             crate::align::Align::Start,
             |limits| {
@@ -281,22 +355,9 @@ where
             },
         );
 
-        let child_layout = layout.first_child().translated(Point::new(0, -(state.offset as i32)));
-        let child_bounds = child_layout.bounds();
+        let scrollbar = Scrollbar::new(self.axis, layout, state.offset);
 
-        let scrollbar_track_len = bounds.size.height;
-        let scrollbar_thumb_len = (scrollbar_track_len as f32
-            * (bounds.size.height as f32 / child_bounds.size.height as f32))
-            as u32;
-
-        let scrollbar_thumb_offset = ((scrollbar_track_len as f32
-            / child_bounds.size.height as f32)
-            * state.offset as f32) as u32;
-
-        let thumb_start = bounds.anchor_point(AnchorPoint::TopRight)
-            + Point::new(0, scrollbar_thumb_offset as i32);
-
-        renderer.block(Block { border: style.border, rect: bounds, background: style.background });
+        renderer.block(Block::new_background(bounds, style.background));
 
         renderer.clipped(bounds, |renderer| {
             self.content.draw(
@@ -304,24 +365,24 @@ where
                 &mut state_tree.children[0],
                 renderer,
                 styler,
-                child_layout,
+                scrollbar.child_layout,
                 viewport,
             );
         });
 
-        renderer.line(
-            bounds.anchor_point(AnchorPoint::TopRight),
-            bounds.anchor_point(AnchorPoint::BottomRight),
-            style.background,
-            2,
-        );
+        if scrollbar.overflow || self.always_show {
+            renderer.line(scrollbar.track.into_styled(PrimitiveStyle::with_stroke(
+                style.track_color,
+                style.scrollbar_width,
+            )));
 
-        renderer.line(
-            thumb_start,
-            thumb_start + Point::new(0, scrollbar_thumb_len as i32),
-            style.color,
-            2,
-        )
+            renderer.line(scrollbar.thumb.into_styled(PrimitiveStyle::with_stroke(
+                style.thumb_color,
+                style.scrollbar_width,
+            )));
+        }
+
+        renderer.block(style.outline.into_outline(bounds));
     }
 }
 

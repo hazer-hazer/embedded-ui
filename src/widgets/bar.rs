@@ -169,9 +169,6 @@ where
 
         let style = styler.style(&self.class, BarStatus { value: self.value });
 
-        let back =
-            Block { border: style.border, rect: bounds.into(), background: style.background };
-
         let size = bounds.size.into_axial(self.axis);
         let length = (self.value * size.main() as f32) as u32;
         let bar_rect = Into::<Rectangle>::into(bounds);
@@ -184,10 +181,10 @@ where
         let bar = Block {
             border: Border::zero().radius(style.border.radius),
             rect: bar_rect,
-            background: style.color,
+            background: Some(style.color),
         };
 
-        renderer.block(back);
+        renderer.block(style.border.into_block(bounds, style.background));
         renderer.block(bar);
     }
 }

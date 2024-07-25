@@ -1,4 +1,5 @@
 use embedded_graphics::geometry::Point;
+use embedded_graphics::primitives::{Line, Primitive, PrimitiveStyleBuilder};
 
 use crate::axis::{Axial, Axis};
 use crate::color::UiColor;
@@ -18,6 +19,7 @@ where
     padding: Padding,
 }
 
+// TODO: Styler
 impl<R> Divider<R>
 where
     R: Renderer,
@@ -127,7 +129,14 @@ where
             .axis
             .canon(start.main_for(self.axis) + size.main() as i32, start.cross_for(self.axis));
 
-        renderer.line(start, end, self.color, self.thickness)
+        renderer.line(
+            Line::new(start, end).into_styled(
+                PrimitiveStyleBuilder::new()
+                    .stroke_color(self.color)
+                    .stroke_width(self.thickness)
+                    .build(),
+            ),
+        );
     }
 }
 

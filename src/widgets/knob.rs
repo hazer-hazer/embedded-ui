@@ -21,22 +21,21 @@ use crate::{
 
 #[derive(Clone, Copy)]
 struct KnobState {
-    is_active: bool,
-    is_pressed: bool,
+    active: bool,
+    pressed: bool,
 }
 
 impl Default for KnobState {
     fn default() -> Self {
-        Self { is_active: false, is_pressed: false }
+        Self { active: false, pressed: false }
     }
 }
 
 #[derive(Clone, Copy)]
-pub enum KnobStatus {
-    Normal,
-    Focused,
-    Pressed,
-    Active,
+pub struct KnobStatus {
+    focused: bool,
+    active: bool,
+    pressed: bool,
 }
 
 // TODO:
@@ -46,6 +45,7 @@ pub enum KnobStatus {
 component_style! {
     pub KnobStyle: KnobStyler(KnobStatus) default {primary} {
         // background: background,
+        outline: outline,
         center_color: color,
         color: color,
         track_color: color,
@@ -58,13 +58,15 @@ pub fn primary<C: PaletteColor>(theme: &Theme<C>, status: KnobStatus) -> KnobSty
     let base = KnobStyle::new(&palette)
         .center_color(palette.background)
         .color(palette.primary)
+        .outline_color(palette.selection_outline)
+        .outline_width(1)
         .track_color(palette.background);
 
     match status {
-        KnobStatus::Normal => base.track_width(3),
-        KnobStatus::Focused => base.track_width(4),
-        KnobStatus::Pressed => base.track_width(3),
-        KnobStatus::Active => base.track_width(3),
+        KnobStatus { active: true, focused: _, pressed: _ } => base.track_width(3),
+        KnobStatus { pressed: true, focused: _, active: _ } => base.track_width(3),
+        KnobStatus { focused: true, active: _, pressed: _ } => base.track_width(4),
+        KnobStatus { .. } => base.track_width(3).outline_width(0),
     }
 }
 
@@ -167,13 +169,10 @@ where
 
     // Helpers //
     fn status(&self, ctx: &UiCtx<Message>, state: &KnobState) -> KnobStatus {
-        let is_focused = ctx.is_focused(self);
-        match (is_focused, state) {
-            (_, KnobState { is_active: true, .. }) => KnobStatus::Active,
-            (_, KnobState { is_pressed: true, .. }) => KnobStatus::Pressed,
-            (true, KnobState { is_active: false, is_pressed: false }) => KnobStatus::Focused,
-            (false, KnobState { is_active: false, is_pressed: false }) => KnobStatus::Normal,
-        }
+        let &KnobState { active, pressed } = state;
+        let focused = ctx.is_focused(self);
+
+        KnobStatus { focused, active, pressed }
     }
 }
 
@@ -218,7 +217,7 @@ where
         let current_state = *state.get::<KnobState>();
 
         if let Some(offset) = event.as_knob_rotation() {
-            if current_state.is_active {
+            if current_state.active {
                 let prev_value = self.value;
 
                 self.value = (prev_value as i32)
@@ -241,15 +240,14 @@ where
                     return Propagate::BubbleUp(self.id, event).into()
                 },
                 CommonEvent::FocusClickDown if focused => {
-                    state.get_mut::<KnobState>().is_pressed = true;
+                    state.get_mut::<KnobState>().pressed = true;
                     return Capture::Captured.into();
                 },
                 CommonEvent::FocusClickUp if focused => {
-                    state.get_mut::<KnobState>().is_pressed = false;
+                    state.get_mut::<KnobState>().pressed = false;
 
-                    if current_state.is_pressed {
-                        state.get_mut::<KnobState>().is_active =
-                            !state.get::<KnobState>().is_active;
+                    if current_state.pressed {
+                        state.get_mut::<KnobState>().active = !state.get::<KnobState>().active;
 
                         return Capture::Captured.into();
                     }
