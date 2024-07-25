@@ -1,4 +1,4 @@
-use alloc::collections::VecDeque;
+use alloc::{boxed::Box, collections::VecDeque};
 use embedded_graphics::{
     draw_target::DrawTarget,
     pixelcolor::{BinaryColor, Rgb555, Rgb565, Rgb666, Rgb888},
@@ -66,6 +66,7 @@ pub struct UI<
     styler: S,
     // events: Vec<E>,
     ctx: UiCtx<Message>,
+    on_exit: Option<Box<dyn FnOnce()>>,
 }
 
 impl<'a, Message, C, E, S> UI<'a, Message, DrawTargetRenderer<C>, E, S>
@@ -121,12 +122,23 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
             // events: Vec::new(),
             styler: Default::default(),
             ctx,
+
+            #[cfg(feature = "std")]
+            on_exit: Box::new(|| std::process::exit(0)),
+
+            #[cfg(not(feature = "std"))]
+            on_exit: None,
         }
     }
 
     // pub fn feed_events(&mut self, events: impl Iterator<Item = E>) {
     //     self.events.extend(events)
     // }
+
+    pub fn on_exit(mut self, f: impl FnOnce() + 'static) -> Self {
+        self.on_exit = Some(Box::new(f));
+        self
+    }
 
     pub fn deque_message(&mut self) -> Option<Message> {
         self.ctx.message_pool.pop_back()
@@ -164,7 +176,12 @@ impl<'a, Message, R: Renderer, E: Event, S: Styler<R::Color>> UI<'a, Message, R,
                         }
                     },
                     Propagate::Ignored => {
-                        // debug!("Ignored event {event:?}");
+                        if let Some(common) = event.as_common() {
+                            match common {
+                                crate::event::CommonEvent::Exit => {},
+                                _ => {},
+                            }
+                        }
                     },
                 }
             } else {

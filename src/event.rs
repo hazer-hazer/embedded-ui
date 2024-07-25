@@ -42,14 +42,17 @@ pub type EventResponse<E> = ControlFlow<Capture, Propagate<E>>;
 
 #[derive(Clone, Copy, Debug)]
 pub enum CommonEvent {
-    /// Moves focus to current ±offset
+    /// Moves focus by current ±offset
     FocusMove(i32),
     /// Moves focus starting from back (internal usage only)
     // FocusMoveRev(i32),
-    /// Focus click button (e.g. enter key) is down
-    FocusClickDown,
-    // Focus click button is up
-    FocusClickUp,
+    /// Focus button (e.g. enter key) is down
+    FocusButtonDown,
+    /// Focus button is up
+    FocusButtonUp,
+    /// Quit the UI. Can be captured by for example some dialog like
+    /// "Are you sure you wan't to quit?"
+    Exit,
 }
 
 // Unused
@@ -59,6 +62,7 @@ pub enum CommonEvent {
 //     }
 // }
 
+// FIXME: Do we really need From<CommonEvent>???
 pub trait Event: Clone + From<CommonEvent> + Debug {
     // fn is_focus_move(&self) -> Option<i32>;
 

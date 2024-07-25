@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 
 use crate::{
+    debug::WidgetDebug,
     el::ElId,
     event::{Event, EventResponse, Propagate},
     layout::{Layout, LayoutNode, Limits, Position, Viewport},
@@ -67,5 +68,9 @@ where
     }
     fn state_children(&self) -> Vec<StateNode> {
         vec![]
+    }
+
+    fn debug(&self, _layout: Layout) -> Option<WidgetDebug<R::Color>> {
+        None
     }
 }

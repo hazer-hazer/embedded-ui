@@ -239,11 +239,11 @@ where
                 CommonEvent::FocusMove(_) if focused => {
                     return Propagate::BubbleUp(self.id, event).into()
                 },
-                CommonEvent::FocusClickDown if focused => {
+                CommonEvent::FocusButtonDown if focused => {
                     state.get_mut::<KnobState>().pressed = true;
                     return Capture::Captured.into();
                 },
-                CommonEvent::FocusClickUp if focused => {
+                CommonEvent::FocusButtonUp if focused => {
                     state.get_mut::<KnobState>().pressed = false;
 
                     if current_state.pressed {
@@ -252,9 +252,10 @@ where
                         return Capture::Captured.into();
                     }
                 },
-                CommonEvent::FocusClickDown
-                | CommonEvent::FocusClickUp
-                | CommonEvent::FocusMove(_) => {
+                CommonEvent::FocusButtonDown
+                | CommonEvent::FocusButtonUp
+                | CommonEvent::FocusMove(_)
+                | CommonEvent::Exit => {
                     // Should we reset state on any event? Or only on common
                     state.reset::<KnobState>();
                 },

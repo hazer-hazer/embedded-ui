@@ -6,6 +6,7 @@ pub mod app;
 pub mod axis;
 pub mod block;
 pub mod color;
+pub mod debug;
 pub mod el;
 pub mod event;
 pub mod focus;
@@ -25,6 +26,8 @@ pub mod ui;
 pub mod widget;
 pub mod widgets;
 // pub mod stylesheet;
+#[cfg(feature = "simulator")]
+pub mod simulator;
 
 // TODO: Feature to switch to fixed-sized heapless
 #[macro_use]

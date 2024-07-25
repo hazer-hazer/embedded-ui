@@ -42,17 +42,6 @@ component_style! {
     }
 }
 
-// #[derive(Clone, Copy)]
-// pub struct BarState {
-//     value: f32,
-// }
-
-// impl Default for BarState {
-//     fn default() -> Self {
-//         Self { value: 0.5 }
-//     }
-// }
-
 pub struct Bar<'a, R, S>
 where
     R: Renderer,

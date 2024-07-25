@@ -190,12 +190,12 @@ where
                     CommonEvent::FocusMove(_) if ctx.is_focused(self) => {
                         Propagate::BubbleUp(self.id, event).into()
                     },
-                    CommonEvent::FocusClickDown if ctx.is_focused(self) => {
+                    CommonEvent::FocusButtonDown if ctx.is_focused(self) => {
                         state.get_mut::<ButtonState>().pressed = true;
 
                         Capture::Captured.into()
                     },
-                    CommonEvent::FocusClickUp if ctx.is_focused(self) => {
+                    CommonEvent::FocusButtonUp if ctx.is_focused(self) => {
                         // Button was clicked only if
                         // - Focus wasn't moved
                         // - Focus button was down on it
@@ -214,9 +214,10 @@ where
 
                         Propagate::Ignored.into()
                     },
-                    CommonEvent::FocusClickDown
-                    | CommonEvent::FocusClickUp
-                    | CommonEvent::FocusMove(_) => {
+                    CommonEvent::FocusButtonDown
+                    | CommonEvent::FocusButtonUp
+                    | CommonEvent::FocusMove(_)
+                    | CommonEvent::Exit => {
                         // Reset pressed state on click on other element
                         state.get_mut::<ButtonState>().pressed = false;
 
